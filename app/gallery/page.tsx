@@ -1,27 +1,83 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Download, Trash2, Search, Filter, Grid3X3, LayoutList, Heart, MoreVertical, X } from "lucide-react";
-
-// Mock data - in real app, this would come from API/database
-const mockImages = [
-    { id: 1, url: "https://placehold.co/400x400/1a1a2e/8b5cf6?text=AI+Art+1", prompt: "A futuristic cityscape at sunset", liked: true, createdAt: "2 hours ago" },
-    { id: 2, url: "https://placehold.co/400x600/1a1a2e/a855f7?text=AI+Art+2", prompt: "Portrait of a mystical forest spirit", liked: false, createdAt: "5 hours ago" },
-    { id: 3, url: "https://placehold.co/600x400/1a1a2e/6366f1?text=AI+Art+3", prompt: "Abstract geometric patterns in neon", liked: true, createdAt: "1 day ago" },
-    { id: 4, url: "https://placehold.co/400x400/1a1a2e/ec4899?text=AI+Art+4", prompt: "Underwater coral reef with bioluminescent fish", liked: false, createdAt: "2 days ago" },
-    { id: 5, url: "https://placehold.co/400x500/1a1a2e/14b8a6?text=AI+Art+5", prompt: "Ancient temple covered in vines", liked: true, createdAt: "3 days ago" },
-    { id: 6, url: "https://placehold.co/500x400/1a1a2e/f59e0b?text=AI+Art+6", prompt: "Cyberpunk street market at night", liked: false, createdAt: "4 days ago" },
-];
+import { useToast } from "@/components/ui/toast";
+import { useAuth } from "@/lib/auth-context";
+import { Download, Trash2, Search, Filter, Grid3X3, LayoutList, Heart, X, Loader2 } from "lucide-react";
+import type { Generation } from "@/lib/supabase/types";
 
 export default function GalleryPage() {
+    const { user } = useAuth();
+    const { showToast } = useToast();
     const [view, setView] = useState<"grid" | "list">("grid");
     const [searchQuery, setSearchQuery] = useState("");
-    const [selectedImage, setSelectedImage] = useState<typeof mockImages[0] | null>(null);
+    const [selectedImage, setSelectedImage] = useState<Generation | null>(null);
+    const [generations, setGenerations] = useState<Generation[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const filteredImages = mockImages.filter(img =>
+    useEffect(() => {
+        if (user) {
+            fetchGenerations();
+        } else {
+            setLoading(false);
+        }
+    }, [user]);
+
+    const fetchGenerations = async () => {
+        try {
+            const res = await fetch("/api/generations?type=image");
+            const data = await res.json();
+            if (res.ok) {
+                setGenerations(data.generations || []);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleToggleFavorite = async (id: string, currentValue: boolean) => {
+        try {
+            const res = await fetch("/api/generations", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id, is_favorite: !currentValue }),
+            });
+
+            if (res.ok) {
+                setGenerations(prev =>
+                    prev.map(g => g.id === id ? { ...g, is_favorite: !currentValue } : g)
+                );
+                showToast(currentValue ? "Removed from favorites" : "Added to favorites", "success");
+            }
+        } catch (error) {
+            showToast("Failed to update", "error");
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        try {
+            const res = await fetch("/api/generations", {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ id }),
+            });
+
+            if (res.ok) {
+                setGenerations(prev => prev.filter(g => g.id !== id));
+                setSelectedImage(null);
+                showToast("Deleted successfully", "success");
+            }
+        } catch (error) {
+            showToast("Failed to delete", "error");
+        }
+    };
+
+    const filteredImages = generations.filter(img =>
         img.prompt.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -38,7 +94,7 @@ export default function GalleryPage() {
                                 Gallery
                             </h1>
                             <p className="text-muted-foreground text-sm">
-                                {filteredImages.length} images in your collection
+                                {loading ? "Loading..." : `${filteredImages.length} images in your collection`}
                             </p>
                         </div>
 
@@ -79,8 +135,15 @@ export default function GalleryPage() {
                         </Button>
                     </div>
 
+                    {/* Loading */}
+                    {loading && (
+                        <div className="flex items-center justify-center py-20">
+                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                        </div>
+                    )}
+
                     {/* Gallery Grid */}
-                    {filteredImages.length > 0 ? (
+                    {!loading && filteredImages.length > 0 && (
                         <div className={`grid gap-4 ${view === "grid" ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" : "grid-cols-1"}`}>
                             {filteredImages.map((image) => (
                                 <Card
@@ -93,7 +156,7 @@ export default function GalleryPage() {
                                 >
                                     <div className="relative aspect-square">
                                         <img
-                                            src={image.url}
+                                            src={image.file_url}
                                             alt={image.prompt}
                                             className="w-full h-full object-cover"
                                         />
@@ -102,13 +165,15 @@ export default function GalleryPage() {
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
                                             <p className="text-white text-sm line-clamp-2 mb-2">{image.prompt}</p>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-white/60 text-xs">{image.createdAt}</span>
+                                                <span className="text-white/60 text-xs">
+                                                    {new Date(image.created_at).toLocaleDateString()}
+                                                </span>
                                                 <div className="flex items-center gap-1">
-                                                    <button className={`p-1.5 rounded-lg hover:bg-white/20 transition-colors ${image.liked ? "text-red-400" : "text-white/60"}`}>
-                                                        <Heart className={`w-4 h-4 ${image.liked ? "fill-current" : ""}`} />
-                                                    </button>
-                                                    <button className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white/60">
-                                                        <Download className="w-4 h-4" />
+                                                    <button
+                                                        onClick={(e) => { e.stopPropagation(); handleToggleFavorite(image.id, image.is_favorite); }}
+                                                        className={`p-1.5 rounded-lg hover:bg-white/20 transition-colors ${image.is_favorite ? "text-red-400" : "text-white/60"}`}
+                                                    >
+                                                        <Heart className={`w-4 h-4 ${image.is_favorite ? "fill-current" : ""}`} />
                                                     </button>
                                                 </div>
                                             </div>
@@ -117,13 +182,20 @@ export default function GalleryPage() {
                                 </Card>
                             ))}
                         </div>
-                    ) : (
+                    )}
+
+                    {/* Empty State */}
+                    {!loading && filteredImages.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-20 text-center">
                             <div className="w-16 h-16 rounded-full bg-surface-2 flex items-center justify-center mb-4">
                                 <Search className="w-8 h-8 text-muted-foreground" />
                             </div>
-                            <h3 className="font-semibold text-lg mb-1">No images found</h3>
-                            <p className="text-muted-foreground text-sm">Try adjusting your search query</p>
+                            <h3 className="font-semibold text-lg mb-1">
+                                {searchQuery ? "No images found" : "No images yet"}
+                            </h3>
+                            <p className="text-muted-foreground text-sm">
+                                {searchQuery ? "Try adjusting your search query" : "Generate your first image to see it here"}
+                            </p>
                         </div>
                     )}
                 </div>
@@ -149,7 +221,7 @@ export default function GalleryPage() {
                         <div className="flex flex-col md:flex-row">
                             <div className="flex-1 bg-black">
                                 <img
-                                    src={selectedImage.url}
+                                    src={selectedImage.file_url}
                                     alt={selectedImage.prompt}
                                     className="w-full h-64 md:h-[500px] object-contain"
                                 />
@@ -159,15 +231,27 @@ export default function GalleryPage() {
                                 <p className="text-muted-foreground text-sm">{selectedImage.prompt}</p>
 
                                 <div className="pt-4 space-y-2">
-                                    <p className="text-xs text-muted-foreground">Created {selectedImage.createdAt}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Created {new Date(selectedImage.created_at).toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        Tokens used: {selectedImage.tokens_used}
+                                    </p>
                                 </div>
 
                                 <div className="flex gap-2 pt-4">
-                                    <Button variant="primary" className="flex-1">
+                                    <Button
+                                        variant="primary"
+                                        className="flex-1"
+                                        onClick={() => window.open(selectedImage.file_url, "_blank")}
+                                    >
                                         <Download className="w-4 h-4" />
                                         Download
                                     </Button>
-                                    <Button variant="ghost">
+                                    <Button
+                                        variant="ghost"
+                                        onClick={() => handleDelete(selectedImage.id)}
+                                    >
                                         <Trash2 className="w-4 h-4" />
                                     </Button>
                                 </div>

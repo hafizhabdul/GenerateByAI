@@ -436,6 +436,20 @@ body::before {
   animation: shimmer 1.5s infinite;
 }
 
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+.animate-slide-in-right {
+  animation: slideInFromRight var(--transition-slow) ease-out;
+}
+
 /* ═══════════════════════════════════════════════════════════════
    RESPONSIVE UTILITIES
    ═══════════════════════════════════════════════════════════════ */

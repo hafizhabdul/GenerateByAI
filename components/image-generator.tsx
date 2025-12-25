@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { Loader2, Send, Image as ImageIcon, Film, Sparkles, Zap, Download, RotateCcw, Copy } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Loader2, Send, Image as ImageIcon, Film, Sparkles, Zap, Download, RotateCcw, Copy, History, X, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth-context";
+import type { Generation } from "@/lib/supabase/types";
 
 export function ImageGenerator() {
     const [prompt, setPrompt] = useState("");
@@ -12,8 +14,34 @@ export function ImageGenerator() {
     const [image, setImage] = useState<string | null>(null);
     const [mode, setMode] = useState<"image" | "video">("image");
     const [isHero, setIsHero] = useState(true);
+    const [showHistory, setShowHistory] = useState(false);
+    const [history, setHistory] = useState<Generation[]>([]);
+    const [loadingHistory, setLoadingHistory] = useState(false);
     const { showToast } = useToast();
+    const { user } = useAuth();
     const imageRef = useRef<HTMLImageElement>(null);
+
+    // Fetch history when panel opens
+    useEffect(() => {
+        if (showHistory && user) {
+            fetchHistory();
+        }
+    }, [showHistory, user]);
+
+    const fetchHistory = async () => {
+        setLoadingHistory(true);
+        try {
+            const res = await fetch("/api/generations?limit=20");
+            if (res.ok) {
+                const data = await res.json();
+                setHistory(data.generations || []);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setLoadingHistory(false);
+        }
+    };
 
     const handleGenerate = async () => {
         if (!prompt.trim()) {
@@ -24,6 +52,7 @@ export function ImageGenerator() {
         setLoading(true);
         setIsHero(false);
         setImage(null);
+        setShowHistory(false);
 
         try {
             if (mode === "video") {
@@ -44,12 +73,24 @@ export function ImageGenerator() {
 
             setImage(data.url);
             showToast("Image generated successfully!", "success");
+
+            // Refresh history after new generation
+            if (user) {
+                fetchHistory();
+            }
         } catch (err) {
             console.error(err);
             showToast(err instanceof Error ? err.message : "Failed to generate image", "error");
         } finally {
             setLoading(false);
         }
+    };
+
+    const handleSelectFromHistory = (item: Generation) => {
+        setPrompt(item.prompt);
+        setImage(item.file_url);
+        setIsHero(false);
+        setShowHistory(false);
     };
 
     const handleDownload = async () => {
@@ -88,6 +129,75 @@ export function ImageGenerator() {
             {/* Background Ambient Glow */}
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-primary/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
             <div className="absolute bottom-1/4 right-1/4 w-[200px] md:w-[400px] h-[200px] md:h-[400px] bg-purple-500/5 rounded-full blur-[80px] md:blur-[120px] pointer-events-none" />
+
+            {/* History Panel */}
+            {showHistory && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in"
+                    onClick={() => setShowHistory(false)}
+                >
+                    <div
+                        className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-card border-l border-border animate-slide-in-right overflow-hidden flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-border">
+                            <div className="flex items-center gap-2">
+                                <History className="w-5 h-5 text-primary" />
+                                <h2 className="font-semibold">Chat History</h2>
+                            </div>
+                            <button
+                                onClick={() => setShowHistory(false)}
+                                className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* History List */}
+                        <div className="flex-1 overflow-y-auto">
+                            {loadingHistory ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
+                                </div>
+                            ) : history.length > 0 ? (
+                                <div className="divide-y divide-border">
+                                    {history.map((item) => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => handleSelectFromHistory(item)}
+                                            className="w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3"
+                                        >
+                                            {/* Thumbnail */}
+                                            <div className="w-16 h-16 rounded-xl overflow-hidden bg-surface-2 shrink-0">
+                                                <img
+                                                    src={item.file_url}
+                                                    alt=""
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            {/* Content */}
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm line-clamp-2 mb-1">{item.prompt}</p>
+                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                                                    <Clock className="w-3 h-3" />
+                                                    {new Date(item.created_at).toLocaleDateString()}
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                                    <Sparkles className="w-10 h-10 text-muted-foreground/50 mb-3" />
+                                    <p className="text-muted-foreground">No history yet</p>
+                                    <p className="text-sm text-muted-foreground/70">Your generations will appear here</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Main Stage */}
             <div className={cn(
@@ -205,32 +315,46 @@ export function ImageGenerator() {
 
                         {/* Bottom Bar */}
                         <div className="flex items-center justify-between px-2 md:px-4 pb-2 gap-2">
-                            {/* Mode Toggle */}
-                            <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/5">
-                                <button
-                                    onClick={() => setMode("image")}
-                                    className={cn(
-                                        "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all duration-300 touch-target",
-                                        mode === "image"
-                                            ? "bg-white/10 text-white shadow-sm"
-                                            : "text-white/40 hover:text-white"
-                                    )}
-                                >
-                                    <ImageIcon className="w-3.5 h-3.5" />
-                                    <span className="hidden xs:inline">Image</span>
-                                </button>
-                                <button
-                                    onClick={() => setMode("video")}
-                                    className={cn(
-                                        "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all duration-300 touch-target",
-                                        mode === "video"
-                                            ? "bg-white/10 text-white shadow-sm"
-                                            : "text-white/40 hover:text-white"
-                                    )}
-                                >
-                                    <Film className="w-3.5 h-3.5" />
-                                    <span className="hidden xs:inline">Video</span>
-                                </button>
+                            {/* Left Actions */}
+                            <div className="flex items-center gap-2">
+                                {/* History Button */}
+                                {user && (
+                                    <button
+                                        onClick={() => setShowHistory(true)}
+                                        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                                        title="View history"
+                                    >
+                                        <History className="w-5 h-5" />
+                                    </button>
+                                )}
+
+                                {/* Mode Toggle */}
+                                <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/5">
+                                    <button
+                                        onClick={() => setMode("image")}
+                                        className={cn(
+                                            "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all duration-300 touch-target",
+                                            mode === "image"
+                                                ? "bg-white/10 text-white shadow-sm"
+                                                : "text-white/40 hover:text-white"
+                                        )}
+                                    >
+                                        <ImageIcon className="w-3.5 h-3.5" />
+                                        <span className="hidden xs:inline">Image</span>
+                                    </button>
+                                    <button
+                                        onClick={() => setMode("video")}
+                                        className={cn(
+                                            "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all duration-300 touch-target",
+                                            mode === "video"
+                                                ? "bg-white/10 text-white shadow-sm"
+                                                : "text-white/40 hover:text-white"
+                                        )}
+                                    >
+                                        <Film className="w-3.5 h-3.5" />
+                                        <span className="hidden xs:inline">Video</span>
+                                    </button>
+                                </div>
                             </div>
 
                             {/* Generate Button */}
