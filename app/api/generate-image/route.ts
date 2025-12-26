@@ -55,11 +55,17 @@ export async function POST(req: Request) {
             baseURL: baseURL,
         });
 
-        console.log("Generating image with prompt:", prompt);
+        console.log("Original prompt:", prompt);
+
+        // Enhance prompt for realism
+        const realismKeywords = "photorealistic, 8k, highly detailed, realistic lighting, sharp focus, high quality, cinematic, masterpiece, photography, depth of field";
+        const enhancedPrompt = `${prompt}, ${realismKeywords}`;
+
+        console.log("Enhanced prompt:", enhancedPrompt);
 
         const response = await openai.images.generate({
             model: "gpt-image-1",
-            prompt: prompt,
+            prompt: enhancedPrompt,
             n: 1,
             size: size,
         });

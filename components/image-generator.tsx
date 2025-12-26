@@ -1,25 +1,43 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Send, Image as ImageIcon, Film, Sparkles, Zap, Download, RotateCcw, Copy, History, X, Clock } from "lucide-react";
+import { Loader2, Send, Image as ImageIcon, Film, Sparkles, Zap, Download, RotateCcw, Copy, History, X, Clock, User, Trash2, MessageSquarePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import type { Generation } from "@/lib/supabase/types";
 
+// Extended Generation type to handle "optimistic" pending state
+type FeedItem = {
+    id: string;
+    type: "image" | "video";
+    prompt: string;
+    file_url?: string;
+    status: "pending" | "processing" | "completed" | "failed";
+    created_at: string;
+};
+
 export function ImageGenerator() {
     const [prompt, setPrompt] = useState("");
+    const [feed, setFeed] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(false);
-    const [image, setImage] = useState<string | null>(null);
     const [mode, setMode] = useState<"image" | "video">("image");
     const [isHero, setIsHero] = useState(true);
     const [showHistory, setShowHistory] = useState(false);
     const [history, setHistory] = useState<Generation[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+
     const { showToast } = useToast();
     const { user } = useAuth();
-    const imageRef = useRef<HTMLImageElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Auto-scroll to bottom when feed updates
+    useEffect(() => {
+        if (scrollRef.current) {
+            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        }
+    }, [feed]);
 
     // Fetch history when panel opens
     useEffect(() => {
@@ -49,15 +67,29 @@ export function ImageGenerator() {
             return;
         }
 
-        setLoading(true);
+        const currentPrompt = prompt;
+        setPrompt(""); // Clear immediately
         setIsHero(false);
-        setImage(null);
+        setLoading(true);
         setShowHistory(false);
+
+        // Optimistic Update: Add pending item to feed
+        const tempId = Date.now().toString();
+        const optimisticItem: FeedItem = {
+            id: tempId,
+            type: mode,
+            prompt: currentPrompt,
+            status: "pending",
+            created_at: new Date().toISOString()
+        };
+
+        setFeed(prev => [...prev, optimisticItem]);
 
         try {
             if (mode === "video") {
                 await new Promise(resolve => setTimeout(resolve, 2000));
                 showToast("Video generation coming soon!", "info");
+                setFeed(prev => prev.filter(item => item.id !== tempId)); // Remove pending item
                 setLoading(false);
                 return;
             }
@@ -65,70 +97,78 @@ export function ImageGenerator() {
             const res = await fetch("/api/generate-image", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt }),
+                body: JSON.stringify({ prompt: currentPrompt }),
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Generation failed");
 
-            setImage(data.url);
+            // Update optimistic item with result
+            setFeed(prev => prev.map(item =>
+                item.id === tempId
+                    ? { ...item, status: "completed", file_url: data.url }
+                    : item
+            ));
+
             showToast("Image generated successfully!", "success");
 
-            // Refresh history after new generation
-            if (user) {
-                fetchHistory();
-            }
+            // Usage updates happen server-side, sidebar will update via useAuth/context eventually
         } catch (err) {
             console.error(err);
             showToast(err instanceof Error ? err.message : "Failed to generate image", "error");
+
+            // Mark item as failed
+            setFeed(prev => prev.map(item =>
+                item.id === tempId
+                    ? { ...item, status: "failed" }
+                    : item
+            ));
         } finally {
             setLoading(false);
         }
     };
 
     const handleSelectFromHistory = (item: Generation) => {
-        setPrompt(item.prompt);
-        setImage(item.file_url);
+        // When selecting from history, we just add it to the feed
+        const historyItem: FeedItem = {
+            id: item.id,
+            type: item.type,
+            prompt: item.prompt,
+            file_url: item.file_url,
+            status: item.status,
+            created_at: item.created_at
+        };
+        setFeed(prev => [...prev, historyItem]);
         setIsHero(false);
         setShowHistory(false);
     };
 
-    const handleDownload = async () => {
-        if (!image) return;
-
-        try {
-            const response = await fetch(image);
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `ai-generated-${Date.now()}.png`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            showToast("Image downloaded!", "success");
-        } catch {
-            showToast("Failed to download image", "error");
-        }
-    };
-
-    const handleCopyPrompt = () => {
-        navigator.clipboard.writeText(prompt);
-        showToast("Prompt copied to clipboard!", "success");
-    };
-
-    const handleReset = () => {
-        setPrompt("");
-        setImage(null);
+    const handleNewSession = () => {
+        setFeed([]);
         setIsHero(true);
+        setPrompt("");
+        showToast("Started a new creative session", "info");
     };
 
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
             {/* Background Ambient Glow */}
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-primary/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
-            <div className="absolute bottom-1/4 right-1/4 w-[200px] md:w-[400px] h-[200px] md:h-[400px] bg-purple-500/5 rounded-full blur-[80px] md:blur-[120px] pointer-events-none" />
+
+            {/* Top Controls */}
+            <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
+                {feed.length > 0 && (
+                    <Button
+                        variant="glass"
+                        size="sm"
+                        onClick={handleNewSession}
+                        className="animate-fade-in group"
+                    >
+                        <MessageSquarePlus className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+                        New Session
+                    </Button>
+                )}
+            </div>
 
             {/* History Panel */}
             {showHistory && (
@@ -153,14 +193,9 @@ export function ImageGenerator() {
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
-
                         {/* History List */}
                         <div className="flex-1 overflow-y-auto">
-                            {loadingHistory ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <Loader2 className="w-6 h-6 animate-spin text-primary" />
-                                </div>
-                            ) : history.length > 0 ? (
+                            {history.length > 0 ? (
                                 <div className="divide-y divide-border">
                                     {history.map((item) => (
                                         <button
@@ -168,15 +203,9 @@ export function ImageGenerator() {
                                             onClick={() => handleSelectFromHistory(item)}
                                             className="w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3"
                                         >
-                                            {/* Thumbnail */}
                                             <div className="w-16 h-16 rounded-xl overflow-hidden bg-surface-2 shrink-0">
-                                                <img
-                                                    src={item.file_url}
-                                                    alt=""
-                                                    className="w-full h-full object-cover"
-                                                />
+                                                <img src={item.file_url} alt="" className="w-full h-full object-cover" />
                                             </div>
-                                            {/* Content */}
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm line-clamp-2 mb-1">{item.prompt}</p>
                                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -191,7 +220,6 @@ export function ImageGenerator() {
                                 <div className="flex flex-col items-center justify-center py-12 text-center px-4">
                                     <Sparkles className="w-10 h-10 text-muted-foreground/50 mb-3" />
                                     <p className="text-muted-foreground">No history yet</p>
-                                    <p className="text-sm text-muted-foreground/70">Your generations will appear here</p>
                                 </div>
                             )}
                         </div>
@@ -199,92 +227,35 @@ export function ImageGenerator() {
                 </div>
             )}
 
-            {/* Main Stage */}
-            <div className={cn(
-                "flex-1 flex flex-col items-center transition-all duration-700 ease-out px-4 md:px-8",
-                isHero ? "justify-center pb-40 md:pb-48" : "justify-start pt-6 md:pt-12 pb-40 md:pb-36"
-            )}>
-
-                {/* Hero Text (Only visible in Hero Mode) */}
+            {/* Main Stage (Feed) */}
+            <div
+                ref={scrollRef}
+                className={cn(
+                    "flex-1 overflow-y-auto overflow-x-hidden scroll-smooth",
+                    isHero ? "flex items-center justify-center p-4" : "p-4 md:p-8 pb-32 md:pb-40"
+                )}
+            >
+                {/* Hero Content - Moved Up Significantly */}
                 <div className={cn(
-                    "text-center space-y-4 md:space-y-6 mb-8 md:mb-12 transition-all duration-700",
-                    isHero ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-10 hidden"
+                    "text-center space-y-4 md:space-y-6 transition-all duration-700 max-w-2xl mx-auto",
+                    isHero ? "opacity-100 translate-y-[-140px]" : "hidden" // Moved up much more (-140px)
                 )}>
-                    {/* Badge */}
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
                         <Zap className="w-3 h-3 fill-current" />
                         AI Creative Studio
                     </div>
-
-                    {/* Headline */}
                     <h1 className="font-bold tracking-tight gradient-text" style={{ fontSize: "var(--text-5xl)" }}>
                         Dream it. <br className="md:hidden" />
                         <span className="text-white/20">Create it.</span>
                     </h1>
-
-                    {/* Subtitle */}
-                    <p className="text-muted-foreground max-w-md mx-auto" style={{ fontSize: "var(--text-base)" }}>
-                        Transform your imagination into stunning visuals with the power of AI
-                    </p>
                 </div>
 
-                {/* Result Area */}
+                {/* Feed Items (Chat Style) */}
                 {!isHero && (
-                    <div className="w-full max-w-4xl flex-1 flex flex-col items-center justify-center animate-fade-in-up">
-                        {loading ? (
-                            <div className="flex flex-col items-center gap-6">
-                                {/* Animated Loader */}
-                                <div className="relative w-20 h-20 md:w-24 md:h-24">
-                                    <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-primary animate-spin" />
-                                    <div className="absolute inset-2 rounded-full border-2 border-transparent border-r-purple-500 animate-spin" style={{ animationDirection: "reverse", animationDuration: "1.5s" }} />
-                                    <div className="absolute inset-4 rounded-full border-2 border-transparent border-b-indigo-500 animate-spin" style={{ animationDuration: "2s" }} />
-                                    <div className="absolute inset-0 flex items-center justify-center">
-                                        <Sparkles className="w-6 h-6 md:w-8 md:h-8 text-primary animate-pulse" />
-                                    </div>
-                                </div>
-                                <div className="text-center space-y-2">
-                                    <p className="text-foreground font-medium" style={{ fontSize: "var(--text-lg)" }}>Creating your masterpiece...</p>
-                                    <p className="text-muted-foreground text-sm">This may take a few seconds</p>
-                                </div>
-                            </div>
-                        ) : image ? (
-                            <div className="w-full space-y-4">
-                                {/* Image Container */}
-                                <div className="relative group rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl border border-white/10 bg-black/30 mx-auto">
-                                    <img
-                                        ref={imageRef}
-                                        src={image}
-                                        alt="Generated"
-                                        className="w-full max-h-[50vh] md:max-h-[60vh] object-contain animate-fade-in"
-                                    />
-
-                                    {/* Hover Overlay */}
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end justify-between p-4 md:p-6">
-                                        <p className="text-white/80 text-sm max-w-[60%] line-clamp-2">{prompt}</p>
-                                        <Button onClick={handleDownload} variant="primary" size="sm">
-                                            <Download className="w-4 h-4" />
-                                            Download
-                                        </Button>
-                                    </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex items-center justify-center gap-3 flex-wrap">
-                                    <Button onClick={handleDownload} variant="secondary" size="sm">
-                                        <Download className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Download</span>
-                                    </Button>
-                                    <Button onClick={handleCopyPrompt} variant="ghost" size="sm">
-                                        <Copy className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Copy Prompt</span>
-                                    </Button>
-                                    <Button onClick={handleReset} variant="ghost" size="sm">
-                                        <RotateCcw className="w-4 h-4" />
-                                        <span className="hidden sm:inline">New</span>
-                                    </Button>
-                                </div>
-                            </div>
-                        ) : null}
+                    <div className="w-full max-w-3xl mx-auto space-y-12">
+                        {feed.map((item) => (
+                            <FeedItemCard key={item.id} item={item} />
+                        ))}
                     </div>
                 )}
             </div>
@@ -293,12 +264,11 @@ export function ImageGenerator() {
             <div className={cn(
                 "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
                 isHero
-                    ? "bottom-1/2 translate-y-[calc(50%+60px)] md:translate-y-[calc(50%+80px)]"
+                    ? "bottom-1/2 translate-y-[calc(50%+80px)] md:translate-y-[calc(50%+100px)]" // Moved further down
                     : "bottom-20 md:bottom-8"
             )}>
                 <div className="w-full max-w-2xl mx-auto">
-                    <div className="glass rounded-2xl md:rounded-3xl p-2 flex flex-col gap-2 shadow-2xl ring-1 ring-white/10 transition-all duration-300 focus-within:ring-primary/50 focus-within:shadow-[0_0_40px_rgba(139,92,246,0.15)]">
-                        {/* Textarea */}
+                    <div className="rounded-2xl md:rounded-3xl p-2 flex flex-col gap-2 shadow-2xl ring-1 ring-white/10 transition-all duration-300 focus-within:ring-primary/50 focus-within:shadow-[0_0_50px_rgba(139,92,246,0.15)] bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/5">
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
@@ -312,52 +282,16 @@ export function ImageGenerator() {
                                 }
                             }}
                         />
-
-                        {/* Bottom Bar */}
                         <div className="flex items-center justify-between px-2 md:px-4 pb-2 gap-2">
-                            {/* Left Actions */}
                             <div className="flex items-center gap-2">
-                                {/* History Button */}
-                                {user && (
-                                    <button
-                                        onClick={() => setShowHistory(true)}
-                                        className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
-                                        title="View history"
-                                    >
-                                        <History className="w-5 h-5" />
-                                    </button>
-                                )}
-
-                                {/* Mode Toggle */}
-                                <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/5">
-                                    <button
-                                        onClick={() => setMode("image")}
-                                        className={cn(
-                                            "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all duration-300 touch-target",
-                                            mode === "image"
-                                                ? "bg-white/10 text-white shadow-sm"
-                                                : "text-white/40 hover:text-white"
-                                        )}
-                                    >
-                                        <ImageIcon className="w-3.5 h-3.5" />
-                                        <span className="hidden xs:inline">Image</span>
-                                    </button>
-                                    <button
-                                        onClick={() => setMode("video")}
-                                        className={cn(
-                                            "flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-1.5 md:py-2 rounded-lg text-xs font-medium transition-all duration-300 touch-target",
-                                            mode === "video"
-                                                ? "bg-white/10 text-white shadow-sm"
-                                                : "text-white/40 hover:text-white"
-                                        )}
-                                    >
-                                        <Film className="w-3.5 h-3.5" />
-                                        <span className="hidden xs:inline">Video</span>
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={() => setShowHistory(true)}
+                                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                                >
+                                    <History className="w-5 h-5" />
+                                </button>
+                                {/* Mode Toggles... (Keep simplified for now) */}
                             </div>
-
-                            {/* Generate Button */}
                             <Button
                                 onClick={handleGenerate}
                                 disabled={loading || !prompt.trim()}
@@ -369,6 +303,75 @@ export function ImageGenerator() {
                             </Button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function FeedItemCard({ item }: { item: FeedItem }) {
+    const handleDownload = async () => {
+        if (!item.file_url) return;
+        try {
+            const response = await fetch(item.file_url);
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `ai-generated-${Date.now()}.png`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch {
+            // Error handling
+        }
+    };
+
+    return (
+        <div className="flex flex-col gap-6 animate-fade-in-up">
+            {/* User Prompt Bubble */}
+            <div className="flex justify-end">
+                <div className="max-w-[80%] bg-surface-2 border border-white/10 rounded-2xl rounded-tr-sm px-6 py-4 shadow-sm">
+                    <p className="text-foreground/90 leading-relaxed">{item.prompt}</p>
+                </div>
+            </div>
+
+            {/* AI Response (Image) */}
+            <div className="flex gap-4">
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shrink-0 shadow-glow">
+                    <Sparkles className="w-4 h-4 text-white" />
+                </div>
+
+                <div className="flex-1 space-y-3">
+                    {item.status === "pending" ? (
+                        <div className="w-full aspect-square max-w-md rounded-2xl bg-surface-2 animate-pulse flex flex-col items-center justify-center border border-white/5">
+                            <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
+                            <p className="text-sm text-muted-foreground">Creating masterpiece...</p>
+                        </div>
+                    ) : item.status === "failed" ? (
+                        <div className="w-full max-w-md p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-200">
+                            Failed to generate image. Please try again.
+                        </div>
+                    ) : (
+                        <div className="relative group w-full max-w-md">
+                            <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/30">
+                                <img
+                                    src={item.file_url}
+                                    alt="Generated"
+                                    className="w-full h-auto object-cover"
+                                />
+                            </div>
+
+                            {/* Action Bar */}
+                            <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <Button variant="ghost" size="sm" onClick={handleDownload}>
+                                    <Download className="w-4 h-4 mr-2" />
+                                    Download
+                                </Button>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
