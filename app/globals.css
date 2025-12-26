@@ -12,6 +12,10 @@
   /* Surface Hierarchy */
   --surface-1: #0a0a0a;
   --surface-2: #121212;
+
+  /* Text Gradients */
+  --gradient-text-from: #ffffff;
+  --gradient-text-to: rgba(255, 255, 255, 0.7);
   --surface-3: #1a1a1a;
   --surface-4: #242424;
 
@@ -103,14 +107,75 @@
   --transition-slower: 500ms cubic-bezier(0.4, 0, 0.2, 1);
 
   /* Z-Index Scale */
-  --z-dropdown: 100;
-  --z-sticky: 200;
-  --z-fixed: 300;
-  --z-modal-backdrop: 400;
-  --z-modal: 500;
-  --z-popover: 600;
-  --z-tooltip: 700;
   --z-toast: 800;
+
+  /* Glass Variables (Dark Default) */
+  --glass-bg: rgba(15, 15, 15, 0.6);
+  --glass-subtle-bg: rgba(10, 10, 10, 0.4);
+  --glass-panel-bg: rgba(8, 8, 8, 0.8);
+  --glass-border: var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LIGHT THEME OVERRIDES
+   ═══════════════════════════════════════════════════════════════ */
+.light {
+  /* Core Colors */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+
+  /* Surface Hierarchy */
+  --surface-1: #fbfbfb;
+  --surface-2: #f3f4f6;
+  --surface-3: #e5e7eb;
+  --surface-4: #d1d5db;
+
+  /* Text Gradients */
+  --gradient-text-from: #0a0a0a;
+  --gradient-text-to: rgba(10, 10, 10, 0.7);
+
+  /* Card & Popover */
+  --card: #ffffff;
+  --card-foreground: #0a0a0a;
+  --popover: #ffffff;
+  --popover-foreground: #0a0a0a;
+
+  /* Primary - Violet (Slightly darker for contrast on white) */
+  --primary: #7c3aed;
+  --primary-hover: #6d28d9;
+  --primary-foreground: #ffffff;
+  --primary-glow: rgba(124, 58, 237, 0.2);
+
+  /* Secondary */
+  --secondary: #f3f4f6;
+  --secondary-foreground: #111827;
+
+  /* Muted */
+  --muted: #f3f4f6;
+  --muted-foreground: #6b7280;
+
+  /* Accent */
+  --accent: #f3f4f6;
+  --accent-foreground: #111827;
+
+  /* Borders & Inputs */
+  --border: rgba(0, 0, 0, 0.1);
+  --border-hover: rgba(0, 0, 0, 0.2);
+  --input: #e5e7eb;
+
+  /* Shadows (Darker for light mode visibility) */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Glass Variables (Light Mode) */
+  --glass-bg: rgba(255, 255, 255, 0.7);
+  --glass-subtle-bg: rgba(255, 255, 255, 0.5);
+  --glass-panel-bg: rgba(255, 255, 255, 0.9);
+  --glass-border: rgba(0, 0, 0, 0.08);
+
+  /* Re-define standard border for Light Mode consistency if needed, but --border is mostly fine */
 }
 
 /* Tailwind Theme Integration */
@@ -187,24 +252,24 @@ body::before {
    ═══════════════════════════════════════════════════════════════ */
 
 .glass {
-  background: rgba(15, 15, 15, 0.6);
+  background: var(--glass-bg);
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 
 .glass-subtle {
-  background: rgba(10, 10, 10, 0.4);
+  background: var(--glass-subtle-bg);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border);
 }
 
 .glass-panel {
-  background: rgba(8, 8, 8, 0.8);
+  background: var(--glass-panel-bg);
   backdrop-filter: blur(24px) saturate(200%);
   -webkit-backdrop-filter: blur(24px) saturate(200%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--glass-border);
 }
 
 /* ═══════════════════════════════════════════════════════════════
@@ -281,7 +346,7 @@ body::before {
    ═══════════════════════════════════════════════════════════════ */
 
 .gradient-text {
-  background: linear-gradient(180deg, #ffffff 0%, rgba(255, 255, 255, 0.7) 100%);
+  background: linear-gradient(180deg, var(--gradient-text-from) 0%, var(--gradient-text-to) 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

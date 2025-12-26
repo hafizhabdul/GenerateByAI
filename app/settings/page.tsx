@@ -1,19 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { Moon, Sun, Monitor, Bell, BellOff, Shield, Key, Palette, Zap, ChevronRight, Check } from "lucide-react";
+import { Moon, Sun, Monitor, Bell, BellOff, Shield, Key, Sliders, Zap, ChevronRight, Check, Palette } from "lucide-react";
+
+import { useTheme } from "next-themes";
 
 export default function SettingsPage() {
     const { showToast } = useToast();
-    const [theme, setTheme] = useState<"dark" | "light" | "system">("dark");
+    const { theme, setTheme } = useTheme();
+    const [mounted, setMounted] = useState(false);
     const [notifications, setNotifications] = useState(true);
     const [quality, setQuality] = useState<"standard" | "high" | "ultra">("high");
 
+    useEffect(() => {
+        setMounted(true);
+        const savedQuality = localStorage.getItem("generation_quality");
+        if (savedQuality) setQuality(savedQuality as any);
+    }, []);
+
+    if (!mounted) return null;
+
     const handleSave = () => {
+        localStorage.setItem("generation_quality", quality);
         showToast("Settings saved successfully!", "success");
     };
 
@@ -59,8 +71,8 @@ export default function SettingsPage() {
                                             key={option.value}
                                             onClick={() => setTheme(option.value as typeof theme)}
                                             className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${theme === option.value
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border bg-surface-2 hover:border-border-hover"
+                                                ? "border-primary bg-primary/10 text-primary"
+                                                : "border-border bg-surface-2 hover:border-border-hover"
                                                 }`}
                                         >
                                             <option.icon className="w-5 h-5" />
@@ -98,8 +110,8 @@ export default function SettingsPage() {
                                     key={option.value}
                                     onClick={() => setQuality(option.value as typeof quality)}
                                     className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${quality === option.value
-                                            ? "border-primary bg-primary/5"
-                                            : "border-border hover:border-border-hover"
+                                        ? "border-primary bg-primary/5"
+                                        : "border-border hover:border-border-hover"
                                         }`}
                                 >
                                     <div className="text-left">

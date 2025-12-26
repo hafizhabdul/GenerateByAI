@@ -40,7 +40,7 @@ export function Sidebar() {
     return (
         <>
             {/* Desktop Sidebar - Minimalist & Premium */}
-            <aside className="fixed left-6 top-6 bottom-6 w-16 rounded-full glass-panel flex flex-col items-center py-6 gap-6 z-[300] shadow-2xl hide-mobile border border-white/5 bg-black/40 backdrop-blur-xl">
+            <aside className="fixed left-6 top-6 bottom-6 w-16 rounded-full glass-panel flex flex-col items-center py-6 gap-6 z-[300] shadow-2xl hide-mobile border border-border bg-background/60 backdrop-blur-xl">
                 {/* Logo - Subtle Glow */}
                 <Link
                     href="/"
@@ -74,7 +74,8 @@ export function Sidebar() {
                                 <path
                                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                     fill="none"
-                                    stroke="rgba(255, 255, 255, 0.1)"
+                                    stroke="currentColor"
+                                    strokeOpacity="0.1"
                                     strokeWidth="3"
                                 />
                                 <path
@@ -96,9 +97,9 @@ export function Sidebar() {
                             </Link>
 
                             {/* Floating Tooltip */}
-                            <div className="absolute left-full ml-4 px-3 py-2 bg-[#1a1a1a] border border-white/10 rounded-xl shadow-xl opacity-0 translate-x-[-10px] invisible group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none w-max z-[400]">
-                                <div className="text-xs font-semibold text-white mb-0.5">{creditsLeft} Credits Left</div>
-                                <div className="text-[10px] text-amber-400 font-medium">Upgrade to Pro</div>
+                            <div className="absolute left-full ml-4 px-3 py-2 bg-popover border border-border rounded-xl shadow-xl opacity-0 translate-x-[-10px] invisible group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none w-max z-[400]">
+                                <div className="text-xs font-semibold text-foreground mb-0.5">{creditsLeft} Credits Left</div>
+                                <div className="text-[10px] text-amber-500 font-medium">Upgrade to Pro</div>
                             </div>
                         </div>
                     )}
@@ -111,12 +112,12 @@ export function Sidebar() {
                         active={pathname === "/settings"}
                     />
 
-                    <div className="w-8 h-px bg-white/5" />
+                    <div className="w-8 h-px bg-border" />
 
                     {/* User Avatar - Ultra clean */}
                     <Link
                         href="/profile"
-                        className="w-10 h-10 rounded-full bg-gradient-to-tr from-surface-2 to-surface-3 border border-white/10 flex items-center justify-center text-muted-foreground hover:text-white hover:border-white/20 transition-all"
+                        className="w-10 h-10 rounded-full bg-gradient-to-tr from-surface-2 to-surface-3 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all"
                     >
                         <User className="w-5 h-5" />
                     </Link>
@@ -125,7 +126,7 @@ export function Sidebar() {
 
             {/* Mobile Bottom Navigation - Kept Functional */}
             <nav className="fixed bottom-0 left-0 right-0 z-[300] hide-desktop safe-area-bottom">
-                <div className="glass border-t border-white/5 px-2 py-2 bg-black/80 backdrop-blur-xl">
+                <div className="glass border-t border-border px-2 py-2 bg-background/80 backdrop-blur-xl">
                     <div className="flex items-center justify-around">
                         {navItems.map((item) => (
                             <Link
@@ -167,13 +168,13 @@ function NavItem({
                 "relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 group",
                 active
                     ? "text-primary bg-primary/10 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
-                    : "text-muted-foreground hover:text-white hover:bg-white/5"
+                    : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
             )}
         >
             {icon}
 
             {/* Minimal Tooltip */}
-            <div className="absolute left-full ml-4 px-3 py-1.5 bg-[#1a1a1a] border border-white/10 rounded-lg text-xs font-medium text-white opacity-0 translate-x-[-5px] invisible group-hover:opacity-100 group-hover:visible group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-[400] shadow-xl">
+            <div className="absolute left-full ml-4 px-3 py-1.5 bg-popover border border-border rounded-lg text-xs font-medium text-foreground opacity-0 translate-x-[-5px] invisible group-hover:opacity-100 group-hover:visible group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-[400] shadow-xl">
                 {label}
             </div>
         </Link>

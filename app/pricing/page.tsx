@@ -27,7 +27,7 @@ export default function PricingPage() {
                     <Crown className="w-3 h-3" />
                     Premium Access
                 </div>
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-white">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
                     Unlock your <span className="gradient-text">full potential</span>.
                 </h1>
                 <p className="text-muted-foreground max-w-lg mx-auto text-lg">

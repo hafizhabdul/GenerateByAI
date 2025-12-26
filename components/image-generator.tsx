@@ -94,10 +94,13 @@ export function ImageGenerator() {
                 return;
             }
 
+            // Get quality setting
+            const quality = localStorage.getItem("generation_quality") || "high";
+
             const res = await fetch("/api/generate-image", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: currentPrompt }),
+                body: JSON.stringify({ prompt: currentPrompt, quality }),
             });
 
             const data = await res.json();
@@ -246,7 +249,7 @@ export function ImageGenerator() {
                     </div>
                     <h1 className="font-bold tracking-tight gradient-text" style={{ fontSize: "var(--text-5xl)" }}>
                         Dream it. <br className="md:hidden" />
-                        <span className="text-white/20">Create it.</span>
+                        <span className="text-muted-foreground/50">Create it.</span>
                     </h1>
                 </div>
 
@@ -268,12 +271,12 @@ export function ImageGenerator() {
                     : "bottom-20 md:bottom-8"
             )}>
                 <div className="w-full max-w-2xl mx-auto">
-                    <div className="rounded-2xl md:rounded-3xl p-2 flex flex-col gap-2 shadow-2xl ring-1 ring-white/10 transition-all duration-300 focus-within:ring-primary/50 focus-within:shadow-[0_0_50px_rgba(139,92,246,0.15)] bg-[#0a0a0a]/80 backdrop-blur-xl border border-white/5">
+                    <div className="rounded-2xl md:rounded-3xl p-2 flex flex-col gap-2 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 focus-within:shadow-[0_0_50px_rgba(139,92,246,0.15)] bg-background/80 backdrop-blur-xl border border-border">
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder="Describe what you want to create..."
-                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none px-4 md:px-6 py-3 md:py-4 min-h-[50px] md:min-h-[60px] max-h-[120px] resize-none placeholder:text-white/25 text-foreground"
+                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none px-4 md:px-6 py-3 md:py-4 min-h-[50px] md:min-h-[60px] max-h-[120px] resize-none placeholder:text-muted-foreground/70 text-foreground"
                             style={{ fontSize: "var(--text-base)" }}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
@@ -286,7 +289,7 @@ export function ImageGenerator() {
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setShowHistory(true)}
-                                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-white/5 transition-colors"
+                                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
                                 >
                                     <History className="w-5 h-5" />
                                 </button>
@@ -332,7 +335,7 @@ function FeedItemCard({ item }: { item: FeedItem }) {
         <div className="flex flex-col gap-6 animate-fade-in-up">
             {/* User Prompt Bubble */}
             <div className="flex justify-end">
-                <div className="max-w-[80%] bg-surface-2 border border-white/10 rounded-2xl rounded-tr-sm px-6 py-4 shadow-sm">
+                <div className="max-w-[80%] bg-surface-2 border border-border rounded-2xl rounded-tr-sm px-6 py-4 shadow-sm">
                     <p className="text-foreground/90 leading-relaxed">{item.prompt}</p>
                 </div>
             </div>
