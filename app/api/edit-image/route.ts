@@ -1,54 +1,70 @@
-
 import { createAdminClient } from "@/lib/supabase/server";
 import { createClient } from "@/lib/supabase/server";
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { persistExternalImage, persistBase64Image } from "@/lib/storage-utils";
+import { getTokenCost } from "@/lib/tokens";
+import { processTokenCharge } from "@/lib/tokens-server";
 
-// Helper to convert data URL to File/Buffer
+const EditSchema = z.object({
+    image: z.string().startsWith("data:image/", "Image must be a data URL"),
+    mask: z.string().startsWith("data:image/", "Mask must be a data URL"),
+    prompt: z.string().min(1, "Prompt is required"),
+    userId: z.string().uuid("Invalid User ID"),
+});
+
 function dataUrlToBuffer(dataUrl: string) {
-    // Basic base64 parsing
     const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, "");
     return Buffer.from(base64Data, 'base64');
 }
 
 export async function POST(req: Request) {
     try {
-        const { image, mask, prompt, userId } = await req.json();
+        const body = await req.json();
+        const validation = EditSchema.safeParse(body);
 
-        if (!image || !mask || !prompt) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        if (!validation.success) {
+            return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
         }
+
+        const { image, mask, prompt, userId } = validation.data;
+        const cost = getTokenCost('edit');
 
         // --- Auth Check ---
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
-        if (!user) {
+        if (!user || user.id !== userId) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // --- Init OpenAI with SUMOPOD keys (matching generate-image) ---
+        // --- 1. Token Balance Pre-Check ---
+        let commitCharge: () => Promise<void>;
+        try {
+            commitCharge = await processTokenCharge(user.id, cost);
+        } catch (e: any) {
+            return NextResponse.json({ error: e.message }, { status: 403 });
+        }
+
+        // --- 2. Init OpenAI ---
         const apiKey = process.env.SUMOPOD_API_KEY;
         const baseURL = process.env.SUMOPOD_BASE_URL || "https://ai.sumopod.com/v1";
 
         if (!apiKey) {
-            console.error("API Key missing");
             return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
         }
 
-        const openai = new OpenAI({
-            apiKey: apiKey,
-            baseURL: baseURL,
-        });
+        const openai = new OpenAI({ apiKey, baseURL });
 
-        // --- Convert Data URLs ---
-        const imageBuffer = await dataUrlToBuffer(image);
-        const maskBuffer = await dataUrlToBuffer(mask);
+        // --- 3. Convert Data URLs ---
+        const imageBuffer = dataUrlToBuffer(image);
+        const maskBuffer = dataUrlToBuffer(mask);
 
         const imageFile = await OpenAI.toFile(imageBuffer, 'image.png');
         const maskFile = await OpenAI.toFile(maskBuffer, 'mask.png');
 
-        // --- Call API ---
+        // --- 4. Call API ---
         const response = await openai.images.edit({
             model: "gpt-image-1",
             image: imageFile,
@@ -59,25 +75,43 @@ export async function POST(req: Request) {
         });
 
         if (!response.data || response.data.length === 0) {
-            throw new Error("No image returned from OpenAI");
+            throw new Error("No image data returned from provider");
         }
 
-        const imageUrl = response.data[0].url;
+        let tempUrl = response.data[0].url;
 
-        // --- Save to DB ---
-        // Use Admin Client for writing to 'generations' if needed, or regular client if RLS allows
+        // --- Fallback for Base64 Data ---
+        if (!tempUrl && (response.data[0] as any).b64_json) {
+            const b64 = (response.data[0] as any).b64_json;
+            tempUrl = `data:image/png;base64,${b64}`;
+        }
+
+        if (!tempUrl) {
+            throw new Error(`AI Provider returned an empty result. Keys: ${Object.keys(response.data[0]).join(", ")}`);
+        }
+
+        // --- 5. Persist to Storage ---
+        let permanentUrl: string;
+        if (tempUrl.startsWith("data:")) {
+            permanentUrl = await persistBase64Image(tempUrl, user.id);
+        } else {
+            permanentUrl = await persistExternalImage(tempUrl, user.id);
+        }
+
+        // --- 6. Save to DB & Deduct ---
         const adminClient = createAdminClient();
-
         await adminClient.from("generations").insert({
             user_id: user.id,
             prompt: prompt,
-            file_url: imageUrl,
+            file_url: permanentUrl,
             type: "edit",
             status: "completed",
-            tokens_used: 0, // Set appropriate token cost
+            tokens_used: cost,
         });
 
-        return NextResponse.json({ url: imageUrl });
+        await commitCharge();
+
+        return NextResponse.json({ url: permanentUrl });
 
     } catch (error: any) {
         console.error("Edit Error:", error);

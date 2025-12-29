@@ -1,21 +1,34 @@
 import { NextResponse } from "next/server";
-// Force rebuild
 import OpenAI from "openai";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { z } from "zod";
+import { persistExternalImage, persistBase64Image } from "@/lib/storage-utils";
+import { getTokenCost, QualityTier } from "@/lib/tokens";
+import { processTokenCharge } from "@/lib/tokens-server";
 
-const TOKENS_PER_IMAGE = 10;
+
+
+const GenerateSchema = z.object({
+    prompt: z.string().min(1, "Prompt is required"),
+    size: z.enum(["1024x1024", "512x512"]).optional().default("1024x1024"),
+    quality: z.enum(["standard", "high", "ultra"]).optional().default("high"),
+});
 
 export async function POST(req: Request) {
     try {
-        const { prompt, size = "1024x1024", quality = "high" } = await req.json();
+        const body = await req.json();
+        const validation = GenerateSchema.safeParse(body);
 
-        if (!prompt) {
+        if (!validation.success) {
             return NextResponse.json(
-                { error: "Prompt is required" },
+                { error: validation.error.issues[0].message },
                 { status: 400 }
             );
         }
+
+        const { prompt, size, quality } = validation.data;
+        const cost = getTokenCost('image', quality as QualityTier);
 
         // --- Auth Check ---
         const supabase = await createClient();
@@ -25,90 +38,86 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // --- Init OpenAI (Sumopod) ---
+        // --- 1. Token Balance Pre-Check ---
+        let commitCharge: () => Promise<void>;
+        try {
+            commitCharge = await processTokenCharge(user.id, cost);
+        } catch (e: any) {
+            return NextResponse.json({ error: e.message }, { status: 403 });
+        }
+
+        // --- 2. Init OpenAI (Sumopod) ---
         const apiKey = process.env.SUMOPOD_API_KEY;
         const baseURL = process.env.SUMOPOD_BASE_URL || "https://ai.sumopod.com/v1";
 
         if (!apiKey) {
-            console.error("API Key missing");
             return NextResponse.json({ error: "Server configuration error" }, { status: 500 });
         }
 
-        const openai = new OpenAI({
-            apiKey: apiKey,
-            baseURL: baseURL,
-        });
+        const openai = new OpenAI({ apiKey, baseURL });
 
-        // --- Enhance Prompt ---
-        // Enhance prompt based on Quality Setting
+        // --- 3. Enhance Prompt ---
         let enhancedPrompt = prompt;
-
         if (quality === "high") {
-            const realismKeywords = "photorealistic, 8k, highly detailed, realistic lighting, sharp focus, high quality, cinematic, masterpiece, photography, depth of field";
-            enhancedPrompt = `${prompt}, ${realismKeywords}`;
+            enhancedPrompt = `${prompt}, high resolution, professional photography, cinematic lighting, 8k, sharp focus, vibrant colors, detailed textures`;
         } else if (quality === "ultra") {
-            const ultraKeywords = "award winning photography, 8k uhd, soft lighting, high quality, film grain, Fujifilm XT3, incredibly detailed, aesthetic, masterpiece, professional, trending on artstation";
-            enhancedPrompt = `${prompt}, ${ultraKeywords}`;
+            enhancedPrompt = `${prompt}, hyper-realistic masterpiece, award-winning photography, ultra-detailed 8k, ray tracing, soft global illumination, professional color grading, shot on Nikon Z9`;
         }
-        // "standard" uses raw prompt
 
-        console.log(`Generating [${quality}]:`, enhancedPrompt);
-
-        // --- Generate Image ---
+        // --- 4. Generate Image ---
         const response = await openai.images.generate({
             model: "gpt-image-1",
             prompt: enhancedPrompt,
             n: 1,
-            size: size,
+            size: size as any,
         });
 
-        console.log("API Response:", JSON.stringify(response, null, 2));
+        console.log("AI Provider Response (Condensed):", {
+            data_count: response.data?.length,
+            first_item_keys: response.data?.[0] ? Object.keys(response.data[0]) : [],
+        });
 
-        // Handle different response formats
-        let imageUrl: string | null = null;
-
-        if (response.data && response.data.length > 0) {
-            const imageData = response.data[0];
-            // Check for url or b64_json
-            if (imageData.url) {
-                imageUrl = imageData.url;
-            } else if (imageData.b64_json) {
-                // If response is base64, convert to data URL
-                imageUrl = `data:image/png;base64,${imageData.b64_json}`;
-            }
+        if (!response.data || response.data.length === 0) {
+            throw new Error(`Failed to generate image - no data returned from provider.`);
         }
 
-        if (!imageUrl) {
-            console.error("No image URL in response:", response);
-            return NextResponse.json(
-                { error: "Failed to generate image - no URL returned" },
-                { status: 500 }
-            );
+        let tempImageUrl = response.data[0]?.url;
+
+        // --- Fallback for Base64 Data ---
+        if (!tempImageUrl && (response.data[0] as any).b64_json) {
+            console.log("Detected Base64 response, converting...");
+            const b64 = (response.data[0] as any).b64_json;
+            // In a better implementation, we'd upload this directly. 
+            // For now, let's prefix it so the persist logic knows what to do or just pass it through.
+            tempImageUrl = `data:image/png;base64,${b64}`;
         }
 
-        // --- Save & Deduct Tokens ---
+        if (!tempImageUrl) {
+            throw new Error(`Failed to generate image - no URL or Base64 data returned. Item keys: ${Object.keys(response.data[0]).join(", ")}`);
+        }
+
+        // --- 5. Persist to Storage (Prevent Expiration) ---
+        let permanentUrl: string;
+        if (tempImageUrl.startsWith("data:")) {
+            permanentUrl = await persistBase64Image(tempImageUrl, user.id);
+        } else {
+            permanentUrl = await persistExternalImage(tempImageUrl, user.id);
+        }
+
+        // --- 6. Save Record & Deduct Tokens ---
         const adminClient = createAdminClient();
-
-        // 1. Save generation record
         await adminClient.from("generations").insert({
             user_id: user.id,
             type: "image",
             prompt: prompt,
-            file_url: imageUrl,
-            tokens_used: TOKENS_PER_IMAGE,
+            file_url: permanentUrl,
+            tokens_used: cost,
             status: "completed",
         });
 
-        // 2. Update user tokens (deduct/increment usage)
-        // Fetch current profile to get current usage
-        const { data: profile } = await adminClient.from("profiles").select("tokens_used").eq("id", user.id).single();
+        await commitCharge();
 
-        await adminClient
-            .from("profiles")
-            .update({ tokens_used: (profile?.tokens_used || 0) + TOKENS_PER_IMAGE })
-            .eq("id", user.id);
-
-        return NextResponse.json({ url: imageUrl });
+        return NextResponse.json({ url: permanentUrl });
 
     } catch (error: any) {
         console.error("Image generation error:", error);

@@ -8,6 +8,7 @@ import { Upload, Wand2, Download, AlertCircle, Palette, Maximize2, Layers, X, Im
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
+import { getTokenCost, QualityTier } from "@/lib/tokens";
 
 interface Generation {
     id: string;
@@ -49,6 +50,8 @@ export default function StudioPage() {
     const [textSize, setTextSize] = useState(40);
     const [selectedFont, setSelectedFont] = useState("Inter");
     const [isFontOpen, setFontOpen] = useState(false);
+    const [quality, setQuality] = useState<QualityTier>("high");
+    const [generationMode, setGenerationMode] = useState<"photo" | "video">("photo");
 
     // UI State
     const [isGenerating, setIsGenerating] = useState(false);
@@ -67,12 +70,14 @@ export default function StudioPage() {
         const savedPrompt = localStorage.getItem("studio_prompt");
         const savedFilters = localStorage.getItem("studio_filters");
         const savedText = localStorage.getItem("studio_text");
+        const savedQuality = localStorage.getItem("generation_quality");
 
         if (savedImage) setImage(savedImage);
         if (savedMask) setMask(savedMask);
         if (savedPrompt) setPrompt(savedPrompt);
         if (savedFilters) setFilters(JSON.parse(savedFilters));
         if (savedText) setTextOverlays(JSON.parse(savedText));
+        if (savedQuality) setQuality(savedQuality as QualityTier);
     }, []);
 
     useEffect(() => {
@@ -82,7 +87,8 @@ export default function StudioPage() {
         localStorage.setItem("studio_prompt", prompt);
         localStorage.setItem("studio_filters", JSON.stringify(filters));
         localStorage.setItem("studio_text", JSON.stringify(textOverlays));
-    }, [image, mask, prompt, filters, textOverlays]);
+        localStorage.setItem("generation_quality", quality);
+    }, [image, mask, prompt, filters, textOverlays, quality]);
 
     const handleContinueEditing = () => {
         if (generatedImage) {
@@ -164,24 +170,26 @@ export default function StudioPage() {
 
         setIsGenerating(true);
         try {
-            // Note: This logic only uses the BASE image and MASK for generation. 
-            // Text overlays are NOT sent to AI, which is expected (we want to add text AFTER generation usually).
-            const res = await fetch("/api/edit-image", {
+            const endpoint = generationMode === "photo" ? "/api/edit-image" : "/api/generate-video";
+            const body = generationMode === "photo"
+                ? { image, mask, prompt, userId: user.id, quality }
+                : { prompt, imageUrl: image }; // Simple mapping for video placeholder
+
+            const res = await fetch(endpoint, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    image,
-                    mask,
-                    prompt,
-                    userId: user.id
-                }),
+                body: JSON.stringify(body),
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Generation failed");
 
-            setGeneratedImage(data.url);
-            showToast("Magic Edit completed!", "success");
+            if (generationMode === "photo") {
+                setGeneratedImage(data.url);
+                showToast("Magic Edit completed!", "success");
+            } else {
+                showToast("Video generation started! (Placeholder)", "success");
+            }
             refreshProfile();
 
         } catch (error: any) {
@@ -372,26 +380,89 @@ export default function StudioPage() {
                                         <Step number={1} text="Brush over the area to change." active={!!image} />
                                         <Step number={2} text="Describe changes." active={!!mask && !prompt} />
                                     </div>
-                                    <div className="space-y-2 mt-4 flex-1 flex flex-col">
+                                    {/* Mode Toggle */}
+                                    <div className="flex gap-2 p-1 bg-surface-2 rounded-xl border border-white/5">
+                                        <button
+                                            onClick={() => setGenerationMode("photo")}
+                                            className={cn(
+                                                "flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2",
+                                                generationMode === "photo" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"
+                                            )}
+                                        >
+                                            <ImageIcon className="w-3 h-3" /> PHOTO
+                                        </button>
+                                        <button
+                                            onClick={() => setGenerationMode("video")}
+                                            className={cn(
+                                                "flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2",
+                                                generationMode === "video" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"
+                                            )}
+                                        >
+                                            <Wand2 className="w-3 h-3" /> VIDEO
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-2 mt-2 flex-1 flex flex-col">
                                         <label className="text-sm font-medium">Prompt</label>
                                         <textarea
                                             value={prompt}
                                             onChange={(e) => setPrompt(e.target.value)}
-                                            placeholder="E.g. On a wooden table in a sunny garden, surrounded by lemons, cinematic lighting..."
-                                            className="w-full h-full min-h-[120px] bg-surface-2 border border-white/10 rounded-xl p-3 text-sm resize-none focus:ring-1 focus:ring-primary focus:outline-none"
+                                            placeholder={generationMode === "photo" ? "Describe background changes..." : "Describe video movement..."}
+                                            className="w-full h-full min-h-[100px] bg-surface-2 border border-white/10 rounded-xl p-3 text-sm resize-none focus:ring-1 focus:ring-primary focus:outline-none"
                                             disabled={!image}
                                         />
                                     </div>
+
+                                    {/* Quality Selector (Photo Only) */}
+                                    {generationMode === "photo" && (
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center">
+                                                <label className="text-sm font-medium">Quality</label>
+                                                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Cost: {getTokenCost('image', quality)} tokens</span>
+                                            </div>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                {(['standard', 'high', 'ultra'] as QualityTier[]).map((q) => (
+                                                    <button
+                                                        key={q}
+                                                        onClick={() => setQuality(q)}
+                                                        className={cn(
+                                                            "py-2 rounded-lg text-[10px] font-bold uppercase transition-all border",
+                                                            quality === q
+                                                                ? "bg-primary/20 border-primary text-primary shadow-[0_0_10px_rgba(var(--color-primary),0.2)]"
+                                                                : "bg-surface-2 border-white/5 text-muted-foreground hover:border-white/20"
+                                                        )}
+                                                    >
+                                                        {q}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {generationMode === "video" && (
+                                        <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl">
+                                            <p className="text-[10px] text-primary font-bold uppercase text-center">Video generation is high effort</p>
+                                            <p className="text-xs text-center text-muted-foreground mt-1">Cost: {getTokenCost('video')} tokens</p>
+                                        </div>
+                                    )}
+
                                     <Button
-                                        className="w-full h-12 text-base shadow-glow mt-auto"
+                                        className="w-full h-12 text-base shadow-glow mt-auto flex flex-col items-center justify-center py-2"
                                         size="lg"
                                         onClick={handleGenerate}
-                                        disabled={isGenerating || !image || !mask}
+                                        disabled={isGenerating || !image || (generationMode === "photo" && !mask)}
                                     >
                                         {isGenerating ? (
                                             <><Wand2 className="w-5 h-5 mr-2 animate-spin" /> Magic happening...</>
                                         ) : (
-                                            <><Wand2 className="w-5 h-5 mr-2" /> Generate Background</>
+                                            <>
+                                                <div className="flex items-center">
+                                                    <Wand2 className="w-5 h-5 mr-2" /> {generationMode === "photo" ? "Generate Background" : "Generate Video"}
+                                                </div>
+                                                <span className="text-[10px] opacity-70 font-normal">
+                                                    Uses {generationMode === "photo" ? getTokenCost('image', quality) : getTokenCost('video')} tokens
+                                                </span>
+                                            </>
                                         )}
                                     </Button>
                                 </>

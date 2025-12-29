@@ -1,15 +1,27 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { z } from "zod";
+import { persistBase64Image } from "@/lib/storage-utils";
+
+const SaveSchema = z.object({
+    imageDataUrl: z.string().startsWith("data:image/", "Image data URL is required"),
+    prompt: z.string().optional().default("Composited Edit"),
+    userId: z.string().uuid(),
+});
 
 export async function POST(req: Request) {
     try {
-        const { imageDataUrl, prompt, userId } = await req.json();
+        const body = await req.json();
+        const validation = SaveSchema.safeParse(body);
 
-        if (!imageDataUrl || !userId) {
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+        if (!validation.success) {
+            return NextResponse.json({ error: validation.error.issues[0].message }, { status: 400 });
         }
 
+        const { imageDataUrl, prompt, userId } = validation.data;
+
+        // --- Auth Check ---
         const supabase = await createClient();
         const { data: { user } } = await supabase.auth.getUser();
 
@@ -17,52 +29,24 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
+        // --- 1. Persist to Storage ---
+        const publicUrl = await persistBase64Image(imageDataUrl, user.id);
+
+        // --- 2. Save Record in DB ---
         const adminClient = createAdminClient();
-
-        // 1. Convert Data URL to Buffer to upload to Storage
-        const base64Data = imageDataUrl.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, 'base64');
-        const filename = `${user.id}/${Date.now()}-edited.png`;
-
-        // 2. Upload to Storage
-        const buckets = await adminClient.storage.listBuckets();
-        const bucketExists = buckets.data?.find(b => b.name === 'generations');
-        // Note: adminClient doesn't need to check bucket usually if setup, but good to know 'generations' bucket exists.
-
-        const { data: uploadData, error: uploadError } = await adminClient
-            .storage
-            .from('generations')
-            .upload(filename, buffer, {
-                contentType: 'image/png',
-                upsert: false
-            });
-
-        if (uploadError) {
-            console.error("Storage upload error:", uploadError);
-            return NextResponse.json({ error: "Failed to upload image" }, { status: 500 });
-        }
-
-        // 3. Get Public URL
-        const { data: { publicUrl } } = adminClient
-            .storage
-            .from('generations')
-            .getPublicUrl(filename);
-
-        // 4. Save Record in DB
         const { error: dbError } = await adminClient
             .from("generations")
             .insert({
                 user_id: user.id,
                 type: "image",
-                prompt: prompt, // Use the prompt or "Edit"
+                prompt: prompt,
                 file_url: publicUrl,
-                tokens_used: 0, // Edits might be free or cost less? Let's make saving composited result free.
+                tokens_used: 0, // Composited edits are currently free
                 status: "completed",
             });
 
         if (dbError) {
             console.error("DB Insert error:", dbError);
-            // We shouldn't fail if DB insert fails but image is uploaded, but cleaner to report error.
             return NextResponse.json({ error: "Failed to save record" }, { status: 500 });
         }
 
