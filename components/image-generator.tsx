@@ -29,7 +29,7 @@ export function ImageGenerator() {
     const [loadingHistory, setLoadingHistory] = useState(false);
 
     const { showToast } = useToast();
-    const { user } = useAuth();
+    const { user, refreshProfile } = useAuth();
     const scrollRef = useRef<HTMLDivElement>(null);
 
     // Auto-scroll to bottom when feed updates
@@ -115,7 +115,8 @@ export function ImageGenerator() {
 
             showToast("Image generated successfully!", "success");
 
-            // Usage updates happen server-side, sidebar will update via useAuth/context eventually
+            // Refresh profile to update credits immediately
+            await refreshProfile();
         } catch (err) {
             console.error(err);
             showToast(err instanceof Error ? err.message : "Failed to generate image", "error");
