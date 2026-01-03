@@ -7,6 +7,7 @@ interface CardProps {
     variant?: "default" | "glass" | "outline" | "elevated";
     hover?: boolean;
     padding?: "none" | "sm" | "md" | "lg";
+    onClick?: () => void;
 }
 
 export function Card({
@@ -14,7 +15,8 @@ export function Card({
     className,
     variant = "default",
     hover = false,
-    padding = "md"
+    padding = "md",
+    onClick,
 }: CardProps) {
     const variants = {
         default: "bg-card border border-border",
@@ -39,6 +41,7 @@ export function Card({
                 hover && "hover:border-border-hover hover:shadow-lg cursor-pointer hover:-translate-y-0.5",
                 className
             )}
+            onClick={onClick}
         >
             {children}
         </div>

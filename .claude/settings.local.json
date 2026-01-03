@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__chrome-devtools__list_pages",
+      "Bash(cd:*)",
+      "mcp__chrome-devtools__new_page",
+      "Bash(dir /s /b \"C:\\\\Users\\\\idhar\\\\Documents\\\\KODING HAFIZH\\\\GenerateByAI\")",
+      "Bash(findstr:*)",
+      "Bash(dir \".beads\" /a)",
+      "Bash(dir /b \"C:\\\\Users\\\\idhar\\\\Documents\\\\KODING HAFIZH\\\\GenerateByAI\\\\.claude\")",
+      "Bash(claude mcp add:*)",
+      "Bash(npx @anthropic-ai/claude-code-beads:*)",
+      "Bash(echo:*)",
+      "Bash(dir:*)",
+      "Bash(claude mcp remove:*)",
+      "Bash(npm run build:*)"
+    ]
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "matcher": "permission_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \".claude/hooks/notify.ps1\" -Title \"Claude Code\" -Message \"Butuh izin dari kamu!\""
+          }
+        ]
+      },
+      {
+        "matcher": "idle_prompt",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \".claude/hooks/notify.ps1\" -Title \"Claude Code\" -Message \"Menunggu input dari kamu...\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -ExecutionPolicy Bypass -File \".claude/hooks/notify.ps1\" -Title \"Claude Code\" -Message \"Task selesai!\""
+          }
+        ]
+      }
+    ]
+  }
+}
