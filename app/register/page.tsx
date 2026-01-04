@@ -7,7 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/components/ui/toast";
-import { Zap, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export default function RegisterPage() {
     const router = useRouter();
@@ -68,7 +68,7 @@ export default function RegisterPage() {
                     {/* Logo */}
                     <Link href="/" className="inline-flex justify-center">
                         <div className="w-14 h-14 bg-gradient-to-br from-primary via-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
-                            <Zap className="w-7 h-7 text-white fill-current" />
+                            <Icon icon="ph:lightning-fill" className="w-7 h-7 text-white" />
                         </div>
                     </Link>
 
@@ -86,7 +86,7 @@ export default function RegisterPage() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">Name</label>
                             <div className="relative">
-                                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Icon icon="ph:user-duotone" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
                                     type="text"
                                     value={name}
@@ -102,7 +102,7 @@ export default function RegisterPage() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">Email</label>
                             <div className="relative">
-                                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Icon icon="ph:envelope-duotone" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
                                     type="email"
                                     value={email}
@@ -118,7 +118,7 @@ export default function RegisterPage() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">Password</label>
                             <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Icon icon="ph:lock-duotone" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     value={password}
@@ -133,7 +133,7 @@ export default function RegisterPage() {
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                 >
-                                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                    <Icon icon={showPassword ? "ph:eye-slash" : "ph:eye"} className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
@@ -142,7 +142,7 @@ export default function RegisterPage() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">Confirm Password</label>
                             <div className="relative">
-                                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Icon icon="ph:lock-duotone" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     value={confirmPassword}

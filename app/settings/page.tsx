@@ -5,7 +5,7 @@ import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
-import { Moon, Sun, Monitor, Bell, BellOff, Shield, Key, Sliders, Zap, ChevronRight, Check, Palette } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 import { useTheme } from "next-themes";
 
@@ -50,7 +50,7 @@ export default function SettingsPage() {
                         <CardHeader>
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                    <Palette className="w-5 h-5" />
+                                    <Icon icon="ph:palette-duotone" className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <CardTitle>Appearance</CardTitle>
@@ -63,22 +63,22 @@ export default function SettingsPage() {
                                 <label className="text-sm font-medium">Theme</label>
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
-                                        { value: "dark", label: "Dark", icon: Moon },
-                                        { value: "light", label: "Light", icon: Sun },
-                                        { value: "system", label: "System", icon: Monitor },
+                                        { value: "dark", label: "Dark", icon: "ph:moon-duotone" },
+                                        { value: "light", label: "Light", icon: "ph:sun-duotone" },
+                                        { value: "system", label: "System", icon: "ph:desktop-duotone" },
                                     ].map((option) => (
                                         <button
                                             key={option.value}
-                                            onClick={() => setTheme(option.value as typeof theme)}
+                                            onClick={() => setTheme(option.value as "dark" | "light" | "system")}
                                             className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${theme === option.value
                                                 ? "border-primary bg-primary/10 text-primary"
                                                 : "border-border bg-surface-2 hover:border-border-hover"
                                                 }`}
                                         >
-                                            <option.icon className="w-5 h-5" />
+                                            <Icon icon={option.icon} className="w-5 h-5" />
                                             <span className="text-sm">{option.label}</span>
                                             {theme === option.value && (
-                                                <Check className="w-4 h-4 absolute top-2 right-2" />
+                                                <Icon icon="ph:check" className="w-4 h-4 absolute top-2 right-2" />
                                             )}
                                         </button>
                                     ))}
@@ -92,7 +92,7 @@ export default function SettingsPage() {
                         <CardHeader>
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                    <Zap className="w-5 h-5" />
+                                    <Icon icon="ph:lightning-duotone" className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <CardTitle>Generation Quality</CardTitle>
@@ -120,7 +120,7 @@ export default function SettingsPage() {
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs text-muted-foreground bg-surface-2 px-2 py-1 rounded-lg">{option.tokens}</span>
-                                        {quality === option.value && <Check className="w-5 h-5 text-primary" />}
+                                        {quality === option.value && <Icon icon="ph:check" className="w-5 h-5 text-primary" />}
                                     </div>
                                 </button>
                             ))}
@@ -132,7 +132,7 @@ export default function SettingsPage() {
                         <CardHeader>
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                    {notifications ? <Bell className="w-5 h-5" /> : <BellOff className="w-5 h-5" />}
+                                    <Icon icon={notifications ? "ph:bell-duotone" : "ph:bell-slash-duotone"} className="w-5 h-5" />
                                 </div>
                                 <div className="flex-1">
                                     <CardTitle>Notifications</CardTitle>
@@ -155,7 +155,7 @@ export default function SettingsPage() {
                         <CardHeader>
                             <div className="flex items-center gap-3">
                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                    <Shield className="w-5 h-5" />
+                                    <Icon icon="ph:shield-duotone" className="w-5 h-5" />
                                 </div>
                                 <div>
                                     <CardTitle>Security</CardTitle>
@@ -166,10 +166,10 @@ export default function SettingsPage() {
                         <CardContent className="pt-4 space-y-3">
                             <button className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:border-border-hover transition-colors">
                                 <div className="flex items-center gap-3">
-                                    <Key className="w-5 h-5 text-muted-foreground" />
+                                    <Icon icon="ph:key-duotone" className="w-5 h-5 text-muted-foreground" />
                                     <span>API Key Configuration</span>
                                 </div>
-                                <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                                <Icon icon="ph:caret-right" className="w-5 h-5 text-muted-foreground" />
                             </button>
                         </CardContent>
                     </Card>

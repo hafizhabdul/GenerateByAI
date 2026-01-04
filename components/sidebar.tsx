@@ -3,27 +3,15 @@
 import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import {
-    LayoutGrid,
-    Sparkles,
-    Film,
-    Image as ImageIcon,
-    Settings,
-    User,
-    Zap,
-    Menu,
-    X,
-    Crown,
-    Palette
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 
 const navItems = [
-    { href: "/", icon: Sparkles, label: "Create" },
-    { href: "/studio", icon: Palette, label: "Studio" },
-    { href: "/gallery", icon: ImageIcon, label: "Gallery" },
-    { href: "/videos", icon: Film, label: "Videos" },
+    { href: "/", icon: "ph:magic-wand-duotone", label: "Create" },
+    { href: "/studio", icon: "ph:paint-brush-duotone", label: "Studio" },
+    { href: "/gallery", icon: "ph:images-duotone", label: "Gallery" },
+    { href: "/videos", icon: "ph:video-duotone", label: "Videos" },
 ];
 
 export function Sidebar() {
@@ -47,7 +35,7 @@ export function Sidebar() {
                     className="relative group w-10 h-10 flex items-center justify-center mb-4 transition-transform hover:scale-110"
                 >
                     <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <Zap className="w-6 h-6 text-primary fill-current relative z-10" />
+                    <Icon icon="ph:lightning-fill" className="w-6 h-6 text-primary relative z-10" />
                 </Link>
 
                 {/* Nav Items - Clean & Centered */}
@@ -56,7 +44,7 @@ export function Sidebar() {
                         <NavItem
                             key={item.href}
                             href={item.href}
-                            icon={<item.icon className="w-5 h-5" />}
+                            icon={<Icon icon={item.icon} className="w-5 h-5" />}
                             label={item.label}
                             active={pathname === item.href}
                         />
@@ -93,7 +81,7 @@ export function Sidebar() {
                                 href="/pricing"
                                 className="w-6 h-6 flex items-center justify-center text-amber-500 hover:scale-110 transition-transform cursor-pointer z-10"
                             >
-                                <Crown className="w-4 h-4 fill-current" />
+                                <Icon icon="ph:crown-simple-fill" className="w-4 h-4" />
                             </Link>
 
                             {/* Floating Tooltip */}
@@ -107,7 +95,7 @@ export function Sidebar() {
                     {/* Settings / Profile */}
                     <NavItem
                         href="/settings"
-                        icon={<Settings className="w-5 h-5" />}
+                        icon={<Icon icon="ph:gear-duotone" className="w-5 h-5" />}
                         label="Settings"
                         active={pathname === "/settings"}
                     />
@@ -119,7 +107,7 @@ export function Sidebar() {
                         href="/profile"
                         className="w-10 h-10 rounded-full bg-gradient-to-tr from-surface-2 to-surface-3 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all"
                     >
-                        <User className="w-5 h-5" />
+                        <Icon icon="ph:user-duotone" className="w-5 h-5" />
                     </Link>
                 </div>
             </aside>
@@ -137,11 +125,11 @@ export function Sidebar() {
                                     pathname === item.href ? "text-primary bg-primary/10" : "text-muted-foreground"
                                 )}
                             >
-                                <item.icon className="w-6 h-6" />
+                                <Icon icon={item.icon} className="w-6 h-6" />
                             </Link>
                         ))}
                         <Link href="/pricing" className="p-3 rounded-2xl text-amber-500 bg-amber-500/10">
-                            <Crown className="w-6 h-6 fill-current/20" />
+                            <Icon icon="ph:crown-simple-fill" className="w-6 h-6" />
                         </Link>
                     </div>
                 </div>

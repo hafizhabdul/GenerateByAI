@@ -63,6 +63,15 @@ export interface Database {
                     tokens_used: number;
                     is_favorite: boolean;
                     created_at: string;
+                    metadata: {
+                        duration?: string;
+                        mode?: 'std' | 'pro';
+                        aspectRatio?: string;
+                        sourceType?: string;
+                        sourceImage?: string | null;
+                        klingVideoId?: string;
+                        extendedFrom?: string;
+                    } | null;
                 };
                 Insert: {
                     id?: string;
@@ -79,6 +88,7 @@ export interface Database {
                     tokens_used?: number;
                     is_favorite?: boolean;
                     created_at?: string;
+                    metadata?: Json | null;
                 };
                 Update: {
                     id?: string;
@@ -95,6 +105,7 @@ export interface Database {
                     tokens_used?: number;
                     is_favorite?: boolean;
                     created_at?: string;
+                    metadata?: Json | null;
                 };
             };
         };

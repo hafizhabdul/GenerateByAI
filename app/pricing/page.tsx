@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Sparkles, Zap, Crown, X } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -17,14 +17,14 @@ export default function PricingPage() {
                     href="/"
                     className="inline-flex items-center justify-center w-11 h-11 rounded-full hover:bg-white/10 transition-colors"
                 >
-                    <X className="w-6 h-6 text-muted-foreground hover:text-white" />
+                    <Icon icon="ph:x" className="w-6 h-6 text-muted-foreground hover:text-white" />
                 </Link>
             </div>
 
             {/* Header */}
             <div className="relative z-10 text-center space-y-4 mb-16 md:mb-24 animate-fade-in-down">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase backdrop-blur-md">
-                    <Crown className="w-3 h-3" />
+                    <Icon icon="ph:crown-simple-fill" className="w-3 h-3" />
                     Premium Access
                 </div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
@@ -130,7 +130,7 @@ function PricingCard({
         >
             {popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-primary to-indigo-600 rounded-full text-xs font-bold text-white shadow-lg shadow-primary/20 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 fill-white" />
+                    <Icon icon="ph:shooting-star-fill" className="w-3 h-3" />
                     MOST POPULAR
                 </div>
             )}
@@ -151,7 +151,7 @@ function PricingCard({
                             "mt-0.5 p-0.5 rounded-full flex items-center justify-center shrink-0",
                             popular ? "bg-primary/20 text-primary" : "bg-white/10 text-muted-foreground"
                         )}>
-                            <Check className="w-3 h-3" />
+                            <Icon icon="ph:check" className="w-3 h-3" />
                         </div>
                         {feature}
                     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Loader2, Send, Image as ImageIcon, Film, Sparkles, Zap, Download, RotateCcw, Copy, History, X, Clock, User, Trash2, MessageSquarePlus } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
@@ -168,7 +168,7 @@ export function ImageGenerator() {
                         onClick={handleNewSession}
                         className="animate-fade-in group"
                     >
-                        <MessageSquarePlus className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+                        <Icon icon="ph:chat-circle-plus-duotone" className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
                         New Session
                     </Button>
                 )}
@@ -187,14 +187,14 @@ export function ImageGenerator() {
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-border">
                             <div className="flex items-center gap-2">
-                                <History className="w-5 h-5 text-primary" />
+                                <Icon icon="ph:clock-counter-clockwise-duotone" className="w-5 h-5 text-primary" />
                                 <h2 className="font-semibold">Chat History</h2>
                             </div>
                             <button
                                 onClick={() => setShowHistory(false)}
                                 className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                             >
-                                <X className="w-5 h-5" />
+                                <Icon icon="ph:x" className="w-5 h-5" />
                             </button>
                         </div>
                         {/* History List */}
@@ -213,7 +213,7 @@ export function ImageGenerator() {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm line-clamp-2 mb-1">{item.prompt}</p>
                                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                    <Clock className="w-3 h-3" />
+                                                    <Icon icon="ph:clock" className="w-3 h-3" />
                                                     {new Date(item.created_at).toLocaleDateString()}
                                                 </div>
                                             </div>
@@ -222,7 +222,7 @@ export function ImageGenerator() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                                    <Sparkles className="w-10 h-10 text-muted-foreground/50 mb-3" />
+                                    <Icon icon="ph:shooting-star-duotone" className="w-10 h-10 text-muted-foreground/50 mb-3" />
                                     <p className="text-muted-foreground">No history yet</p>
                                 </div>
                             )}
@@ -245,7 +245,7 @@ export function ImageGenerator() {
                     isHero ? "opacity-100 translate-y-[-140px]" : "hidden" // Moved up much more (-140px)
                 )}>
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
-                        <Zap className="w-3 h-3 fill-current" />
+                        <Icon icon="ph:lightning-fill" className="w-3 h-3" />
                         AI Creative Studio
                     </div>
                     <h1 className="font-bold tracking-tight gradient-text" style={{ fontSize: "var(--text-5xl)" }}>
@@ -292,7 +292,7 @@ export function ImageGenerator() {
                                     onClick={() => setShowHistory(true)}
                                     className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
                                 >
-                                    <History className="w-5 h-5" />
+                                    <Icon icon="ph:clock-counter-clockwise-duotone" className="w-5 h-5" />
                                 </button>
                                 {/* Mode Toggles... (Keep simplified for now) */}
                             </div>
@@ -302,7 +302,7 @@ export function ImageGenerator() {
                                 loading={loading}
                                 size="md"
                             >
-                                {!loading && <Send className="w-4 h-4" />}
+                                {!loading && <Icon icon="ph:paper-plane-tilt-fill" className="w-4 h-4" />}
                                 <span className="hidden sm:inline">Generate</span>
                             </Button>
                         </div>
@@ -344,13 +344,13 @@ function FeedItemCard({ item }: { item: FeedItem }) {
             {/* AI Response (Image) */}
             <div className="flex gap-4">
                 <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary to-indigo-600 flex items-center justify-center shrink-0 shadow-glow">
-                    <Sparkles className="w-4 h-4 text-white" />
+                    <Icon icon="ph:shooting-star-fill" className="w-4 h-4 text-white" />
                 </div>
 
                 <div className="flex-1 space-y-3">
                     {item.status === "pending" ? (
                         <div className="w-full aspect-square max-w-md rounded-2xl bg-surface-2 animate-pulse flex flex-col items-center justify-center border border-white/5">
-                            <Loader2 className="w-8 h-8 text-primary animate-spin mb-4" />
+                            <Icon icon="ph:spinner" className="w-8 h-8 text-primary animate-spin mb-4" />
                             <p className="text-sm text-muted-foreground">Creating masterpiece...</p>
                         </div>
                     ) : item.status === "failed" ? (
@@ -370,7 +370,7 @@ function FeedItemCard({ item }: { item: FeedItem }) {
                             {/* Action Bar */}
                             <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                 <Button variant="ghost" size="sm" onClick={handleDownload}>
-                                    <Download className="w-4 h-4 mr-2" />
+                                    <Icon icon="ph:download-simple-duotone" className="w-4 h-4 mr-2" />
                                     Download
                                 </Button>
                             </div>

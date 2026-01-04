@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-context";
-import { User, Mail, Calendar, Image as ImageIcon, Film, Zap, Crown, ExternalLink, LogOut, Loader2 } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 interface Stats {
     imagesGenerated: number;
@@ -55,7 +55,7 @@ export default function ProfilePage() {
     if (loading || authLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                <Icon icon="ph:spinner" className="w-8 h-8 animate-spin text-primary" />
             </div>
         );
     }
@@ -86,7 +86,7 @@ export default function ProfilePage() {
                                     {profile?.avatar_url ? (
                                         <img src={profile.avatar_url} alt={profile.name || ""} className="w-full h-full object-cover" />
                                     ) : (
-                                        <User className="w-10 h-10 text-muted-foreground" />
+                                        <Icon icon="ph:user-duotone" className="w-10 h-10 text-muted-foreground" />
                                     )}
                                 </div>
 
@@ -94,12 +94,12 @@ export default function ProfilePage() {
                                     <div className="flex items-center gap-2">
                                         <h2 className="text-xl font-bold">{profile?.name || "User"}</h2>
                                         <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center gap-1">
-                                            <Crown className="w-3 h-3" />
+                                            <Icon icon="ph:crown-simple-fill" className="w-3 h-3" />
                                             {profile?.plan || "Free"}
                                         </span>
                                     </div>
                                     <p className="text-muted-foreground text-sm flex items-center gap-2">
-                                        <Mail className="w-4 h-4" />
+                                        <Icon icon="ph:envelope-duotone" className="w-4 h-4" />
                                         {user?.email}
                                     </p>
                                 </div>
@@ -113,7 +113,7 @@ export default function ProfilePage() {
                             <Card variant="default" padding="sm">
                                 <CardContent className="flex flex-col items-center text-center p-4">
                                     <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-400 mb-3">
-                                        <ImageIcon className="w-5 h-5" />
+                                        <Icon icon="ph:image-duotone" className="w-5 h-5" />
                                     </div>
                                     <p className="text-2xl font-bold">{stats.imagesGenerated.toLocaleString()}</p>
                                     <p className="text-xs text-muted-foreground">Images</p>
@@ -122,7 +122,7 @@ export default function ProfilePage() {
                             <Card variant="default" padding="sm">
                                 <CardContent className="flex flex-col items-center text-center p-4">
                                     <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-3">
-                                        <Film className="w-5 h-5" />
+                                        <Icon icon="ph:video-duotone" className="w-5 h-5" />
                                     </div>
                                     <p className="text-2xl font-bold">{stats.videosCreated}</p>
                                     <p className="text-xs text-muted-foreground">Videos</p>
@@ -131,7 +131,7 @@ export default function ProfilePage() {
                             <Card variant="default" padding="sm">
                                 <CardContent className="flex flex-col items-center text-center p-4">
                                     <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 mb-3">
-                                        <Zap className="w-5 h-5" />
+                                        <Icon icon="ph:lightning-duotone" className="w-5 h-5" />
                                     </div>
                                     <p className="text-2xl font-bold">{(stats.tokensUsed / 1000).toFixed(1)}K</p>
                                     <p className="text-xs text-muted-foreground">Tokens Used</p>
@@ -140,7 +140,7 @@ export default function ProfilePage() {
                             <Card variant="default" padding="sm">
                                 <CardContent className="flex flex-col items-center text-center p-4">
                                     <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-3">
-                                        <Zap className="w-5 h-5" />
+                                        <Icon icon="ph:lightning-duotone" className="w-5 h-5" />
                                     </div>
                                     <p className="text-2xl font-bold">{(stats.tokensRemaining / 1000).toFixed(1)}K</p>
                                     <p className="text-xs text-muted-foreground">Remaining</p>
@@ -185,7 +185,7 @@ export default function ProfilePage() {
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between py-3 border-b border-border">
                                 <div className="flex items-center gap-3">
-                                    <Calendar className="w-5 h-5 text-muted-foreground" />
+                                    <Icon icon="ph:calendar-duotone" className="w-5 h-5 text-muted-foreground" />
                                     <span className="text-muted-foreground">Member since</span>
                                 </div>
                                 <span>
@@ -197,13 +197,13 @@ export default function ProfilePage() {
                             </div>
                             <div className="flex items-center justify-between py-3 border-b border-border">
                                 <div className="flex items-center gap-3">
-                                    <Crown className="w-5 h-5 text-muted-foreground" />
+                                    <Icon icon="ph:crown-simple-duotone" className="w-5 h-5 text-muted-foreground" />
                                     <span className="text-muted-foreground">Current plan</span>
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="capitalize">{profile?.plan || "Free"}</span>
                                     <Button variant="ghost" size="sm">
-                                        Upgrade <ExternalLink className="w-3 h-3 ml-1" />
+                                        Upgrade <Icon icon="ph:arrow-square-out" className="w-3 h-3 ml-1" />
                                     </Button>
                                 </div>
                             </div>
@@ -213,7 +213,7 @@ export default function ProfilePage() {
                     {/* Logout */}
                     <div className="flex justify-end">
                         <Button onClick={handleLogout} variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <LogOut className="w-4 h-4" />
+                            <Icon icon="ph:sign-out-duotone" className="w-4 h-4" />
                             Sign Out
                         </Button>
                     </div>

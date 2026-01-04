@@ -1,9 +1,9 @@
 import { forwardRef, ButtonHTMLAttributes } from "react";
-import { Loader2 } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-    variant?: "primary" | "secondary" | "ghost" | "destructive" | "outline";
+    variant?: "primary" | "secondary" | "ghost" | "destructive" | "outline" | "glass";
     size?: "sm" | "md" | "lg" | "icon";
     loading?: boolean;
 }
@@ -16,6 +16,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
             ghost: "bg-transparent text-muted-foreground hover:bg-white/5 hover:text-foreground",
             destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
             outline: "bg-transparent border border-border text-foreground hover:bg-white/5 hover:border-border-hover",
+            glass: "bg-white/5 backdrop-blur-xl border border-white/10 text-foreground hover:bg-white/10 hover:border-white/20",
         };
 
         const sizes = {
@@ -40,7 +41,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 )}
                 {...props}
             >
-                {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+                {loading && <Icon icon="ph:spinner" className="w-4 h-4 animate-spin" />}
                 {children}
             </button>
         );

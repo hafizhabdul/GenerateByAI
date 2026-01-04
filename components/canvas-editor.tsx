@@ -2,7 +2,7 @@
 
 import { useRef, useEffect, useState, useImperativeHandle, forwardRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { Undo, Redo, Eraser, Pen } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 
 export interface TextOverlay {
@@ -401,7 +401,7 @@ export const CanvasEditor = forwardRef<{ exportImage: () => Promise<string> }, C
                             disabled={interactMode !== "mask"}
                             className={interactMode !== "mask" ? "opacity-30" : ""}
                         >
-                            <Pen className="w-4 h-4" />
+                            <Icon icon="ph:pen-duotone" className="w-4 h-4" />
                         </Button>
                         <Button
                             variant={mode === "eraser" ? "primary" : "ghost"}
@@ -411,7 +411,7 @@ export const CanvasEditor = forwardRef<{ exportImage: () => Promise<string> }, C
                             disabled={interactMode !== "mask"}
                             className={interactMode !== "mask" ? "opacity-30" : ""}
                         >
-                            <Eraser className="w-4 h-4" />
+                            <Icon icon="ph:eraser-duotone" className="w-4 h-4" />
                         </Button>
                         <div className="w-px h-6 bg-white/10 mx-2" />
                         <div className="flex items-center gap-2 px-2 w-32">
@@ -430,10 +430,10 @@ export const CanvasEditor = forwardRef<{ exportImage: () => Promise<string> }, C
 
                     <div className="flex items-center gap-2">
                         <Button variant="ghost" size="icon" onClick={undo} disabled={historyIndex <= 0 || interactMode !== "mask"}>
-                            <Undo className="w-4 h-4" />
+                            <Icon icon="ph:arrow-counter-clockwise" className="w-4 h-4" />
                         </Button>
                         <Button variant="ghost" size="icon" onClick={redo} disabled={historyIndex >= history.length - 1 || interactMode !== "mask"}>
-                            <Redo className="w-4 h-4" />
+                            <Icon icon="ph:arrow-clockwise" className="w-4 h-4" />
                         </Button>
                     </div>
                 </div>

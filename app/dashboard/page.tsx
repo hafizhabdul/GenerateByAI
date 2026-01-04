@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from "@/lib/auth-context";
-import { Sparkles, Image as ImageIcon, Film, Zap, TrendingUp, Clock, Star, Loader2 } from "lucide-react";
+import { Icon } from "@iconify/react";
 import Link from "next/link";
 import type { Generation } from "@/lib/supabase/types";
 
@@ -17,9 +17,9 @@ interface Stats {
 }
 
 const quickActions = [
-    { label: "Generate Image", href: "/", icon: ImageIcon, color: "from-violet-500 to-purple-600" },
-    { label: "Create Video", href: "/?mode=video", icon: Film, color: "from-blue-500 to-cyan-600" },
-    { label: "View Gallery", href: "/gallery", icon: Star, color: "from-amber-500 to-orange-600" },
+    { label: "Generate Image", href: "/", icon: "ph:image-duotone", color: "from-violet-500 to-purple-600" },
+    { label: "Create Video", href: "/?mode=video", icon: "ph:video-duotone", color: "from-blue-500 to-cyan-600" },
+    { label: "View Gallery", href: "/gallery", icon: "ph:star-duotone", color: "from-amber-500 to-orange-600" },
 ];
 
 export default function DashboardPage() {
@@ -59,10 +59,10 @@ export default function DashboardPage() {
     };
 
     const statsData = [
-        { label: "Images Generated", value: stats?.imagesGenerated || 0, icon: ImageIcon, color: "text-violet-400" },
-        { label: "Videos Created", value: stats?.videosCreated || 0, icon: Film, color: "text-blue-400" },
-        { label: "Tokens Used", value: stats?.tokensUsed || 0, icon: Zap, color: "text-amber-400" },
-        { label: "Favorites", value: stats?.favorites || 0, icon: Star, color: "text-rose-400" },
+        { label: "Images Generated", value: stats?.imagesGenerated || 0, icon: "ph:image-duotone", color: "text-violet-400" },
+        { label: "Videos Created", value: stats?.videosCreated || 0, icon: "ph:video-duotone", color: "text-blue-400" },
+        { label: "Tokens Used", value: stats?.tokensUsed || 0, icon: "ph:lightning-duotone", color: "text-amber-400" },
+        { label: "Favorites", value: stats?.favorites || 0, icon: "ph:star-duotone", color: "text-rose-400" },
     ];
 
     return (
@@ -83,7 +83,7 @@ export default function DashboardPage() {
 
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
-                            <Loader2 className="w-8 h-8 animate-spin text-primary" />
+                            <Icon icon="ph:spinner" className="w-8 h-8 animate-spin text-primary" />
                         </div>
                     ) : (
                         <>
@@ -100,7 +100,7 @@ export default function DashboardPage() {
                                                     </p>
                                                 </div>
                                                 <div className={`w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center ${stat.color}`}>
-                                                    <stat.icon className="w-5 h-5" />
+                                                    <Icon icon={stat.icon} className="w-5 h-5" />
                                                 </div>
                                             </div>
                                         </CardContent>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
                                             <Card variant="default" hover className="group overflow-hidden">
                                                 <CardContent className="p-6 flex items-center gap-4">
                                                     <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                                                        <action.icon className="w-6 h-6 text-white" />
+                                                        <Icon icon={action.icon} className="w-6 h-6 text-white" />
                                                     </div>
                                                     <div>
                                                         <p className="font-medium group-hover:text-primary transition-colors">{action.label}</p>
@@ -165,12 +165,12 @@ export default function DashboardPage() {
                                                 <div key={activity.id} className="p-4 flex items-center gap-4 hover:bg-white/5 transition-colors">
                                                     <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${activity.type === "image" ? "bg-violet-500/10 text-violet-400" : "bg-blue-500/10 text-blue-400"
                                                         }`}>
-                                                        {activity.type === "image" ? <ImageIcon className="w-5 h-5" /> : <Film className="w-5 h-5" />}
+                                                        <Icon icon={activity.type === "image" ? "ph:image-duotone" : "ph:video-duotone"} className="w-5 h-5" />
                                                     </div>
                                                     <div className="flex-1 min-w-0">
                                                         <p className="text-sm truncate">{activity.prompt}</p>
                                                         <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                                                            <Clock className="w-3 h-3" />
+                                                            <Icon icon="ph:clock" className="w-3 h-3" />
                                                             {new Date(activity.created_at).toLocaleString()}
                                                         </div>
                                                     </div>
@@ -178,7 +178,7 @@ export default function DashboardPage() {
                                             ))
                                         ) : (
                                             <div className="p-8 text-center text-muted-foreground">
-                                                <Sparkles className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                                                <Icon icon="ph:shooting-star-duotone" className="w-8 h-8 mx-auto mb-2 opacity-50" />
                                                 <p>No activity yet. Start generating!</p>
                                             </div>
                                         )}
