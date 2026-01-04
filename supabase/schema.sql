@@ -98,6 +98,45 @@ CREATE INDEX idx_generations_created_at ON generations(created_at DESC);
 CREATE INDEX idx_generations_is_favorite ON generations(is_favorite) WHERE is_favorite = TRUE;
 
 -- ============================================
+-- PAYMENTS TABLE (Token Purchases)
+-- ============================================
+CREATE TABLE payments (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+    order_id TEXT NOT NULL UNIQUE,
+    package_id TEXT NOT NULL CHECK (package_id IN ('starter', 'basic', 'pro', 'business')),
+    amount INTEGER NOT NULL, -- in IDR
+    tokens INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'completed', 'expired', 'cancelled', 'failed')),
+    payment_method TEXT, -- qris, bni_va, bri_va, etc.
+    completed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Enable RLS
+ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
+
+-- Policies
+CREATE POLICY "Users can view own payments"
+    ON payments FOR SELECT
+    USING (auth.uid() = user_id);
+
+CREATE POLICY "Service role can insert payments"
+    ON payments FOR INSERT
+    WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Service role can update payments"
+    ON payments FOR UPDATE
+    USING (auth.uid() = user_id);
+
+-- Indexes for payments
+CREATE INDEX idx_payments_user_id ON payments(user_id);
+CREATE INDEX idx_payments_order_id ON payments(order_id);
+CREATE INDEX idx_payments_status ON payments(status);
+CREATE INDEX idx_payments_created_at ON payments(created_at DESC);
+
+-- ============================================
 -- STORAGE BUCKETS (run in Storage section)
 -- ============================================
 -- Create these buckets manually in Supabase Dashboard > Storage:

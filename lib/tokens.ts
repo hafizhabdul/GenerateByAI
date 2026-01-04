@@ -16,3 +16,6 @@ export function getTokenCost(type: GenerationType, quality: QualityTier = 'high'
     const key = `image_${quality}`;
     return TOKEN_COSTS[key] || TOKEN_COSTS.image_high;
 }
+
+// Re-export token packages from pakasir for convenience
+export { TOKEN_PACKAGES, formatIDR, type TokenPackageId } from './pakasir';

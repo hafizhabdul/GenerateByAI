@@ -10,7 +10,11 @@ const envSchema = z.object({
   SUMOPOD_API_KEY: z.string().min(1, "Sumopod API key is required"),
   SUMOPOD_BASE_URL: z.string().url().default("https://ai.sumopod.com/v1"),
 
-  // Mayar Payment (optional, required for payments)
+  // Pakasir Payment (optional, required for payments)
+  PAKASIR_SLUG: z.string().optional(),
+  PAKASIR_API_KEY: z.string().optional(),
+
+  // Legacy Mayar Payment (deprecated, use Pakasir instead)
   MAYAR_API_KEY: z.string().optional(),
   MAYAR_WEBHOOK_SECRET: z.string().optional(),
 
@@ -52,8 +56,13 @@ function validateEnv(): Env {
 
 export const env = validateEnv();
 
-// Helper to check if payment is configured
+// Helper to check if Pakasir payment is configured
 export function isPaymentConfigured(): boolean {
+  return Boolean(process.env.PAKASIR_SLUG && process.env.PAKASIR_API_KEY);
+}
+
+// Legacy: Helper to check if Mayar is configured (deprecated)
+export function isMayarConfigured(): boolean {
   return Boolean(process.env.MAYAR_API_KEY && process.env.MAYAR_WEBHOOK_SECRET);
 }
 
