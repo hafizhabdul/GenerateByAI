@@ -161,10 +161,18 @@ export default function GalleryPage() {
                         </div>
                     </div>
 
-                    {/* Loading */}
+                    {/* Loading Skeleton */}
                     {loading && (
-                        <div className="flex items-center justify-center py-20">
-                            <Icon icon="ph:spinner" className="w-8 h-8 animate-spin text-primary" />
+                        <div className={`grid gap-4 ${view === "grid" ? "grid-cols-2 md:grid-cols-3 lg:grid-cols-4" : "grid-cols-1"}`}>
+                            {[...Array(8)].map((_, i) => (
+                                <div key={i} className="rounded-2xl overflow-hidden bg-surface-2 border border-border animate-pulse">
+                                    <div className="aspect-square bg-white/5" />
+                                    <div className="p-3 space-y-2">
+                                        <div className="h-3 bg-white/10 rounded w-3/4" />
+                                        <div className="h-2 bg-white/5 rounded w-1/2" />
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
 
@@ -233,17 +241,45 @@ export default function GalleryPage() {
                     {/* Empty State */}
                     {!loading && filteredItems.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-20 text-center">
-                            <div className="w-16 h-16 rounded-full bg-surface-2 flex items-center justify-center mb-4">
-                                <Icon icon="ph:magnifying-glass-duotone" className="w-8 h-8 text-muted-foreground" />
-                            </div>
-                            <h3 className="font-semibold text-lg mb-1">
-                                {searchQuery || filterType !== "all" ? "No items found" : "No items yet"}
-                            </h3>
-                            <p className="text-muted-foreground text-sm">
-                                {searchQuery || filterType !== "all"
-                                    ? "Try adjusting your search or filter"
-                                    : "Generate your first image or video to see it here"}
-                            </p>
+                            {searchQuery || filterType !== "all" ? (
+                                <>
+                                    <div className="w-20 h-20 rounded-full bg-surface-2 flex items-center justify-center mb-6">
+                                        <Icon icon="ph:magnifying-glass-duotone" className="w-10 h-10 text-muted-foreground" />
+                                    </div>
+                                    <h3 className="font-semibold text-xl mb-2">No items found</h3>
+                                    <p className="text-muted-foreground text-sm mb-6 max-w-sm">
+                                        Try adjusting your search query or filter to find what you&apos;re looking for
+                                    </p>
+                                    <Button variant="secondary" onClick={() => { setSearchQuery(""); setFilterType("all"); }}>
+                                        <Icon icon="ph:x" className="w-4 h-4 mr-2" />
+                                        Clear Filters
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="relative mb-8">
+                                        <div className="w-32 h-32 rounded-3xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center border border-primary/20">
+                                            <Icon icon="ph:sparkle-duotone" className="w-16 h-16 text-primary" />
+                                        </div>
+                                        <div className="absolute -top-2 -right-2 w-8 h-8 rounded-full bg-violet-500/30 animate-pulse" />
+                                        <div className="absolute -bottom-3 -left-3 w-6 h-6 rounded-full bg-primary/40 animate-pulse delay-300" />
+                                    </div>
+                                    <h3 className="font-semibold text-xl mb-2">Your gallery is empty</h3>
+                                    <p className="text-muted-foreground text-sm mb-8 max-w-sm">
+                                        Start creating amazing AI-generated images and videos. They&apos;ll appear here automatically.
+                                    </p>
+                                    <div className="flex flex-wrap justify-center gap-3">
+                                        <Button variant="primary" onClick={() => window.location.href = "/app"}>
+                                            <Icon icon="ph:image-duotone" className="w-4 h-4 mr-2" />
+                                            Generate Image
+                                        </Button>
+                                        <Button variant="secondary" onClick={() => window.location.href = "/videos"}>
+                                            <Icon icon="ph:video-duotone" className="w-4 h-4 mr-2" />
+                                            Create Video
+                                        </Button>
+                                    </div>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>

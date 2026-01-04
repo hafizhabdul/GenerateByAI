@@ -245,8 +245,8 @@ export function ImageGenerator() {
                     isHero ? "opacity-100 translate-y-[-140px]" : "hidden" // Moved up much more (-140px)
                 )}>
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
-                        <Icon icon="ph:lightning-fill" className="w-3 h-3" />
-                        AI Creative Studio
+                        <Icon icon="ph:paint-brush-duotone" className="w-3 h-3" />
+                        Genzio Studio
                     </div>
                     <h1 className="font-bold tracking-tight gradient-text" style={{ fontSize: "var(--text-5xl)" }}>
                         Dream it. <br className="md:hidden" />
@@ -268,8 +268,8 @@ export function ImageGenerator() {
             <div className={cn(
                 "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
                 isHero
-                    ? "bottom-1/2 translate-y-[calc(50%+80px)] md:translate-y-[calc(50%+100px)]" // Moved further down
-                    : "bottom-20 md:bottom-8"
+                    ? "bottom-1/2 translate-y-[calc(50%+80px)] md:translate-y-[calc(50%+100px)]"
+                    : "bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-8"
             )}>
                 <div className="w-full max-w-2xl mx-auto">
                     <div className="rounded-2xl md:rounded-3xl p-2 flex flex-col gap-2 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 focus-within:shadow-[0_0_50px_rgba(139,92,246,0.15)] bg-background/80 backdrop-blur-xl border border-border">
@@ -383,11 +383,25 @@ function FeedItemCard({ item }: { item: FeedItem }) {
                                 />
                             </div>
 
-                            {/* Action Bar */}
-                            <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            {/* Action Bar - Always visible for better UX */}
+                            <div className="flex items-center gap-2 mt-3">
                                 <Button variant="ghost" size="sm" onClick={handleDownload} disabled={isDownloading}>
                                     <Icon icon={isDownloading ? "ph:spinner" : "ph:download-simple-duotone"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
                                     {isDownloading ? "Downloading..." : "Download"}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                        if (item.file_url) {
+                                            sessionStorage.setItem("videoSourceImage", item.file_url);
+                                            sessionStorage.setItem("videoSourcePrompt", item.prompt);
+                                            window.location.href = "/videos";
+                                        }
+                                    }}
+                                >
+                                    <Icon icon="ph:video-duotone" className="w-4 h-4 mr-2" />
+                                    Create Video
                                 </Button>
                             </div>
                         </div>

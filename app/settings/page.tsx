@@ -41,7 +41,7 @@ export default function SettingsPage() {
                             Settings
                         </h1>
                         <p className="text-muted-foreground" style={{ fontSize: "var(--text-base)" }}>
-                            Customize your AI Creative Studio experience
+                            Customize your Genzio Studio experience
                         </p>
                     </div>
 

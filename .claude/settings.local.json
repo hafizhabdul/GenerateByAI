@@ -19,7 +19,10 @@
       "mcp__chrome-devtools__take_snapshot",
       "mcp__chrome-devtools__click",
       "mcp__chrome-devtools__wait_for",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "WebFetch(domain:hailuoai.video)",
+      "WebSearch",
+      "mcp__chrome-devtools__take_screenshot"
     ]
   },
   "hooks": {

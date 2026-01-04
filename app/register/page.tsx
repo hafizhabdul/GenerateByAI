@@ -67,9 +67,7 @@ export default function RegisterPage() {
                 <CardHeader className="text-center space-y-4">
                     {/* Logo */}
                     <Link href="/" className="inline-flex justify-center">
-                        <div className="w-14 h-14 bg-gradient-to-br from-primary via-purple-500 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-primary/30">
-                            <Icon icon="ph:lightning-fill" className="w-7 h-7 text-white" />
-                        </div>
+                        <img src="/logo.svg" alt="Genzio" className="w-14 h-14 rounded-2xl shadow-lg shadow-primary/30" />
                     </Link>
 
                     <div>

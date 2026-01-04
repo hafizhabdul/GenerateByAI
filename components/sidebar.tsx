@@ -29,13 +29,13 @@ export function Sidebar() {
         <>
             {/* Desktop Sidebar - Minimalist & Premium */}
             <aside className="fixed left-6 top-6 bottom-6 w-16 rounded-full glass-panel flex flex-col items-center py-6 gap-6 z-[300] shadow-2xl hide-mobile border border-border bg-background/60 backdrop-blur-xl">
-                {/* Logo - Subtle Glow */}
+                {/* Logo - Custom Brand */}
                 <Link
                     href="/"
                     className="relative group w-10 h-10 flex items-center justify-center mb-4 transition-transform hover:scale-110"
                 >
                     <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <Icon icon="ph:lightning-fill" className="w-6 h-6 text-primary relative z-10" />
+                    <img src="/favicon.svg" alt="Genzio" className="w-8 h-8 relative z-10 rounded-lg" />
                 </Link>
 
                 {/* Nav Items - Clean & Centered */}

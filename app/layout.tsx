@@ -22,9 +22,14 @@ const pacifico = Pacifico({ weight: "400", subsets: ["latin"], variable: "--font
 const oswald = Oswald({ subsets: ["latin"], variable: "--font-oswald" });
 
 export const metadata: Metadata = {
-  title: "AI Creative Studio | Generate Images & Videos",
+  title: "Genzio Studio | Create Stunning Visuals",
   description: "Transform your ideas into stunning visuals with AI-powered image and video generation. Premium, elegant, and incredibly fast.",
-  keywords: ["AI", "image generation", "video generation", "creative studio", "UGC"],
+  keywords: ["AI", "image generation", "video generation", "creative studio", "UGC", "product videos"],
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({

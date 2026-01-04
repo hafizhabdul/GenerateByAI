@@ -55,6 +55,22 @@ export function VideoGenerator() {
         }
     }, [user]);
 
+    // Check for pre-filled image from image generator
+    useEffect(() => {
+        const sourceImage = sessionStorage.getItem("videoSourceImage");
+        const sourcePrompt = sessionStorage.getItem("videoSourcePrompt");
+
+        if (sourceImage) {
+            setImagePreview(sourceImage);
+            if (sourcePrompt) {
+                setPrompt(`Create a marketing video showcasing this product`);
+            }
+            // Clear session storage
+            sessionStorage.removeItem("videoSourceImage");
+            sessionStorage.removeItem("videoSourcePrompt");
+        }
+    }, []);
+
     const loadHistory = async () => {
         try {
             const res = await fetch("/api/generations?type=video&limit=20");
@@ -151,7 +167,11 @@ export function VideoGenerator() {
 
         const currentPrompt = prompt;
         const currentImage = imagePreview;
+        const currentImageFile = imageFile;
+        
+        // Clear input immediately after clicking Generate
         setPrompt("");
+        removeImage();
         setIsHero(false);
         setLoading(true);
 
@@ -172,13 +192,13 @@ export function VideoGenerator() {
         try {
             // Upload image first if it's a file
             let imageUrl = currentImage;
-            if (imageFile) {
+            if (currentImageFile) {
                 setFeed((prev) =>
                     prev.map((item) =>
                         item.id === tempId ? { ...item, status: "processing" } : item
                     )
                 );
-                imageUrl = await uploadImageToStorage(imageFile);
+                imageUrl = await uploadImageToStorage(currentImageFile);
             }
 
             // Generate video
@@ -208,7 +228,6 @@ export function VideoGenerator() {
             );
 
             showToast("Video generated successfully!", "success");
-            removeImage();
             await refreshProfile();
         } catch (err) {
             console.error(err);
@@ -429,7 +448,7 @@ export function VideoGenerator() {
                 >
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-xs font-medium text-violet-400 tracking-wider uppercase animate-fade-in">
                         <Icon icon="ph:video-duotone" className="w-3 h-3" />
-                        AI Video Generation
+                        Video Generation
                     </div>
                     <h1
                         className="font-bold tracking-tight gradient-text"
@@ -469,7 +488,9 @@ export function VideoGenerator() {
             <div
                 className={cn(
                     "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
-                    isHero ? "bottom-1/2 translate-y-[calc(50%+120px)]" : "bottom-20 md:bottom-8"
+                    isHero
+                        ? "bottom-1/2 translate-y-[calc(50%+120px)]"
+                        : "bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-8"
                 )}
             >
                 <div className="w-full max-w-2xl mx-auto">
@@ -663,15 +684,7 @@ function VideoFeedCard({
 
                 <div className="flex-1 space-y-3">
                     {item.status === "pending" || item.status === "processing" ? (
-                        <div className="w-full aspect-video max-w-lg rounded-2xl bg-surface-2 animate-pulse flex flex-col items-center justify-center border border-white/5">
-                            <Icon icon="ph:spinner" className="w-8 h-8 text-primary animate-spin mb-4" />
-                            <p className="text-sm text-muted-foreground">
-                                {item.status === "pending" ? "Starting video generation..." : "Creating your video..."}
-                            </p>
-                            <p className="text-xs text-muted-foreground/60 mt-2">
-                                This may take 2-5 minutes
-                            </p>
-                        </div>
+                        <VideoProgressIndicator status={item.status} duration={item.duration} />
                     ) : item.status === "failed" ? (
                         <div className="w-full max-w-lg p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-200">
                             <p className="font-medium mb-1">Failed to generate video</p>
@@ -718,8 +731,8 @@ function VideoFeedCard({
                                 </button>
                             </div>
 
-                            {/* Action Bar */}
-                            <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            {/* Action Bar - Always visible for better UX */}
+                            <div className="flex items-center gap-2 mt-3">
                                 <Button variant="ghost" size="sm" onClick={handleDownload} disabled={isDownloading}>
                                     <Icon icon={isDownloading ? "ph:spinner" : "ph:download-simple-duotone"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
                                     {isDownloading ? "Downloading..." : "Download"}
@@ -731,8 +744,8 @@ function VideoFeedCard({
                                         onClick={onExtend}
                                         disabled={isExtending}
                                     >
-                                        <Icon icon="ph:arrow-clockwise-duotone" className="w-4 h-4 mr-2" />
-                                        Extend +5s
+                                        <Icon icon={isExtending ? "ph:spinner" : "ph:arrow-clockwise-duotone"} className={cn("w-4 h-4 mr-2", isExtending && "animate-spin")} />
+                                        {isExtending ? "Extending..." : "Extend +5s"}
                                     </Button>
                                 )}
                             </div>
@@ -740,6 +753,112 @@ function VideoFeedCard({
                     )}
                 </div>
             </div>
+        </div>
+    );
+}
+
+// Progress indicator component with steps
+function VideoProgressIndicator({ status, duration }: { status: string; duration: string }) {
+    const [elapsedTime, setElapsedTime] = useState(0);
+    const [currentStep, setCurrentStep] = useState(0);
+
+    const steps = [
+        { label: "Uploading image", icon: "ph:cloud-arrow-up" },
+        { label: "Analyzing content", icon: "ph:brain" },
+        { label: "Generating frames", icon: "ph:film-strip" },
+        { label: "Rendering video", icon: "ph:video" },
+    ];
+
+    // Estimate time based on duration setting
+    const estimatedSeconds = duration === "10" ? 300 : 180; // 5 min for 10s, 3 min for 5s
+
+    useEffect(() => {
+        const timer = setInterval(() => {
+            setElapsedTime((prev) => prev + 1);
+        }, 1000);
+
+        return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+        // Progress through steps based on elapsed time
+        if (status === "pending") {
+            setCurrentStep(0);
+        } else {
+            const progress = elapsedTime / estimatedSeconds;
+            if (progress < 0.1) setCurrentStep(0);
+            else if (progress < 0.3) setCurrentStep(1);
+            else if (progress < 0.7) setCurrentStep(2);
+            else setCurrentStep(3);
+        }
+    }, [elapsedTime, status, estimatedSeconds]);
+
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = seconds % 60;
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
+    };
+
+    const remainingTime = Math.max(0, estimatedSeconds - elapsedTime);
+    const progress = Math.min(100, (elapsedTime / estimatedSeconds) * 100);
+
+    return (
+        <div className="w-full max-w-lg rounded-2xl bg-surface-2 border border-white/5 p-6 space-y-5">
+            {/* Progress Steps */}
+            <div className="space-y-3">
+                {steps.map((step, index) => (
+                    <div
+                        key={step.label}
+                        className={cn(
+                            "flex items-center gap-3 transition-all duration-300",
+                            index < currentStep
+                                ? "text-green-400"
+                                : index === currentStep
+                                    ? "text-primary"
+                                    : "text-muted-foreground/50"
+                        )}
+                    >
+                        <div
+                            className={cn(
+                                "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+                                index < currentStep
+                                    ? "bg-green-500/20"
+                                    : index === currentStep
+                                        ? "bg-primary/20"
+                                        : "bg-white/5"
+                            )}
+                        >
+                            {index < currentStep ? (
+                                <Icon icon="ph:check-bold" className="w-4 h-4" />
+                            ) : index === currentStep ? (
+                                <Icon icon="ph:spinner" className="w-4 h-4 animate-spin" />
+                            ) : (
+                                <Icon icon={step.icon} className="w-4 h-4" />
+                            )}
+                        </div>
+                        <span className="text-sm font-medium">{step.label}</span>
+                    </div>
+                ))}
+            </div>
+
+            {/* Progress Bar */}
+            <div className="space-y-2">
+                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                        className="h-full bg-gradient-to-r from-violet-500 to-primary rounded-full transition-all duration-1000 ease-out"
+                        style={{ width: `${progress}%` }}
+                    />
+                </div>
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Elapsed: {formatTime(elapsedTime)}</span>
+                    <span>~{formatTime(remainingTime)} remaining</span>
+                </div>
+            </div>
+
+            {/* Tips */}
+            <p className="text-xs text-muted-foreground/70 text-center">
+                💡 Tip: {duration === "10" ? "10 second videos" : "5 second videos"} typically take {duration === "10" ? "3-5" : "2-3"} minutes to generate
+            </p>
         </div>
     );
 }

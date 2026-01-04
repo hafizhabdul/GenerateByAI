@@ -57,8 +57,12 @@
 
 > Add UI/UX improvements here
 
-- [ ] `[HIGH]`
-- [ ] `[MEDIUM]`
+- [x] `[HIGH]` Video progress indicator with steps and estimated time
+- [x] `[HIGH]` Image to Video quick action button
+- [x] `[MEDIUM]` Gallery skeleton loading
+- [x] `[MEDIUM]` Improved empty states with illustrations and CTA
+- [x] `[MEDIUM]` Mobile keyboard handling (safe-area-inset)
+- [x] `[MEDIUM]` Always visible action buttons (download, extend)
 - [ ] `[LOW]`
 
 ---
