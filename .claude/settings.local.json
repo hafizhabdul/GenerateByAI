@@ -22,7 +22,9 @@
       "Bash(npm install:*)",
       "WebFetch(domain:hailuoai.video)",
       "WebSearch",
-      "mcp__chrome-devtools__take_screenshot"
+      "mcp__chrome-devtools__take_screenshot",
+      "WebFetch(domain:app.klingai.com)",
+      "WebFetch(domain:kie.ai)"
     ]
   },
   "hooks": {

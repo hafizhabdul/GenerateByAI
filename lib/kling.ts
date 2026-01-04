@@ -17,6 +17,8 @@ interface ImageToVideoRequest {
     duration?: '5' | '10';
     aspect_ratio?: '16:9' | '9:16' | '1:1';
     callback_url?: string;
+    // Kling 2.6 audio support
+    sound?: boolean;
 }
 
 interface TextToVideoRequest {
@@ -28,6 +30,8 @@ interface TextToVideoRequest {
     duration?: '5' | '10';
     aspect_ratio?: '16:9' | '9:16' | '1:1';
     callback_url?: string;
+    // Kling 2.6 audio support
+    sound?: boolean;
 }
 
 interface VideoExtendRequest {
@@ -156,6 +160,7 @@ export class KlingClient {
 
     /**
      * Generate video from image (Image to Video)
+     * Supports Kling 2.6 with native audio generation
      */
     async imageToVideo(options: {
         imageUrl: string;
@@ -165,16 +170,18 @@ export class KlingClient {
         duration?: '5' | '10';
         aspectRatio?: '16:9' | '9:16' | '1:1';
         cfgScale?: number;
+        sound?: boolean; // Enable native audio generation (Kling 2.6)
     }): Promise<KlingTaskResponse> {
         const body: ImageToVideoRequest = {
-            model_name: 'kling-v1-5', // Using stable V1.5 model
+            model_name: options.sound ? 'kling-v2-master' : 'kling-v1-5', // Use 2.6 for audio
             image: options.imageUrl,
             prompt: options.prompt,
             negative_prompt: options.negativePrompt || 'blurry, low quality, distorted, ugly',
             mode: options.mode || 'std',
             duration: options.duration || '5',
             aspect_ratio: options.aspectRatio || '16:9',
-            cfg_scale: options.cfgScale || 0.85, // Higher value = closer to original image
+            cfg_scale: options.cfgScale || 0.85,
+            sound: options.sound,
         };
 
         return this.request<KlingTaskResponse>('/v1/videos/image2video', body);
@@ -182,6 +189,7 @@ export class KlingClient {
 
     /**
      * Generate video from text (Text to Video)
+     * Supports Kling 2.6 with native audio generation
      */
     async textToVideo(options: {
         prompt: string;
@@ -190,15 +198,17 @@ export class KlingClient {
         duration?: '5' | '10';
         aspectRatio?: '16:9' | '9:16' | '1:1';
         cfgScale?: number;
+        sound?: boolean; // Enable native audio generation (Kling 2.6)
     }): Promise<KlingTaskResponse> {
         const body: TextToVideoRequest = {
-            model_name: 'kling-v1-5',
+            model_name: options.sound ? 'kling-v2-master' : 'kling-v1-5', // Use 2.6 for audio
             prompt: options.prompt,
             negative_prompt: options.negativePrompt || 'blurry, low quality, distorted, ugly',
             mode: options.mode || 'std',
             duration: options.duration || '5',
             aspect_ratio: options.aspectRatio || '16:9',
             cfg_scale: options.cfgScale || 0.5,
+            sound: options.sound,
         };
 
         return this.request<KlingTaskResponse>('/v1/videos/text2video', body);
@@ -300,23 +310,30 @@ export function createKlingClient(): KlingClient {
 }
 
 /**
- * Calculate token cost based on video duration and mode
+ * Calculate token cost based on video duration, mode, and audio
+ * Audio-enabled videos cost ~1.5x more (Kling 2.6 pricing)
  */
-export function getVideoCost(duration: '5' | '10', mode: 'std' | 'pro'): number {
-    // Based on Kling pricing: 0.6 units/sec (std), 0.8 units/sec (pro)
-    const durationSec = parseInt(duration);
-    const ratePerSec = mode === 'pro' ? 0.8 : 0.6;
-    const units = durationSec * ratePerSec;
+export function getVideoCost(duration: '5' | '10', mode: 'std' | 'pro', sound: boolean = false): number {
+    // Base costs in app tokens
+    const baseCosts = {
+        '5': { std: 100, pro: 120 },   // 5 second video
+        '10': { std: 180, pro: 220 },  // 10 second video
+    };
 
-    // Convert to app tokens (1 unit ≈ 10 app tokens for pricing alignment)
-    return Math.ceil(units * 15);
+    let cost = baseCosts[duration][mode];
+
+    // Audio adds 50% more cost (Kling 2.6 native audio is more expensive)
+    if (sound) {
+        cost = Math.ceil(cost * 1.5);
+    }
+
+    return cost;
 }
 
 /**
  * Calculate token cost for video extension
- * Extension adds 5 seconds, costs same as 5 second std video
+ * Extension adds 5 seconds
  */
 export function getExtendCost(): number {
-    // Extension is fixed at ~3 units (5 seconds at std rate)
-    return Math.ceil(3 * 15); // 45 tokens
+    return 80; // Fixed cost for extending video by 5 seconds
 }

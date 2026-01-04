@@ -179,11 +179,12 @@ export default function PricingPage() {
             {/* Token Usage Info */}
             <div className="relative z-10 mt-16 max-w-3xl w-full">
                 <h3 className="text-lg font-medium text-foreground text-center mb-6">Estimasi penggunaan token</h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <UsageInfo icon="ph:image" label="Gambar Standard" cost="10 token" />
                     <UsageInfo icon="ph:image-square" label="Gambar HD" cost="20 token" />
                     <UsageInfo icon="ph:sparkle" label="Gambar Ultra" cost="40 token" />
                     <UsageInfo icon="ph:video" label="Video 5 detik" cost="100 token" />
+                    <UsageInfo icon="ph:speaker-high" label="Video + Audio" cost="150 token" />
                 </div>
             </div>
 

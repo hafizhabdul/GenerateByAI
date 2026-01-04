@@ -18,13 +18,17 @@ type VideoFeedItem = {
     created_at: string;
     error?: string;
     canExtend?: boolean;
+    sourceType?: "image2video" | "text2video";
 };
 
 type VideoSettings = {
     duration: "5" | "10";
     mode: "std" | "pro";
     aspectRatio: "16:9" | "9:16" | "1:1";
+    sound: boolean; // Kling 2.6 native audio
 };
+
+type GenerationMode = "image2video" | "text2video";
 
 export function VideoGenerator() {
     const [prompt, setPrompt] = useState("");
@@ -35,10 +39,12 @@ export function VideoGenerator() {
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [isHero, setIsHero] = useState(true);
     const [showSettings, setShowSettings] = useState(false);
+    const [generationMode, setGenerationMode] = useState<GenerationMode>("text2video");
     const [settings, setSettings] = useState<VideoSettings>({
         duration: "5",
         mode: "std",
         aspectRatio: "16:9",
+        sound: false, // Kling 2.6 native audio - off by default
     });
 
     const { showToast } = useToast();
@@ -97,12 +103,18 @@ export function VideoGenerator() {
         }
     };
 
-    // Calculate token cost
+    // Calculate token cost (aligned with lib/kling.ts getVideoCost)
     const getEstimatedCost = useCallback(() => {
-        const durationSec = parseInt(settings.duration);
-        const ratePerSec = settings.mode === "pro" ? 0.8 : 0.6;
-        const units = durationSec * ratePerSec;
-        return Math.ceil(units * 15);
+        const baseCosts = {
+            '5': { std: 100, pro: 120 },
+            '10': { std: 180, pro: 220 },
+        };
+        let cost = baseCosts[settings.duration][settings.mode];
+        // Audio adds 50% more cost (Kling 2.6)
+        if (settings.sound) {
+            cost = Math.ceil(cost * 1.5);
+        }
+        return cost;
     }, [settings]);
 
     // Auto-scroll to bottom when feed updates
@@ -156,22 +168,26 @@ export function VideoGenerator() {
 
     const handleGenerate = async () => {
         if (!prompt.trim()) {
-            showToast("Please describe how you want your product video", "warning");
+            showToast("Please describe the video you want to create", "warning");
             return;
         }
 
-        if (!imageFile && !imagePreview) {
-            showToast("Please upload a product image first", "warning");
+        // Only require image for image2video mode
+        if (generationMode === "image2video" && !imageFile && !imagePreview) {
+            showToast("Please upload an image first for Image to Video mode", "warning");
             return;
         }
 
         const currentPrompt = prompt;
         const currentImage = imagePreview;
         const currentImageFile = imageFile;
-        
+        const currentMode = generationMode;
+
         // Clear input immediately after clicking Generate
         setPrompt("");
-        removeImage();
+        if (currentMode === "image2video") {
+            removeImage();
+        }
         setIsHero(false);
         setLoading(true);
 
@@ -180,25 +196,30 @@ export function VideoGenerator() {
         const optimisticItem: VideoFeedItem = {
             id: tempId,
             prompt: currentPrompt,
-            imageUrl: currentImage || undefined,
+            imageUrl: currentMode === "image2video" ? currentImage || undefined : undefined,
             status: "pending",
             duration: settings.duration,
             mode: settings.mode,
             created_at: new Date().toISOString(),
+            sourceType: currentMode,
         };
 
         setFeed((prev) => [...prev, optimisticItem]);
 
         try {
-            // Upload image first if it's a file
-            let imageUrl = currentImage;
-            if (currentImageFile) {
-                setFeed((prev) =>
-                    prev.map((item) =>
-                        item.id === tempId ? { ...item, status: "processing" } : item
-                    )
-                );
-                imageUrl = await uploadImageToStorage(currentImageFile);
+            // Upload image first if it's a file (only for image2video)
+            let imageUrl: string | undefined = undefined;
+            if (currentMode === "image2video") {
+                if (currentImageFile) {
+                    setFeed((prev) =>
+                        prev.map((item) =>
+                            item.id === tempId ? { ...item, status: "processing" } : item
+                        )
+                    );
+                    imageUrl = await uploadImageToStorage(currentImageFile);
+                } else if (currentImage) {
+                    imageUrl = currentImage;
+                }
             }
 
             // Generate video
@@ -211,7 +232,8 @@ export function VideoGenerator() {
                     mode: settings.mode,
                     duration: settings.duration,
                     aspectRatio: settings.aspectRatio,
-                    type: "image2video",
+                    type: currentMode,
+                    sound: settings.sound, // Kling 2.6 native audio
                 }),
             });
 
@@ -419,6 +441,52 @@ export function VideoGenerator() {
                                 </p>
                             </div>
 
+                            {/* Native Audio (Kling 2.6) */}
+                            <div className="space-y-3">
+                                <label className="text-sm font-medium flex items-center gap-2">
+                                    <Icon icon="ph:speaker-high-duotone" className="w-4 h-4 text-violet-400" />
+                                    Native Audio
+                                    <span className="px-1.5 py-0.5 text-[10px] bg-violet-500/20 text-violet-400 rounded-md font-medium">NEW</span>
+                                </label>
+                                <button
+                                    onClick={() => setSettings((s) => ({ ...s, sound: !s.sound }))}
+                                    className={cn(
+                                        "w-full p-4 rounded-xl border transition-all text-left",
+                                        settings.sound
+                                            ? "border-violet-500 bg-violet-500/10"
+                                            : "border-border hover:border-border-hover"
+                                    )}
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <div className={cn("font-medium", settings.sound ? "text-violet-400" : "text-foreground")}>
+                                                {settings.sound ? "Audio Enabled" : "Audio Disabled"}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground mt-1">
+                                                {settings.sound
+                                                    ? "AI akan generate audio: dialog, efek suara, ambient"
+                                                    : "Video tanpa audio (silent)"}
+                                            </div>
+                                        </div>
+                                        <div className={cn(
+                                            "w-12 h-7 rounded-full transition-all relative",
+                                            settings.sound ? "bg-violet-500" : "bg-surface-3"
+                                        )}>
+                                            <div className={cn(
+                                                "absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-all",
+                                                settings.sound ? "left-6" : "left-1"
+                                            )} />
+                                        </div>
+                                    </div>
+                                </button>
+                                {settings.sound && (
+                                    <p className="text-xs text-violet-400/80 flex items-center gap-1">
+                                        <Icon icon="ph:info" className="w-3 h-3" />
+                                        Audio menambah ~50% biaya token
+                                    </p>
+                                )}
+                            </div>
+
                             {/* Cost Estimate */}
                             <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
                                 <div className="flex items-center justify-between">
@@ -448,18 +516,49 @@ export function VideoGenerator() {
                 >
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-xs font-medium text-violet-400 tracking-wider uppercase animate-fade-in">
                         <Icon icon="ph:video-duotone" className="w-3 h-3" />
-                        Video Generation
+                        AI Video Generation
                     </div>
                     <h1
                         className="font-bold tracking-tight gradient-text"
                         style={{ fontSize: "var(--text-5xl)" }}
                     >
-                        Product to Video
+                        {generationMode === "text2video" ? "Text to Video" : "Image to Video"}
                     </h1>
                     <p className="text-muted-foreground max-w-md mx-auto">
-                        Upload your product image and describe the marketing video you want.
-                        Our AI will create a professional video for you.
+                        {generationMode === "text2video"
+                            ? "Describe any scene and our AI will generate a professional video for you."
+                            : "Upload your product image and describe the marketing video you want."}
                     </p>
+
+                    {/* Mode Toggle */}
+                    <div className="flex items-center justify-center gap-2 pt-2">
+                        <div className="inline-flex p-1 bg-surface-2 rounded-xl border border-border">
+                            <button
+                                onClick={() => setGenerationMode("text2video")}
+                                className={cn(
+                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
+                                    generationMode === "text2video"
+                                        ? "bg-primary text-white shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                <Icon icon="ph:text-aa" className="w-4 h-4" />
+                                Text to Video
+                            </button>
+                            <button
+                                onClick={() => setGenerationMode("image2video")}
+                                className={cn(
+                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
+                                    generationMode === "image2video"
+                                        ? "bg-primary text-white shadow-sm"
+                                        : "text-muted-foreground hover:text-foreground"
+                                )}
+                            >
+                                <Icon icon="ph:image" className="w-4 h-4" />
+                                Image to Video
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {/* Loading History */}
@@ -495,8 +594,8 @@ export function VideoGenerator() {
             >
                 <div className="w-full max-w-2xl mx-auto">
                     <div className="rounded-2xl md:rounded-3xl p-3 flex flex-col gap-3 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 focus-within:shadow-[0_0_50px_rgba(139,92,246,0.15)] bg-background/80 backdrop-blur-xl border border-border">
-                        {/* Image Preview */}
-                        {imagePreview && (
+                        {/* Image Preview - Only show for image2video mode */}
+                        {generationMode === "image2video" && imagePreview && (
                             <div className="relative mx-3 mt-1">
                                 <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-border">
                                     <img
@@ -519,9 +618,11 @@ export function VideoGenerator() {
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder={
-                                imagePreview
-                                    ? "Describe the video motion... (e.g., 'Product rotating with dramatic lighting')"
-                                    : "First, upload your product image below..."
+                                generationMode === "text2video"
+                                    ? "Describe the video scene... (e.g., 'A coffee cup on a wooden table, steam rising, soft morning light')"
+                                    : imagePreview
+                                        ? "Describe the video motion... (e.g., 'Product rotating with dramatic lighting')"
+                                        : "First, upload your product image below..."
                             }
                             className="w-full bg-transparent border-none focus:ring-0 focus:outline-none px-4 md:px-6 py-2 min-h-[50px] max-h-[100px] resize-none placeholder:text-muted-foreground/70 text-foreground"
                             style={{ fontSize: "var(--text-base)" }}
@@ -536,7 +637,35 @@ export function VideoGenerator() {
                         {/* Bottom Controls */}
                         <div className="flex items-center justify-between px-2 md:px-4 pb-1 gap-2">
                             <div className="flex items-center gap-2">
-                                {/* Upload Button */}
+                                {/* Mode Toggle (compact) */}
+                                <div className="flex items-center p-1 bg-surface-2 rounded-lg border border-border">
+                                    <button
+                                        onClick={() => setGenerationMode("text2video")}
+                                        className={cn(
+                                            "p-1.5 rounded transition-all",
+                                            generationMode === "text2video"
+                                                ? "bg-primary text-white"
+                                                : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                        title="Text to Video"
+                                    >
+                                        <Icon icon="ph:text-aa" className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                        onClick={() => setGenerationMode("image2video")}
+                                        className={cn(
+                                            "p-1.5 rounded transition-all",
+                                            generationMode === "image2video"
+                                                ? "bg-primary text-white"
+                                                : "text-muted-foreground hover:text-foreground"
+                                        )}
+                                        title="Image to Video"
+                                    >
+                                        <Icon icon="ph:image" className="w-4 h-4" />
+                                    </button>
+                                </div>
+
+                                {/* Upload Button - Only show for image2video mode */}
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -544,20 +673,22 @@ export function VideoGenerator() {
                                     onChange={handleImageUpload}
                                     className="hidden"
                                 />
-                                <button
-                                    onClick={() => fileInputRef.current?.click()}
-                                    className={cn(
-                                        "p-2 rounded-lg transition-colors flex items-center gap-2",
-                                        imagePreview
-                                            ? "text-primary bg-primary/10"
-                                            : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
-                                    )}
-                                >
-                                    <Icon icon="ph:image-duotone" className="w-5 h-5" />
-                                    <span className="text-sm hidden sm:inline">
-                                        {imagePreview ? "Change" : "Upload"}
-                                    </span>
-                                </button>
+                                {generationMode === "image2video" && (
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className={cn(
+                                            "p-2 rounded-lg transition-colors flex items-center gap-2",
+                                            imagePreview
+                                                ? "text-primary bg-primary/10"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
+                                        )}
+                                    >
+                                        <Icon icon="ph:image-duotone" className="w-5 h-5" />
+                                        <span className="text-sm hidden sm:inline">
+                                            {imagePreview ? "Change" : "Upload"}
+                                        </span>
+                                    </button>
+                                )}
 
                                 {/* Settings Button */}
                                 <button
@@ -578,7 +709,7 @@ export function VideoGenerator() {
                                 </div>
                                 <Button
                                     onClick={handleGenerate}
-                                    disabled={loading || !prompt.trim() || !imagePreview}
+                                    disabled={loading || !prompt.trim() || (generationMode === "image2video" && !imagePreview)}
                                     loading={loading}
                                     size="md"
                                 >

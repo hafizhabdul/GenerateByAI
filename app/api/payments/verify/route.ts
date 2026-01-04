@@ -49,24 +49,40 @@ export async function POST(request: NextRequest) {
 
     // Parse order ID to verify it belongs to this user
     const orderInfo = parseOrderId(orderId);
-    if (!orderInfo || orderInfo.userId !== user.id) {
+    // Verify userHash matches the first 8 characters of user.id
+    if (!orderInfo || orderInfo.userHash !== user.id.substring(0, 8)) {
       return NextResponse.json(
         { error: "Invalid order ID or unauthorized" },
         { status: 403 }
       );
     }
 
+    // Get package details first to get the amount for transaction lookup
+    const packageId = orderInfo.packageId as TokenPackageId;
+    const tokenPackage = TOKEN_PACKAGES[packageId];
+
+    if (!tokenPackage) {
+      return NextResponse.json(
+        { error: "Invalid package ID" },
+        { status: 400 }
+      );
+    }
+
     // Check payment status with Pakasir
     const pakasir = getPakasirClient();
-    const transactions = await pakasir.getTransactions({ order_id: orderId });
-    
-    const transaction = transactions.find((t) => t.order_id === orderId);
-    if (!transaction) {
+    const transactionDetail = await pakasir.getTransactionDetail({
+      orderId,
+      amount: tokenPackage.price
+    });
+
+    if (!transactionDetail?.transaction) {
       return NextResponse.json(
         { error: "Transaction not found in Pakasir" },
         { status: 404 }
       );
     }
+
+    const transaction = transactionDetail.transaction;
 
     if (transaction.status !== "completed") {
       return NextResponse.json({
@@ -100,17 +116,6 @@ export async function POST(request: NextRequest) {
         message: "Payment already processed",
         alreadyProcessed: true,
       });
-    }
-
-    // Get package details
-    const packageId = orderInfo.packageId as TokenPackageId;
-    const tokenPackage = TOKEN_PACKAGES[packageId];
-
-    if (!tokenPackage) {
-      return NextResponse.json(
-        { error: "Invalid package ID" },
-        { status: 400 }
-      );
     }
 
     // Update or create payment record

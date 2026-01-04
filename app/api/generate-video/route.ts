@@ -14,6 +14,7 @@ const GenerateVideoSchema = z.object({
     duration: z.enum(["5", "10"]).optional().default("5"),
     aspectRatio: z.enum(["16:9", "9:16", "1:1"]).optional().default("16:9"),
     type: z.enum(["image2video", "text2video"]).optional().default("image2video"),
+    sound: z.boolean().optional().default(false), // Kling 2.6 native audio
 });
 
 export async function POST(req: Request) {
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { imageUrl, prompt, negativePrompt, mode, duration, aspectRatio, type } = validation.data;
+        const { imageUrl, prompt, negativePrompt, mode, duration, aspectRatio, type, sound } = validation.data;
 
         // Validate image URL for image2video
         if (type === "image2video" && !imageUrl) {
@@ -38,8 +39,8 @@ export async function POST(req: Request) {
             );
         }
 
-        // Calculate cost based on duration and mode
-        const cost = getVideoCost(duration, mode);
+        // Calculate cost based on duration, mode, and audio
+        const cost = getVideoCost(duration, mode, sound);
 
         // --- Auth Check ---
         const supabase = await createClient();
@@ -79,6 +80,7 @@ export async function POST(req: Request) {
                 mode,
                 duration,
                 aspectRatio,
+                sound, // Kling 2.6 native audio
             });
         } else {
             taskResponse = await kling.textToVideo({
@@ -87,6 +89,7 @@ export async function POST(req: Request) {
                 mode,
                 duration,
                 aspectRatio,
+                sound, // Kling 2.6 native audio
             });
         }
 
@@ -127,6 +130,7 @@ export async function POST(req: Request) {
                 sourceType: type,
                 sourceImage: imageUrl || null,
                 klingVideoId: klingVideoId,
+                sound, // Kling 2.6 native audio
             },
         });
 
