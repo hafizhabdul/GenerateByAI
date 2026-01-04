@@ -174,7 +174,7 @@ export class KlingClient {
             mode: options.mode || 'std',
             duration: options.duration || '5',
             aspect_ratio: options.aspectRatio || '16:9',
-            cfg_scale: options.cfgScale || 0.5,
+            cfg_scale: options.cfgScale || 0.85, // Higher value = closer to original image
         };
 
         return this.request<KlingTaskResponse>('/v1/videos/image2video', body);

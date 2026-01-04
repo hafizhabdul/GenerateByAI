@@ -314,10 +314,22 @@ export function ImageGenerator() {
 }
 
 function FeedItemCard({ item }: { item: FeedItem }) {
+    const [isDownloading, setIsDownloading] = useState(false);
+    const { showToast } = useToast();
+
     const handleDownload = async () => {
-        if (!item.file_url) return;
+        if (!item.file_url || isDownloading) return;
+        setIsDownloading(true);
         try {
-            const response = await fetch(item.file_url);
+            // Use our API endpoint to bypass CORS and handle download
+            const downloadUrl = `/api/download?url=${encodeURIComponent(item.file_url)}`;
+            
+            const response = await fetch(downloadUrl);
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ error: "Download failed" }));
+                throw new Error(error.error || "Failed to download image");
+            }
+            
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -327,8 +339,12 @@ function FeedItemCard({ item }: { item: FeedItem }) {
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
-        } catch {
-            // Error handling
+            showToast("Image downloaded successfully!", "success");
+        } catch (error) {
+            console.error("Download error:", error);
+            showToast(error instanceof Error ? error.message : "Failed to download image", "error");
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -369,9 +385,9 @@ function FeedItemCard({ item }: { item: FeedItem }) {
 
                             {/* Action Bar */}
                             <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <Button variant="ghost" size="sm" onClick={handleDownload}>
-                                    <Icon icon="ph:download-simple-duotone" className="w-4 h-4 mr-2" />
-                                    Download
+                                <Button variant="ghost" size="sm" onClick={handleDownload} disabled={isDownloading}>
+                                    <Icon icon={isDownloading ? "ph:spinner" : "ph:download-simple-duotone"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
+                                    {isDownloading ? "Downloading..." : "Download"}
                                 </Button>
                             </div>
                         </div>

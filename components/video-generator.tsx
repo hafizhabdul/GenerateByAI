@@ -198,11 +198,11 @@ export function VideoGenerator() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Video generation failed");
 
-            // Update with result
+            // Update with result - canExtend true since we have a klingVideoId from API
             setFeed((prev) =>
                 prev.map((item) =>
                     item.id === tempId
-                        ? { ...item, status: "completed", videoUrl: data.url }
+                        ? { ...item, status: "completed", videoUrl: data.url, canExtend: true }
                         : item
                 )
             );
@@ -584,7 +584,9 @@ function VideoFeedCard({
 }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(true);
+    const [isDownloading, setIsDownloading] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
+    const { showToast } = useToast();
 
     const togglePlay = () => {
         if (videoRef.current) {
@@ -605,9 +607,18 @@ function VideoFeedCard({
     };
 
     const handleDownload = async () => {
-        if (!item.videoUrl) return;
+        if (!item.videoUrl || isDownloading) return;
+        setIsDownloading(true);
         try {
-            const response = await fetch(item.videoUrl);
+            // Use our API endpoint to bypass CORS and handle download
+            const downloadUrl = `/api/download?url=${encodeURIComponent(item.videoUrl)}`;
+            
+            const response = await fetch(downloadUrl);
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ error: "Download failed" }));
+                throw new Error(error.error || "Failed to download video");
+            }
+            
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -617,8 +628,12 @@ function VideoFeedCard({
             a.click();
             document.body.removeChild(a);
             window.URL.revokeObjectURL(url);
-        } catch {
-            // Error handling
+            showToast("Video downloaded successfully!", "success");
+        } catch (error) {
+            console.error("Download error:", error);
+            showToast(error instanceof Error ? error.message : "Failed to download video", "error");
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -705,9 +720,9 @@ function VideoFeedCard({
 
                             {/* Action Bar */}
                             <div className="flex items-center gap-2 mt-3 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <Button variant="ghost" size="sm" onClick={handleDownload}>
-                                    <Icon icon="ph:download-simple-duotone" className="w-4 h-4 mr-2" />
-                                    Download
+                                <Button variant="ghost" size="sm" onClick={handleDownload} disabled={isDownloading}>
+                                    <Icon icon={isDownloading ? "ph:spinner" : "ph:download-simple-duotone"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
+                                    {isDownloading ? "Downloading..." : "Download"}
                                 </Button>
                                 {item.canExtend && (
                                     <Button

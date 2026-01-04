@@ -62,7 +62,12 @@ export async function POST(req: Request) {
 
         // --- Generate Marketing Prompt Enhancement ---
         const enhancedPrompt = enhanceMarketingPrompt(prompt, type);
-        const enhancedNegative = negativePrompt || "blurry, low quality, distorted, ugly, shaky camera, amateur, poorly lit";
+        
+        // Different negative prompts for image2video vs text2video
+        const defaultNegative = type === "image2video"
+            ? "different product, wrong product, changed product, morphing, deformation, blurry, low quality, distorted, ugly, shaky camera, amateur, poorly lit, unnatural colors"
+            : "blurry, low quality, distorted, ugly, shaky camera, amateur, poorly lit";
+        const enhancedNegative = negativePrompt || defaultNegative;
 
         // --- Start Video Generation ---
         let taskResponse;
@@ -144,18 +149,34 @@ export async function POST(req: Request) {
 
 /**
  * Enhance user prompt for better marketing video results
+ * Focus on preserving the exact product appearance from the input image
  */
 function enhanceMarketingPrompt(prompt: string, type: string): string {
+    // For image-to-video, emphasize keeping the EXACT product from the image
+    if (type === "image2video") {
+        const imagePreservation = [
+            "keep the exact same product from the image",
+            "preserve product details and appearance",
+            "smooth subtle camera movement around the product",
+            "professional lighting",
+        ];
+        
+        // Don't over-enhance if already detailed
+        if (prompt.length > 200) {
+            return `${prompt}, maintain exact product appearance`;
+        }
+        
+        return `${prompt}, ${imagePreservation.join(", ")}`;
+    }
+    
+    // For text-to-video, use marketing enhancements
     const marketingEnhancements = [
         "professional product showcase",
         "smooth cinematic camera movement",
         "professional lighting",
         "commercial quality",
-        "engaging motion",
-        "high production value",
     ];
 
-    // Don't over-enhance if already detailed
     if (prompt.length > 200) {
         return prompt;
     }
