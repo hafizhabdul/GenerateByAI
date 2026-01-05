@@ -19,6 +19,8 @@ type VideoFeedItem = {
     error?: string;
     canExtend?: boolean;
     sourceType?: "image2video" | "text2video";
+    taskId?: string; // Kling task ID for polling
+    generationId?: string; // Database generation ID
 };
 
 type VideoSettings = {
@@ -30,6 +32,66 @@ type VideoSettings = {
 
 type GenerationMode = "image2video" | "text2video";
 
+// LocalStorage keys for persisting session
+const VIDEO_SESSION_KEY = "videoGeneratorSession";
+const VIDEO_HERO_KEY = "videoGeneratorHero";
+const PENDING_VIDEOS_KEY = "pendingVideos";
+
+// Helper to save full session to localStorage
+const saveSession = (feed: VideoFeedItem[], isHero: boolean) => {
+    try {
+        localStorage.setItem(VIDEO_SESSION_KEY, JSON.stringify(feed));
+        localStorage.setItem(VIDEO_HERO_KEY, JSON.stringify(isHero));
+    } catch (e) {
+        console.error("Failed to save session:", e);
+    }
+};
+
+// Helper to load session from localStorage
+const loadSession = (): { feed: VideoFeedItem[]; isHero: boolean } => {
+    try {
+        const savedFeed = localStorage.getItem(VIDEO_SESSION_KEY);
+        const savedHero = localStorage.getItem(VIDEO_HERO_KEY);
+        return {
+            feed: savedFeed ? JSON.parse(savedFeed) : [],
+            isHero: savedHero ? JSON.parse(savedHero) : true,
+        };
+    } catch (e) {
+        console.error("Failed to load session:", e);
+        return { feed: [], isHero: true };
+    }
+};
+
+// Helper to clear session
+const clearSession = () => {
+    localStorage.removeItem(VIDEO_SESSION_KEY);
+    localStorage.removeItem(VIDEO_HERO_KEY);
+    localStorage.removeItem(PENDING_VIDEOS_KEY);
+};
+
+// Helper to save pending videos for polling
+const savePendingVideos = (items: VideoFeedItem[]) => {
+    const pending = items.filter(i => i.status === "pending" || i.status === "processing");
+    if (pending.length > 0) {
+        localStorage.setItem(PENDING_VIDEOS_KEY, JSON.stringify(pending));
+    } else {
+        localStorage.removeItem(PENDING_VIDEOS_KEY);
+    }
+};
+
+// Helper to load pending videos from localStorage
+const loadPendingVideos = (): VideoFeedItem[] => {
+    try {
+        const stored = localStorage.getItem(PENDING_VIDEOS_KEY);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (e) {
+        console.error("Failed to load pending videos:", e);
+    }
+    return [];
+};
+
 export function VideoGenerator() {
     const [prompt, setPrompt] = useState("");
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -40,6 +102,7 @@ export function VideoGenerator() {
     const [isHero, setIsHero] = useState(true);
     const [showSettings, setShowSettings] = useState(false);
     const [generationMode, setGenerationMode] = useState<GenerationMode>("text2video");
+    const [sessionLoaded, setSessionLoaded] = useState(false);
     const [settings, setSettings] = useState<VideoSettings>({
         duration: "5",
         mode: "std",
@@ -51,6 +114,30 @@ export function VideoGenerator() {
     const { user, refreshProfile } = useAuth();
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const pollingRef = useRef<NodeJS.Timeout | null>(null);
+
+    // Load session from localStorage on mount
+    useEffect(() => {
+        const { feed: savedFeed, isHero: savedHero } = loadSession();
+        if (savedFeed.length > 0) {
+            setFeed(savedFeed);
+            setIsHero(savedHero);
+        }
+        // Also load pending videos that might need polling
+        const pending = loadPendingVideos();
+        if (pending.length > 0) {
+            setFeed(prev => {
+                const existingIds = new Set(prev.map(p => p.id));
+                const newPending = pending.filter(p => !existingIds.has(p.id));
+                if (newPending.length > 0) {
+                    return [...prev, ...newPending];
+                }
+                return prev;
+            });
+            setIsHero(false);
+        }
+        setSessionLoaded(true);
+    }, []);
 
     // Load video history on mount
     useEffect(() => {
@@ -61,21 +148,116 @@ export function VideoGenerator() {
         }
     }, [user]);
 
+    // Save session whenever feed changes (after initial load)
+    useEffect(() => {
+        if (sessionLoaded) {
+            saveSession(feed, isHero);
+            savePendingVideos(feed);
+        }
+    }, [feed, isHero, sessionLoaded]);
+
+    // Poll for pending video status
+    useEffect(() => {
+        const pendingItems = feed.filter(item => 
+            (item.status === "pending" || item.status === "processing") && item.taskId
+        );
+
+        if (pendingItems.length === 0) {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+            return;
+        }
+
+        const pollStatus = async () => {
+            for (const item of pendingItems) {
+                if (!item.taskId) continue;
+                
+                try {
+                    const params = new URLSearchParams({
+                        taskId: item.taskId,
+                        type: item.sourceType || "image2video",
+                    });
+                    if (item.generationId) {
+                        params.set("generationId", item.generationId);
+                    }
+
+                    const res = await fetch(`/api/video-status?${params}`);
+                    const data = await res.json();
+
+                    if (data.status === "completed" && data.url) {
+                        setFeed(prev => {
+                            const updated = prev.map(f => 
+                                f.id === item.id 
+                                    ? { ...f, status: "completed" as const, videoUrl: data.url, canExtend: true }
+                                    : f
+                            );
+                            savePendingVideos(updated);
+                            return updated;
+                        });
+                        showToast("🎉 Video generated successfully!", "success");
+                        await refreshProfile();
+                    } else if (data.status === "failed") {
+                        setFeed(prev => {
+                            const updated = prev.map(f => 
+                                f.id === item.id 
+                                    ? { ...f, status: "failed" as const, error: data.error || "Generation failed" }
+                                    : f
+                            );
+                            savePendingVideos(updated);
+                            return updated;
+                        });
+                        showToast(data.error || "Video generation failed", "error");
+                    }
+                    // If still processing, do nothing - wait for next poll
+                } catch (err) {
+                    console.error("Polling error:", err);
+                }
+            }
+        };
+
+        // Initial poll immediately
+        pollStatus();
+
+        // Start interval polling (every 5 seconds)
+        if (!pollingRef.current) {
+            pollingRef.current = setInterval(pollStatus, 5000);
+        }
+
+        return () => {
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+        };
+    }, [feed, showToast, refreshProfile]);
+
     // Check for pre-filled image from image generator
     useEffect(() => {
         const sourceImage = sessionStorage.getItem("videoSourceImage");
         const sourcePrompt = sessionStorage.getItem("videoSourcePrompt");
 
         if (sourceImage) {
+            // Set image preview
             setImagePreview(sourceImage);
+            // Auto-switch to image2video mode
+            setGenerationMode("image2video");
+            // Set a helpful prompt based on whether we have context
             if (sourcePrompt) {
-                setPrompt(`Create a marketing video showcasing this product`);
+                setPrompt(`Cinematic showcase of ${sourcePrompt}, slow elegant rotation, professional studio lighting, subtle reflections, floating particles effect`);
+            } else {
+                setPrompt("Smooth cinematic orbit around the subject, professional lighting with soft shadows, gentle zoom effect, high-end commercial quality");
             }
+            // Exit hero state to show the input area
+            setIsHero(false);
             // Clear session storage
             sessionStorage.removeItem("videoSourceImage");
             sessionStorage.removeItem("videoSourcePrompt");
+            // Show toast
+            showToast("📸 Image loaded! Customize the motion and click Generate.", "success");
         }
-    }, []);
+    }, [showToast]);
 
     const loadHistory = async () => {
         try {
@@ -119,8 +301,16 @@ export function VideoGenerator() {
 
     // Auto-scroll to bottom when feed updates
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        if (scrollRef.current && feed.length > 0) {
+            // Use setTimeout to ensure DOM has updated
+            setTimeout(() => {
+                if (scrollRef.current) {
+                    scrollRef.current.scrollTo({
+                        top: scrollRef.current.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 100);
         }
     }, [feed]);
 
@@ -204,26 +394,41 @@ export function VideoGenerator() {
             sourceType: currentMode,
         };
 
-        setFeed((prev) => [...prev, optimisticItem]);
+        setFeed((prev) => {
+            const newFeed = [...prev, optimisticItem];
+            savePendingVideos(newFeed);
+            return newFeed;
+        });
 
         try {
             // Upload image first if it's a file (only for image2video)
             let imageUrl: string | undefined = undefined;
             if (currentMode === "image2video") {
                 if (currentImageFile) {
-                    setFeed((prev) =>
-                        prev.map((item) =>
-                            item.id === tempId ? { ...item, status: "processing" } : item
-                        )
-                    );
+                    setFeed((prev) => {
+                        const updated = prev.map((item) =>
+                            item.id === tempId ? { ...item, status: "processing" as const } : item
+                        );
+                        savePendingVideos(updated);
+                        return updated;
+                    });
                     imageUrl = await uploadImageToStorage(currentImageFile);
                 } else if (currentImage) {
                     imageUrl = currentImage;
                 }
             }
 
-            // Generate video
-            const res = await fetch("/api/generate-video", {
+            // Update status to processing
+            setFeed((prev) => {
+                const updated = prev.map((item) =>
+                    item.id === tempId ? { ...item, status: "processing" as const } : item
+                );
+                savePendingVideos(updated);
+                return updated;
+            });
+
+            // Start async video generation (returns immediately with taskId)
+            const res = await fetch("/api/video-start", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -233,36 +438,45 @@ export function VideoGenerator() {
                     duration: settings.duration,
                     aspectRatio: settings.aspectRatio,
                     type: currentMode,
-                    sound: settings.sound, // Kling 2.6 native audio
+                    sound: settings.sound,
                 }),
             });
 
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Video generation failed");
 
-            // Update with result - canExtend true since we have a klingVideoId from API
-            setFeed((prev) =>
-                prev.map((item) =>
+            // Update with taskId for polling - video is now generating in background
+            setFeed((prev) => {
+                const updated = prev.map((item) =>
                     item.id === tempId
-                        ? { ...item, status: "completed", videoUrl: data.url, canExtend: true }
+                        ? { 
+                            ...item, 
+                            status: "processing" as const,
+                            taskId: data.taskId,
+                            generationId: data.generationId,
+                        }
                         : item
-                )
-            );
+                );
+                savePendingVideos(updated);
+                return updated;
+            });
 
-            showToast("Video generated successfully!", "success");
-            await refreshProfile();
+            showToast("🚀 Video generation started! You can navigate away - we'll keep generating.", "success");
+            
         } catch (err) {
             console.error(err);
             const errorMessage = err instanceof Error ? err.message : "Failed to generate video";
             showToast(errorMessage, "error");
 
-            setFeed((prev) =>
-                prev.map((item) =>
+            setFeed((prev) => {
+                const updated = prev.map((item) =>
                     item.id === tempId
-                        ? { ...item, status: "failed", error: errorMessage }
+                        ? { ...item, status: "failed" as const, error: errorMessage }
                         : item
-                )
-            );
+                );
+                savePendingVideos(updated);
+                return updated;
+            });
         } finally {
             setLoading(false);
         }
@@ -336,10 +550,42 @@ export function VideoGenerator() {
         }
     };
 
+    const handleNewSession = () => {
+        // Stop any polling
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+        // Clear state
+        setFeed([]);
+        setIsHero(true);
+        setPrompt("");
+        setImagePreview(null);
+        setImageFile(null);
+        // Clear localStorage
+        clearSession();
+        showToast("Started a new video session", "info");
+    };
+
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
             {/* Background Ambient Glow */}
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-violet-500/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
+
+            {/* Top Controls - New Session Button */}
+            {feed.length > 0 && (
+                <div className="absolute top-4 right-4 z-40">
+                    <Button
+                        variant="glass"
+                        size="sm"
+                        onClick={handleNewSession}
+                        className="animate-fade-in group"
+                    >
+                        <Icon icon="ph:video-camera-plus-duotone" className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+                        New Session
+                    </Button>
+                </div>
+            )}
 
             {/* Settings Panel */}
             {showSettings && (
@@ -504,7 +750,7 @@ export function VideoGenerator() {
                 ref={scrollRef}
                 className={cn(
                     "flex-1 overflow-y-auto overflow-x-hidden scroll-smooth",
-                    isHero ? "flex items-center justify-center p-4" : "p-4 md:p-8 pb-48 md:pb-56"
+                    isHero ? "flex items-center justify-center p-4" : "p-4 md:p-8 pb-72 md:pb-80"
                 )}
             >
                 {/* Hero Content */}
@@ -619,10 +865,10 @@ export function VideoGenerator() {
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder={
                                 generationMode === "text2video"
-                                    ? "Describe the video scene... (e.g., 'A coffee cup on a wooden table, steam rising, soft morning light')"
+                                    ? "Describe your video scene in detail... (e.g., 'Cinematic shot of a luxury perfume bottle rotating slowly on a marble surface, golden hour lighting, soft reflections, particles floating in the air')"
                                     : imagePreview
-                                        ? "Describe the video motion... (e.g., 'Product rotating with dramatic lighting')"
-                                        : "First, upload your product image below..."
+                                        ? "Describe the motion you want... (e.g., 'Slow zoom in with gentle rotation, soft lighting transitions, particles floating around the product')"
+                                        : "Upload your image first, then describe the motion..."
                             }
                             className="w-full bg-transparent border-none focus:ring-0 focus:outline-none px-4 md:px-6 py-2 min-h-[50px] max-h-[100px] resize-none placeholder:text-muted-foreground/70 text-foreground"
                             style={{ fontSize: "var(--text-base)" }}
@@ -718,6 +964,31 @@ export function VideoGenerator() {
                                 </Button>
                             </div>
                         </div>
+
+                        {/* Quick Prompt Suggestions */}
+                        {!prompt && (
+                            <div className="px-3 pb-2 flex flex-wrap gap-2">
+                                {(generationMode === "image2video" ? [
+                                    "Slow elegant rotation with studio lighting",
+                                    "Cinematic zoom in with floating particles",
+                                    "Gentle orbit with soft shadow transitions",
+                                    "Dynamic reveal with light rays",
+                                ] : [
+                                    "Luxury perfume bottle rotating on marble, golden hour",
+                                    "Coffee cup with steam rising, cozy morning light",
+                                    "Tech gadget floating in space with neon glow",
+                                    "Nature landscape with cinematic drone movement",
+                                ]).map((suggestion, i) => (
+                                    <button
+                                        key={i}
+                                        onClick={() => setPrompt(suggestion)}
+                                        className="text-xs px-3 py-1.5 rounded-full bg-surface-2 hover:bg-primary/20 hover:text-primary border border-border transition-colors truncate max-w-[200px]"
+                                    >
+                                        {suggestion}
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>

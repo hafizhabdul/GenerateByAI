@@ -19,10 +19,11 @@ interface Stats {
 
 export default function ProfilePage() {
     const router = useRouter();
-    const { user, profile, signOut, loading: authLoading } = useAuth();
+    const { user, profile, signOut, loading: authLoading, refreshProfile } = useAuth();
     const { showToast } = useToast();
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
+    const [syncing, setSyncing] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -43,6 +44,32 @@ export default function ProfilePage() {
             console.error(error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSyncPayments = async () => {
+        setSyncing(true);
+        try {
+            const res = await fetch("/api/payments/sync", { method: "POST" });
+            const data = await res.json();
+            
+            if (data.success) {
+                if (data.synced > 0 || data.updates?.tokens || data.updates?.plan) {
+                    showToast("✅ Profile synced! Tokens and plan updated.", "success");
+                    // Refresh data
+                    await fetchStats();
+                    if (refreshProfile) await refreshProfile();
+                } else {
+                    showToast("Profile is already in sync", "info");
+                }
+            } else {
+                showToast(data.error || "Failed to sync", "error");
+            }
+        } catch (error) {
+            console.error("Sync error:", error);
+            showToast("Failed to sync payments", "error");
+        } finally {
+            setSyncing(false);
         }
     };
 
@@ -202,10 +229,34 @@ export default function ProfilePage() {
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="capitalize">{profile?.plan || "Free"}</span>
-                                    <Button variant="ghost" size="sm">
+                                    <Button variant="ghost" size="sm" onClick={() => router.push("/pricing")}>
                                         Upgrade <Icon icon="ph:arrow-square-out" className="w-3 h-3 ml-1" />
                                     </Button>
                                 </div>
+                            </div>
+                            <div className="flex items-center justify-between py-3">
+                                <div className="flex items-center gap-3">
+                                    <Icon icon="ph:arrows-clockwise-duotone" className="w-5 h-5 text-muted-foreground" />
+                                    <span className="text-muted-foreground">Payment sync</span>
+                                </div>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={handleSyncPayments}
+                                    disabled={syncing}
+                                >
+                                    {syncing ? (
+                                        <>
+                                            <Icon icon="ph:spinner" className="w-4 h-4 animate-spin mr-1" />
+                                            Syncing...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Icon icon="ph:arrows-clockwise" className="w-4 h-4 mr-1" />
+                                            Sync Payments
+                                        </>
+                                    )}
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>

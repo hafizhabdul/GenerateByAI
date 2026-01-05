@@ -106,18 +106,21 @@ export async function POST(req: Request) {
 
         // --- 6. Save Record & Deduct Tokens ---
         const adminClient = createAdminClient();
-        await adminClient.from("generations").insert({
+        const { data: generation } = await adminClient.from("generations").insert({
             user_id: user.id,
             type: "image",
             prompt: prompt,
             file_url: permanentUrl,
             tokens_used: cost,
             status: "completed",
-        });
+        }).select("id").single();
 
         await commitCharge();
 
-        return NextResponse.json({ url: permanentUrl });
+        return NextResponse.json({ 
+            url: permanentUrl,
+            generationId: generation?.id,
+        });
 
     } catch (error: any) {
         console.error("Image generation error:", error);

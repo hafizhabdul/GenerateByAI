@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -18,7 +19,75 @@ type FeedItem = {
     created_at: string;
 };
 
+// LocalStorage keys for persisting session
+const IMAGE_SESSION_KEY = "imageGeneratorSession";
+const IMAGE_HERO_KEY = "imageGeneratorHero";
+const IMAGE_PENDING_KEY = "imageGeneratorPending";
+
+// Helper to save session to localStorage
+const saveSession = (feed: FeedItem[], isHero: boolean) => {
+    try {
+        // Save ALL items including pending
+        localStorage.setItem(IMAGE_SESSION_KEY, JSON.stringify(feed));
+        localStorage.setItem(IMAGE_HERO_KEY, JSON.stringify(isHero));
+    } catch (e) {
+        console.error("Failed to save session:", e);
+    }
+};
+
+// Helper to save pending generation info (for recovery)
+const savePendingGeneration = (tempId: string, prompt: string) => {
+    try {
+        const pending = {
+            tempId,
+            prompt,
+            startTime: Date.now(),
+        };
+        localStorage.setItem(IMAGE_PENDING_KEY, JSON.stringify(pending));
+    } catch (e) {
+        console.error("Failed to save pending:", e);
+    }
+};
+
+// Helper to clear pending generation
+const clearPendingGeneration = () => {
+    localStorage.removeItem(IMAGE_PENDING_KEY);
+};
+
+// Helper to get pending generation
+const getPendingGeneration = (): { tempId: string; prompt: string; startTime: number } | null => {
+    try {
+        const pending = localStorage.getItem(IMAGE_PENDING_KEY);
+        return pending ? JSON.parse(pending) : null;
+    } catch (e) {
+        return null;
+    }
+};
+
+// Helper to load session from localStorage
+const loadSession = (): { feed: FeedItem[]; isHero: boolean } => {
+    try {
+        const savedFeed = localStorage.getItem(IMAGE_SESSION_KEY);
+        const savedHero = localStorage.getItem(IMAGE_HERO_KEY);
+        return {
+            feed: savedFeed ? JSON.parse(savedFeed) : [],
+            isHero: savedHero ? JSON.parse(savedHero) : true,
+        };
+    } catch (e) {
+        console.error("Failed to load session:", e);
+        return { feed: [], isHero: true };
+    }
+};
+
+// Helper to clear session
+const clearSession = () => {
+    localStorage.removeItem(IMAGE_SESSION_KEY);
+    localStorage.removeItem(IMAGE_HERO_KEY);
+    localStorage.removeItem(IMAGE_PENDING_KEY);
+};
+
 export function ImageGenerator() {
+    const router = useRouter();
     const [prompt, setPrompt] = useState("");
     const [feed, setFeed] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(false);
@@ -27,15 +96,118 @@ export function ImageGenerator() {
     const [showHistory, setShowHistory] = useState(false);
     const [history, setHistory] = useState<Generation[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
+    const [sessionLoaded, setSessionLoaded] = useState(false);
+    const [pendingGenerationId, setPendingGenerationId] = useState<string | null>(null);
 
     const { showToast } = useToast();
     const { user, refreshProfile } = useAuth();
     const scrollRef = useRef<HTMLDivElement>(null);
+    const abortControllerRef = useRef<AbortController | null>(null);
+
+    // Load session from localStorage on mount + check for pending generations
+    useEffect(() => {
+        const { feed: savedFeed, isHero: savedHero } = loadSession();
+        
+        if (savedFeed.length > 0) {
+            // Check if there are any pending items that are too old (> 2 minutes = failed)
+            const now = Date.now();
+            const updatedFeed = savedFeed.map(item => {
+                if (item.status === "pending") {
+                    const createdTime = new Date(item.created_at).getTime();
+                    const elapsed = now - createdTime;
+                    // If pending for more than 2 minutes, mark as failed
+                    if (elapsed > 2 * 60 * 1000) {
+                        return { ...item, status: "failed" as const };
+                    }
+                }
+                return item;
+            });
+            
+            setFeed(updatedFeed);
+            setIsHero(savedHero);
+            
+            // Check if there's an active pending generation
+            const pendingItem = updatedFeed.find(item => item.status === "pending");
+            if (pendingItem) {
+                setPendingGenerationId(pendingItem.id);
+                setLoading(true);
+            }
+        }
+        
+        setSessionLoaded(true);
+    }, []);
+
+    // Handle pending generation recovery - check database for completed result
+    useEffect(() => {
+        if (!pendingGenerationId || !user) return;
+        
+        const checkPendingResult = async () => {
+            try {
+                // Check if the generation completed in the database
+                const res = await fetch(`/api/generations?limit=5`);
+                if (res.ok) {
+                    const data = await res.json();
+                    const generations = data.generations || [];
+                    
+                    // Find pending item in feed
+                    const pendingItem = feed.find(item => item.id === pendingGenerationId);
+                    if (!pendingItem) {
+                        setLoading(false);
+                        setPendingGenerationId(null);
+                        return;
+                    }
+                    
+                    // Look for matching completed generation by prompt
+                    const matchedGeneration = generations.find((g: Generation) => 
+                        g.prompt === pendingItem.prompt && 
+                        g.status === "completed" &&
+                        g.file_url
+                    );
+                    
+                    if (matchedGeneration) {
+                        // Update feed with the result
+                        setFeed(prev => prev.map(item =>
+                            item.id === pendingGenerationId
+                                ? { ...item, id: matchedGeneration.id, status: "completed", file_url: matchedGeneration.file_url }
+                                : item
+                        ));
+                        setLoading(false);
+                        setPendingGenerationId(null);
+                        clearPendingGeneration();
+                        showToast("Image generation completed!", "success");
+                    }
+                }
+            } catch (error) {
+                console.error("Error checking pending:", error);
+            }
+        };
+        
+        // Poll every 3 seconds while there's a pending generation
+        const interval = setInterval(checkPendingResult, 3000);
+        checkPendingResult(); // Check immediately
+        
+        return () => clearInterval(interval);
+    }, [pendingGenerationId, user, feed]);
+
+    // Save session whenever feed changes (after initial load)
+    useEffect(() => {
+        if (sessionLoaded) {
+            saveSession(feed, isHero);
+        }
+    }, [feed, isHero, sessionLoaded]);
 
     // Auto-scroll to bottom when feed updates
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+        if (scrollRef.current && feed.length > 0) {
+            // Use setTimeout to ensure DOM has updated
+            setTimeout(() => {
+                if (scrollRef.current) {
+                    scrollRef.current.scrollTo({
+                        top: scrollRef.current.scrollHeight,
+                        behavior: 'smooth'
+                    });
+                }
+            }, 100);
         }
     }, [feed]);
 
@@ -84,6 +256,8 @@ export function ImageGenerator() {
         };
 
         setFeed(prev => [...prev, optimisticItem]);
+        setPendingGenerationId(tempId);
+        savePendingGeneration(tempId, currentPrompt);
 
         try {
             if (mode === "video") {
@@ -91,6 +265,8 @@ export function ImageGenerator() {
                 showToast("Video generation coming soon!", "info");
                 setFeed(prev => prev.filter(item => item.id !== tempId)); // Remove pending item
                 setLoading(false);
+                setPendingGenerationId(null);
+                clearPendingGeneration();
                 return;
             }
 
@@ -109,11 +285,12 @@ export function ImageGenerator() {
             // Update optimistic item with result
             setFeed(prev => prev.map(item =>
                 item.id === tempId
-                    ? { ...item, status: "completed", file_url: data.url }
+                    ? { ...item, id: data.generationId || tempId, status: "completed", file_url: data.url }
                     : item
             ));
 
             showToast("Image generated successfully!", "success");
+            clearPendingGeneration();
 
             // Refresh profile to update credits immediately
             await refreshProfile();
@@ -127,8 +304,10 @@ export function ImageGenerator() {
                     ? { ...item, status: "failed" }
                     : item
             ));
+            clearPendingGeneration();
         } finally {
             setLoading(false);
+            setPendingGenerationId(null);
         }
     };
 
@@ -151,6 +330,7 @@ export function ImageGenerator() {
         setFeed([]);
         setIsHero(true);
         setPrompt("");
+        clearSession(); // Clear localStorage
         showToast("Started a new creative session", "info");
     };
 
@@ -236,7 +416,7 @@ export function ImageGenerator() {
                 ref={scrollRef}
                 className={cn(
                     "flex-1 overflow-y-auto overflow-x-hidden scroll-smooth",
-                    isHero ? "flex items-center justify-center p-4" : "p-4 md:p-8 pb-32 md:pb-40"
+                    isHero ? "flex items-center justify-center p-4" : "p-4 md:p-8 pb-72 md:pb-80"
                 )}
             >
                 {/* Hero Content - Moved Up Significantly */}
@@ -314,6 +494,7 @@ export function ImageGenerator() {
 }
 
 function FeedItemCard({ item }: { item: FeedItem }) {
+    const router = useRouter();
     const [isDownloading, setIsDownloading] = useState(false);
     const { showToast } = useToast();
 
@@ -368,12 +549,13 @@ function FeedItemCard({ item }: { item: FeedItem }) {
                         <div className="w-full aspect-square max-w-md rounded-2xl bg-surface-2 animate-pulse flex flex-col items-center justify-center border border-white/5">
                             <Icon icon="ph:spinner" className="w-8 h-8 text-primary animate-spin mb-4" />
                             <p className="text-sm text-muted-foreground">Creating masterpiece...</p>
+                            <p className="text-xs text-muted-foreground/60 mt-2">You can navigate away, we&apos;ll save your result</p>
                         </div>
                     ) : item.status === "failed" ? (
                         <div className="w-full max-w-md p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-200">
                             Failed to generate image. Please try again.
                         </div>
-                    ) : (
+                    ) : item.file_url ? (
                         <div className="relative group w-full max-w-md">
                             <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/30">
                                 <img
@@ -383,20 +565,27 @@ function FeedItemCard({ item }: { item: FeedItem }) {
                                 />
                             </div>
 
-                            {/* Action Bar - Always visible for better UX */}
-                            <div className="flex items-center gap-2 mt-3">
-                                <Button variant="ghost" size="sm" onClick={handleDownload} disabled={isDownloading}>
+                            {/* Action Bar - Always visible */}
+                            <div className="flex flex-wrap items-center gap-2 mt-3 p-2 bg-surface-2/50 rounded-xl border border-border/50">
+                                <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    onClick={handleDownload} 
+                                    disabled={isDownloading}
+                                    className="flex-1 min-w-[120px]"
+                                >
                                     <Icon icon={isDownloading ? "ph:spinner" : "ph:download-simple-duotone"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
                                     {isDownloading ? "Downloading..." : "Download"}
                                 </Button>
                                 <Button
-                                    variant="ghost"
+                                    variant="outline"
                                     size="sm"
+                                    className="flex-1 min-w-[120px]"
                                     onClick={() => {
                                         if (item.file_url) {
                                             sessionStorage.setItem("videoSourceImage", item.file_url);
                                             sessionStorage.setItem("videoSourcePrompt", item.prompt);
-                                            window.location.href = "/videos";
+                                            router.push("/videos");
                                         }
                                     }}
                                 >
@@ -404,6 +593,10 @@ function FeedItemCard({ item }: { item: FeedItem }) {
                                     Create Video
                                 </Button>
                             </div>
+                        </div>
+                    ) : (
+                        <div className="w-full max-w-md p-6 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-200">
+                            Image generated but URL not available. Check gallery.
                         </div>
                     )}
                 </div>

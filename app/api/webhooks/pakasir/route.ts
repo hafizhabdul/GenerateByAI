@@ -130,13 +130,20 @@ export async function POST(request: NextRequest) {
     // Calculate new token balance
     const newTokenTotal = (profile.tokens_total || 0) + tokenPackage.tokens;
     
-    // Determine plan based on package purchased
-    let newPlan = profile.plan || 'free';
-    if (packageId === 'business') {
-      newPlan = 'business';
-    } else if (packageId === 'pro' && newPlan !== 'business') {
-      newPlan = 'pro';
-    }
+    // Determine plan based on package purchased (upgrade hierarchy: free < starter < basic < pro < business)
+    const planHierarchy: Record<string, number> = {
+      'free': 0,
+      'starter': 1,
+      'basic': 2,
+      'pro': 3,
+      'business': 4,
+    };
+    
+    const currentPlanLevel = planHierarchy[profile.plan || 'free'] || 0;
+    const purchasedPlanLevel = planHierarchy[packageId] || 0;
+    
+    // Only upgrade plan, never downgrade
+    const newPlan = purchasedPlanLevel > currentPlanLevel ? packageId : (profile.plan || 'free');
 
     // Update user's token balance and plan
     const { error: updateProfileError } = await supabase
