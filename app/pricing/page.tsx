@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 
 // Token packages with IDR pricing
@@ -83,6 +84,7 @@ function formatIDR(amount: number): string {
 
 export default function PricingPage() {
     const [loadingPackage, setLoadingPackage] = useState<string | null>(null);
+    const { showToast } = useToast();
 
     const handlePurchase = async (packageId: string) => {
         setLoadingPackage(packageId);
@@ -99,11 +101,11 @@ export default function PricingPage() {
                 // Redirect to Pakasir payment page
                 window.location.href = data.paymentUrl;
             } else {
-                alert(data.error || "Gagal membuat pembayaran");
+                showToast(data.error || "Gagal membuat pembayaran", "error");
             }
         } catch (error) {
             console.error("Checkout error:", error);
-            alert("Terjadi kesalahan, silakan coba lagi");
+            showToast("Terjadi kesalahan, silakan coba lagi", "error");
         } finally {
             setLoadingPackage(null);
         }

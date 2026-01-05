@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/sidebar";
-import { CanvasEditor, TextOverlay } from "@/components/canvas-editor";
+import { CanvasEditor, TextOverlay, StickerOverlay } from "@/components/canvas-editor";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@iconify/react";
 import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
-import { getTokenCost, QualityTier } from "@/lib/tokens";
 
 interface Generation {
     id: string;
@@ -26,16 +25,18 @@ const FONT_OPTIONS = [
 
 export default function StudioPage() {
     const { showToast } = useToast();
-    const { user, refreshProfile } = useAuth();
+    const { user } = useAuth();
     const editorRef = useRef<{ exportImage: () => Promise<string> }>(null);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
 
     // Core State
     const [image, setImage] = useState<string | null>(null);
     const [mask, setMask] = useState<string | null>(null);
-    const [prompt, setPrompt] = useState("");
+    const [imageState, setImageState] = useState({ x: 50, y: 50, scale: 1 }); // Center default
 
     // Editor State
-    const [activeTab, setActiveTab] = useState<"generate" | "adjust" | "text">("generate");
+    const [activeTab, setActiveTab] = useState<"adjust" | "text" | "stickers" | "draw">("adjust");
+    const [brushColor, setBrushColor] = useState("#ffffff"); // New
     const [filters, setFilters] = useState({
         brightness: 100,
         contrast: 100,
@@ -43,6 +44,7 @@ export default function StudioPage() {
         grayscale: 0
     });
     const [textOverlays, setTextOverlays] = useState<TextOverlay[]>([]);
+    const [stickerOverlays, setStickerOverlays] = useState<StickerOverlay[]>([]); // New
 
     // New Text State
     const [newText, setNewText] = useState("");
@@ -50,14 +52,9 @@ export default function StudioPage() {
     const [textSize, setTextSize] = useState(40);
     const [selectedFont, setSelectedFont] = useState("Inter");
     const [isFontOpen, setFontOpen] = useState(false);
-    const [quality, setQuality] = useState<QualityTier>("high");
-    const [generationMode, setGenerationMode] = useState<"photo" | "video">("photo");
 
     // UI State
-    const [isGenerating, setIsGenerating] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    const [generatedImage, setGeneratedImage] = useState<string | null>(null);
-    const [lightboxOpen, setLightboxOpen] = useState(false);
     const [libraryOpen, setLibraryOpen] = useState(false);
     const [libraryImages, setLibraryImages] = useState<Generation[]>([]);
     const [loadingLibrary, setLoadingLibrary] = useState(false);
@@ -66,38 +63,26 @@ export default function StudioPage() {
     useEffect(() => {
         // Load state
         const savedImage = localStorage.getItem("studio_image");
-        const savedMask = localStorage.getItem("studio_mask");
-        const savedPrompt = localStorage.getItem("studio_prompt");
         const savedFilters = localStorage.getItem("studio_filters");
         const savedText = localStorage.getItem("studio_text");
-        const savedQuality = localStorage.getItem("generation_quality");
+        const savedState = localStorage.getItem("studio_image_state");
 
         if (savedImage) setImage(savedImage);
-        if (savedMask) setMask(savedMask);
-        if (savedPrompt) setPrompt(savedPrompt);
         if (savedFilters) setFilters(JSON.parse(savedFilters));
         if (savedText) setTextOverlays(JSON.parse(savedText));
-        if (savedQuality) setQuality(savedQuality as QualityTier);
+        const savedStickers = localStorage.getItem("studio_stickers");
+        if (savedStickers) setStickerOverlays(JSON.parse(savedStickers));
+        if (savedState) setImageState(JSON.parse(savedState));
     }, []);
 
     useEffect(() => {
         // Save state
         if (image) localStorage.setItem("studio_image", image);
-        if (mask) localStorage.setItem("studio_mask", mask);
-        localStorage.setItem("studio_prompt", prompt);
         localStorage.setItem("studio_filters", JSON.stringify(filters));
         localStorage.setItem("studio_text", JSON.stringify(textOverlays));
-        localStorage.setItem("generation_quality", quality);
-    }, [image, mask, prompt, filters, textOverlays, quality]);
-
-    const handleContinueEditing = () => {
-        if (generatedImage) {
-            setImage(generatedImage);
-            setGeneratedImage(null);
-            setMask(null);
-            showToast("Image loaded to canvas! You can now add more edits.", "info");
-        }
-    };
+        localStorage.setItem("studio_image_state", JSON.stringify(imageState));
+        localStorage.setItem("studio_stickers", JSON.stringify(stickerOverlays));
+    }, [image, filters, textOverlays, imageState, stickerOverlays]);
 
     const processImage = (file: File): Promise<string> => {
         return new Promise((resolve) => {
@@ -105,15 +90,23 @@ export default function StudioPage() {
             img.src = URL.createObjectURL(file);
             img.onload = () => {
                 const canvas = document.createElement("canvas");
-                canvas.width = 1024;
-                canvas.height = 1024;
+                // Use natural dimensions or limit to reasonable max for editing
+                const MAX_SIZE = 2048;
+                let width = img.width;
+                let height = img.height;
+
+                if (width > MAX_SIZE || height > MAX_SIZE) {
+                    const ratio = Math.min(MAX_SIZE / width, MAX_SIZE / height);
+                    width *= ratio;
+                    height *= ratio;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
                 const ctx = canvas.getContext("2d");
 
                 if (ctx) {
-                    const scale = Math.min(1024 / img.width, 1024 / img.height);
-                    const x = (1024 - img.width * scale) / 2;
-                    const y = (1024 - img.height * scale) / 2;
-                    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+                    ctx.drawImage(img, 0, 0, width, height);
                     resolve(canvas.toDataURL("image/png"));
                 }
             };
@@ -125,10 +118,12 @@ export default function StudioPage() {
         if (file) {
             const processedUrl = await processImage(file);
             setImage(processedUrl);
-            setGeneratedImage(null);
+            setImageState({ x: 50, y: 50, scale: 1 }); // Reset position on new upload
             setMask(null);
         }
     };
+
+    // ... (Library functions omitted for brevity, unchanged) ...
 
     const fetchLibrary = async () => {
         setLoadingLibrary(true);
@@ -150,55 +145,13 @@ export default function StudioPage() {
             const file = new File([blob], "library-image.png", { type: "image/png" });
             const processed = await processImage(file);
             setImage(processed);
-            setGeneratedImage(null);
-            setMask(null);
+            setImageState({ x: 50, y: 50, scale: 1 });
             setLibraryOpen(false);
         } catch (e) {
             showToast("Failed to load image from library", "error");
         }
     };
 
-    const handleGenerate = async () => {
-        if (!image || !mask || !prompt) {
-            showToast("Please upload an image, mask the product, and enter a prompt!", "warning");
-            return;
-        }
-        if (!user) {
-            showToast("Please login to generate images", "error");
-            return;
-        }
-
-        setIsGenerating(true);
-        try {
-            const endpoint = generationMode === "photo" ? "/api/edit-image" : "/api/generate-video";
-            const body = generationMode === "photo"
-                ? { image, mask, prompt, userId: user.id, quality }
-                : { prompt, imageUrl: image }; // Simple mapping for video placeholder
-
-            const res = await fetch(endpoint, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(body),
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Generation failed");
-
-            if (generationMode === "photo") {
-                setGeneratedImage(data.url);
-                showToast("Magic Edit completed!", "success");
-            } else {
-                showToast("Video generation started! (Placeholder)", "success");
-            }
-            refreshProfile();
-
-        } catch (error: any) {
-            console.error(error);
-            showToast(error.message || "Something went wrong", "error");
-        } finally {
-            setIsGenerating(false);
-        }
-    };
 
     // --- Save Logic ---
     const handleSaveToGallery = async () => {
@@ -212,7 +165,7 @@ export default function StudioPage() {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     imageDataUrl: compositedDataUrl,
-                    prompt: prompt || "Edited Image",
+                    prompt: "Edited Image",
                     userId: user.id
                 }),
             });
@@ -254,23 +207,30 @@ export default function StudioPage() {
     };
 
     const resetCanvas = () => {
-        if (confirm("Clear canvas? This cannot be undone.")) {
-            setImage(null);
-            setMask(null);
-            setFilters({ brightness: 100, contrast: 100, saturation: 100, grayscale: 0 });
-            setTextOverlays([]);
-            localStorage.removeItem("studio_image");
-            localStorage.removeItem("studio_mask");
-            localStorage.removeItem("studio_filters");
-            localStorage.removeItem("studio_text");
-            localStorage.removeItem("studio_prompt");
-        }
+        setShowResetConfirm(true);
+    };
+
+    const confirmResetCanvas = () => {
+        setImage(null);
+        setMask(null);
+        setImageState({ x: 50, y: 50, scale: 1 });
+        setFilters({ brightness: 100, contrast: 100, saturation: 100, grayscale: 0 });
+        setTextOverlays([]);
+        setStickerOverlays([]);
+        localStorage.removeItem("studio_image");
+        localStorage.removeItem("studio_filters");
+        localStorage.removeItem("studio_text");
+        localStorage.removeItem("studio_stickers");
+        localStorage.removeItem("studio_image_state");
+        setShowResetConfirm(false);
+        showToast("Canvas cleared", "success");
     };
 
     // Determine Mode
-    let interactMode: "mask" | "text" | "view" = "view";
-    if (activeTab === "generate") interactMode = "mask";
+    let interactMode: "draw" | "text" | "move" | "sticker" = "move"; // Default to move (adjust)
     if (activeTab === "text") interactMode = "text";
+    if (activeTab === "stickers") interactMode = "move";
+    if (activeTab === "draw") interactMode = "draw";
 
     return (
         <div className="flex min-h-screen bg-background text-foreground">
@@ -282,13 +242,13 @@ export default function StudioPage() {
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
                             <Icon icon="mingcute:brush-fill" className="w-6 h-6 text-primary" />
-                            Creative Studio <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/20">BETA</span>
+                            Studio Editor <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/20">BETA</span>
                         </h1>
                     </div>
                     {image && (
                         <Button variant="primary" onClick={handleSaveToGallery} disabled={isSaving}>
                             {isSaving ? <Icon icon="mingcute:loading-fill" className="w-4 h-4 mr-2 animate-spin" /> : <Icon icon="mingcute:save-fill" className="w-4 h-4 mr-2" />}
-                            Save New Image
+                            Save Image
                         </Button>
                     )}
                 </div>
@@ -325,10 +285,15 @@ export default function StudioPage() {
                             <CanvasEditor
                                 ref={editorRef}
                                 imageUrl={image}
+                                imageState={imageState}
+                                onImageStateChange={setImageState}
                                 onMaskChange={setMask}
+                                brushColor={brushColor}
                                 filters={filters}
                                 textOverlays={textOverlays}
                                 onTextUpdate={updateTextPosition}
+                                stickerOverlays={stickerOverlays}
+                                onStickerUpdate={(id: string, props: Partial<StickerOverlay>) => setStickerOverlays(prev => prev.map(s => s.id === id ? { ...s, ...props } : s))}
                                 interactMode={interactMode}
                             />
                         )}
@@ -350,12 +315,6 @@ export default function StudioPage() {
                         {/* Tool Tabs */}
                         <div className="flex p-1 bg-surface-2 rounded-xl border border-white/5">
                             <button
-                                onClick={() => setActiveTab("generate")}
-                                className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2", activeTab === "generate" ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}
-                            >
-                                <Icon icon="mingcute:magic-2-fill" className="w-4 h-4" /> AI Magic
-                            </button>
-                            <button
                                 onClick={() => setActiveTab("adjust")}
                                 className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2", activeTab === "adjust" ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}
                             >
@@ -367,106 +326,16 @@ export default function StudioPage() {
                             >
                                 <Icon icon="mingcute:text-fill" className="w-4 h-4" /> Text
                             </button>
+                            <button
+                                onClick={() => setActiveTab("stickers")}
+                                className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2", activeTab === "stickers" ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}
+                            >
+                                <Icon icon="mingcute:emoji-fill" className="w-4 h-4" /> Stickers
+                            </button>
                         </div>
 
                         {/* Tab Content */}
                         <div className="flex-1 bg-surface-1 rounded-2xl border border-white/5 p-4 flex flex-col gap-4">
-
-                            {/* GENERATE TAB */}
-                            {activeTab === "generate" && (
-                                <>
-                                    <div className="space-y-3">
-                                        <h3 className="font-medium text-sm text-foreground/80">How it works</h3>
-                                        <Step number={1} text="Brush over the area to change." active={!!image} />
-                                        <Step number={2} text="Describe changes." active={!!mask && !prompt} />
-                                    </div>
-                                    {/* Mode Toggle */}
-                                    <div className="flex gap-2 p-1 bg-surface-2 rounded-xl border border-white/5">
-                                        <button
-                                            onClick={() => setGenerationMode("photo")}
-                                            className={cn(
-                                                "flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2",
-                                                generationMode === "photo" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"
-                                            )}
-                                        >
-                                            <Icon icon="mingcute:image-fill" className="w-3 h-3" /> PHOTO
-                                        </button>
-                                        <button
-                                            onClick={() => setGenerationMode("video")}
-                                            className={cn(
-                                                "flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2",
-                                                generationMode === "video" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"
-                                            )}
-                                        >
-                                            <Icon icon="mingcute:video-fill" className="w-3 h-3" /> VIDEO
-                                        </button>
-                                    </div>
-
-                                    <div className="space-y-2 mt-2 flex-1 flex flex-col">
-                                        <label className="text-sm font-medium">Prompt</label>
-                                        <textarea
-                                            value={prompt}
-                                            onChange={(e) => setPrompt(e.target.value)}
-                                            placeholder={generationMode === "photo" ? "Describe background changes..." : "Describe video movement..."}
-                                            className="w-full h-full min-h-[100px] bg-surface-2 border border-white/10 rounded-xl p-3 text-sm resize-none focus:ring-1 focus:ring-primary focus:outline-none"
-                                            disabled={!image}
-                                        />
-                                    </div>
-
-                                    {/* Quality Selector (Photo Only) */}
-                                    {generationMode === "photo" && (
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between items-center">
-                                                <label className="text-sm font-medium">Quality</label>
-                                                <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Cost: {getTokenCost('image', quality)} tokens</span>
-                                            </div>
-                                            <div className="grid grid-cols-3 gap-2">
-                                                {(['standard', 'high', 'ultra'] as QualityTier[]).map((q) => (
-                                                    <button
-                                                        key={q}
-                                                        onClick={() => setQuality(q)}
-                                                        className={cn(
-                                                            "py-2 rounded-lg text-[10px] font-bold uppercase transition-all border",
-                                                            quality === q
-                                                                ? "bg-primary/20 border-primary text-primary shadow-[0_0_10px_rgba(var(--color-primary),0.2)]"
-                                                                : "bg-surface-2 border-white/5 text-muted-foreground hover:border-white/20"
-                                                        )}
-                                                    >
-                                                        {q}
-                                                    </button>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {generationMode === "video" && (
-                                        <div className="p-3 bg-primary/10 border border-primary/20 rounded-xl">
-                                            <p className="text-[10px] text-primary font-bold uppercase text-center">Video generation is high effort</p>
-                                            <p className="text-xs text-center text-muted-foreground mt-1">Cost: {getTokenCost('video')} tokens</p>
-                                        </div>
-                                    )}
-
-                                    <Button
-                                        className="w-full h-12 text-base shadow-glow mt-auto flex flex-col items-center justify-center py-2"
-                                        size="lg"
-                                        onClick={handleGenerate}
-                                        disabled={isGenerating || !image || (generationMode === "photo" && !mask)}
-                                    >
-                                        {isGenerating ? (
-                                            <><Icon icon="mingcute:magic-2-fill" className="w-5 h-5 mr-2 animate-spin" /> Magic happening...</>
-                                        ) : (
-                                            <>
-                                                <div className="flex items-center">
-                                                    <Icon icon="mingcute:magic-2-fill" className="w-5 h-5 mr-2" /> {generationMode === "photo" ? "Generate Background" : "Generate Video"}
-                                                </div>
-                                                <span className="text-[10px] opacity-70 font-normal">
-                                                    Uses {generationMode === "photo" ? getTokenCost('image', quality) : getTokenCost('video')} tokens
-                                                </span>
-                                            </>
-                                        )}
-                                    </Button>
-                                </>
-                            )}
 
                             {/* ADJUST TAB */}
                             {activeTab === "adjust" && (
@@ -601,14 +470,59 @@ export default function StudioPage() {
                                                 </div>
                                             ))}
                                         </div>
-                                        {textOverlays.length > 0 && (
-                                            <p className="text-[10px] text-muted-foreground text-center animate-pulse">
-                                                Drag text on canvas to reposition
-                                            </p>
-                                        )}
                                     </div>
                                 </div>
                             )}
+
+                            {/* STICKERS TAB */}
+                            {activeTab === "stickers" && (
+                                <div className="space-y-4">
+                                    <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Shapes & Stickers</h4>
+                                    <div className="grid grid-cols-4 gap-2">
+                                        {[
+                                            // Emojis
+                                            "twemoji:grinning-face", "twemoji:smiling-face-with-sunglasses", "twemoji:fire", "twemoji:sparkles",
+                                            "twemoji:red-heart", "twemoji:thumbs-up", "twemoji:party-popper", "twemoji:star",
+                                            "twemoji:ghost", "twemoji:alien-monster", "twemoji:unicorn", "twemoji:pizza",
+                                            // Shapes
+                                            "mdi:circle", "mdi:square", "mdi:triangle", "mdi:star",
+                                            "mdi:heart", "mdi:hexagon", "mdi:rhombus", "mdi:cloud"
+                                        ].map((iconData) => (
+                                            <button
+                                                key={iconData}
+                                                onClick={() => {
+                                                    const newSticker: StickerOverlay = {
+                                                        id: Date.now().toString(),
+                                                        src: `https://api.iconify.design/${iconData}.svg`,
+                                                        x: 50,
+                                                        y: 50,
+                                                        scale: 1
+                                                    };
+                                                    setStickerOverlays([...stickerOverlays, newSticker]);
+                                                }}
+                                                className="aspect-square bg-surface-2 hover:bg-white/10 rounded-lg flex items-center justify-center transition-colors border border-white/5"
+                                            >
+                                                <img src={`https://api.iconify.design/${iconData}.svg`} className="w-8 h-8 pointer-events-none" />
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mt-2">Active Stickers</h4>
+                                        <div className="max-h-[200px] overflow-y-auto space-y-2">
+                                            {stickerOverlays.map(s => (
+                                                <div key={s.id} className="flex items-center justify-between p-2 bg-surface-2 rounded-lg text-sm border border-white/5 group">
+                                                    <img src={s.src} className="w-6 h-6" />
+                                                    <button onClick={() => setStickerOverlays(stickerOverlays.filter(st => st.id !== s.id))} className="text-muted-foreground hover:text-red-400">
+                                                        <Icon icon="mingcute:delete-2-fill" className="w-4 h-4" />
+                                                    </button>
+                                                </div>
+                                            ))}
+                                            {stickerOverlays.length === 0 && <p className="text-xs text-muted-foreground text-center">No stickers added</p>}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                         </div>
                     </div>
                 </div>
@@ -649,20 +563,32 @@ export default function StudioPage() {
                     )
                 }
             </main >
-        </div >
-    );
-}
 
-function Step({ number, text, active }: { number: number, text: string, active: boolean }) {
-    return (
-        <div className={cn("flex items-start gap-3 text-sm transition-opacity", active ? "opacity-100" : "opacity-50 text-muted-foreground")}>
-            <div className={cn(
-                "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border transition-colors",
-                active ? "bg-primary text-primary-foreground border-primary" : "bg-transparent border-white/20"
-            )}>
-                {number}
-            </div>
-            <p className="pt-0.5 leading-tight">{text}</p>
-        </div>
+            {/* Confirm Reset Modal */}
+            {showResetConfirm && (
+                <div className="fixed inset-0 z-[600] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-fade-in" onClick={() => setShowResetConfirm(false)}>
+                    <div className="bg-card border border-border rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                                <Icon icon="mingcute:warning-fill" className="w-6 h-6 text-red-500" />
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-lg">Clear Canvas?</h3>
+                                <p className="text-sm text-muted-foreground">This cannot be undone.</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 mt-6">
+                            <Button variant="ghost" className="flex-1" onClick={() => setShowResetConfirm(false)}>
+                                Cancel
+                            </Button>
+                            <Button variant="primary" className="flex-1 bg-red-500 hover:bg-red-600" onClick={confirmResetCanvas}>
+                                <Icon icon="mingcute:delete-2-fill" className="w-4 h-4 mr-2" />
+                                Clear
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div >
     );
 }

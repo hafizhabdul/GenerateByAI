@@ -35,7 +35,8 @@
       "WebFetch(domain:vercel.com)",
       "WebFetch(domain:supahero.io)",
       "WebFetch(domain:bentogrids.com)",
-      "WebFetch(domain:cta.gallery)"
+      "WebFetch(domain:cta.gallery)",
+      "Bash(find:*)"
     ]
   },
   "hooks": {

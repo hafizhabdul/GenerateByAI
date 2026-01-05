@@ -192,7 +192,7 @@ export function VideoGenerator() {
             });
             setIsHero(false);
         }
-        
+
         // Load draft state (image preview, prompt, settings)
         const draft = loadDraft(user.id);
         if (draft) {
@@ -205,7 +205,7 @@ export function VideoGenerator() {
                 setIsHero(false);
             }
         }
-        
+
         setSessionLoaded(true);
     }, [user]);
 
@@ -272,7 +272,7 @@ export function VideoGenerator() {
 
     // Poll for pending video status
     useEffect(() => {
-        const pendingItems = feed.filter(item => 
+        const pendingItems = feed.filter(item =>
             (item.status === "pending" || item.status === "processing") && item.taskId
         );
 
@@ -287,7 +287,7 @@ export function VideoGenerator() {
         const pollStatus = async () => {
             for (const item of pendingItems) {
                 if (!item.taskId) continue;
-                
+
                 try {
                     const params = new URLSearchParams({
                         taskId: item.taskId,
@@ -302,8 +302,8 @@ export function VideoGenerator() {
 
                     if (data.status === "completed" && data.url) {
                         setFeed(prev => {
-                            const updated = prev.map(f => 
-                                f.id === item.id 
+                            const updated = prev.map(f =>
+                                f.id === item.id
                                     ? { ...f, status: "completed" as const, videoUrl: data.url, canExtend: true }
                                     : f
                             );
@@ -314,8 +314,8 @@ export function VideoGenerator() {
                         await refreshProfile();
                     } else if (data.status === "failed") {
                         setFeed(prev => {
-                            const updated = prev.map(f => 
-                                f.id === item.id 
+                            const updated = prev.map(f =>
+                                f.id === item.id
                                     ? { ...f, status: "failed" as const, error: data.error || "Generation failed" }
                                     : f
                             );
@@ -389,13 +389,13 @@ export function VideoGenerator() {
                     created_at: gen.created_at,
                     canExtend: !!gen.metadata?.klingVideoId,
                 }));
-                
+
                 // IMPORTANT: Merge with pending videos instead of replacing!
                 // This ensures in-progress generations are not lost when navigating away
                 const pendingVideos = user ? loadPendingVideos(user.id) : [];
                 const historyIds = new Set(historyItems.map(h => h.id));
                 const pendingIds = new Set(pendingVideos.map(p => p.generationId || p.id));
-                
+
                 // Filter out completed items that are in pending (they'll be in history with correct status)
                 const stillPending = pendingVideos.filter(p => {
                     // Keep if not in history yet (truly pending)
@@ -406,7 +406,7 @@ export function VideoGenerator() {
                     const historyItem = historyItems.find(h => h.id === p.generationId || h.id === p.id);
                     return historyItem && historyItem.status !== "completed";
                 });
-                
+
                 // Combine: history items + still-pending items (deduped)
                 const combined = [...historyItems];
                 for (const pending of stillPending) {
@@ -414,10 +414,10 @@ export function VideoGenerator() {
                         combined.push(pending);
                     }
                 }
-                
+
                 // Sort by created_at
                 combined.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-                
+
                 setFeed(combined);
                 if (combined.length > 0) {
                     setIsHero(false);
@@ -535,9 +535,9 @@ export function VideoGenerator() {
         }
         setIsHero(false);
         setLoading(true);
-        
+
         // Clear draft since generation has started
-        clearDraft();
+        if (user) clearDraft(user.id);
 
         // Optimistic Update
         const tempId = Date.now().toString();
@@ -554,7 +554,7 @@ export function VideoGenerator() {
 
         setFeed((prev) => {
             const newFeed = [...prev, optimisticItem];
-            savePendingVideos(newFeed);
+            if (user) savePendingVideos(user.id, newFeed);
             return newFeed;
         });
 
@@ -607,8 +607,8 @@ export function VideoGenerator() {
             setFeed((prev) => {
                 const updated = prev.map((item) =>
                     item.id === tempId
-                        ? { 
-                            ...item, 
+                        ? {
+                            ...item,
                             status: "processing" as const,
                             taskId: data.taskId,
                             generationId: data.generationId,
@@ -620,7 +620,7 @@ export function VideoGenerator() {
             });
 
             showToast("🚀 Video generation started! You can navigate away - we'll keep generating.", "success");
-            
+
         } catch (err) {
             console.error(err);
             const errorMessage = err instanceof Error ? err.message : "Failed to generate video";
@@ -1194,13 +1194,13 @@ const VideoFeedCard = memo(function VideoFeedCard({
         try {
             // Use our API endpoint to bypass CORS and handle download
             const downloadUrl = `/api/download?url=${encodeURIComponent(item.videoUrl)}`;
-            
+
             const response = await fetch(downloadUrl);
             if (!response.ok) {
                 const error = await response.json().catch(() => ({ error: "Download failed" }));
                 throw new Error(error.error || "Failed to download video");
             }
-            
+
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");

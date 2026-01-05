@@ -17,8 +17,8 @@ interface Stats {
 }
 
 const quickActions = [
-    { label: "Generate Image", href: "/", icon: "mingcute:image-fill", color: "from-violet-500 to-purple-600" },
-    { label: "Create Video", href: "/?mode=video", icon: "mingcute:video-fill", color: "from-blue-500 to-cyan-600" },
+    { label: "Generate Image", href: "/?view=create", icon: "mingcute:image-fill", color: "from-violet-500 to-purple-600" },
+    { label: "Create Video", href: "/videos", icon: "mingcute:video-fill", color: "from-blue-500 to-cyan-600" },
     { label: "View Gallery", href: "/gallery", icon: "mingcute:star-fill", color: "from-amber-500 to-orange-600" },
 ];
 

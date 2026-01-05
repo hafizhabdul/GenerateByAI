@@ -5,6 +5,8 @@ import { Sidebar } from "@/components/sidebar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Icon } from "@iconify/react";
 import type { Generation } from "@/lib/supabase/types";
@@ -12,6 +14,8 @@ import type { Generation } from "@/lib/supabase/types";
 type FilterType = "all" | "image" | "video";
 
 export default function GalleryPage() {
+    const router = useRouter();
+
     const { user } = useAuth();
     const { showToast } = useToast();
     const [view, setView] = useState<"grid" | "list">("grid");
@@ -308,11 +312,11 @@ export default function GalleryPage() {
                                         Start creating amazing AI-generated images and videos. They&apos;ll appear here automatically.
                                     </p>
                                     <div className="flex flex-wrap justify-center gap-2 md:gap-3">
-                                        <Button variant="primary" onClick={() => window.location.href = "/app"}>
+                                        <Button variant="primary" onClick={() => router.push("/?view=create")}>
                                             <Icon icon="mingcute:pic-fill" className="w-4 h-4 mr-2" />
                                             Generate Image
                                         </Button>
-                                        <Button variant="secondary" onClick={() => window.location.href = "/videos"}>
+                                        <Button variant="secondary" onClick={() => router.push("/videos")}>
                                             <Icon icon="mingcute:movie-fill" className="w-4 h-4 mr-2" />
                                             Create Video
                                         </Button>
