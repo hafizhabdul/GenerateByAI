@@ -3,6 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { createKlingClient } from "@/lib/kling";
 import { persistExternalVideo } from "@/lib/storage-utils";
+import { z } from "zod";
+
+// UUID validation helper
+const uuidSchema = z.string().uuid();
 
 /**
  * Check video generation status and finalize when complete
@@ -28,6 +32,11 @@ export async function GET(req: NextRequest) {
 
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Validate generationId if provided
+        if (generationId && !uuidSchema.safeParse(generationId).success) {
+            return NextResponse.json({ error: "Invalid generation ID format" }, { status: 400 });
         }
 
         // Check if already completed in database

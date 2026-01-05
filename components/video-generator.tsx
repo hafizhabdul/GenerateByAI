@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -708,7 +708,7 @@ export function VideoGenerator() {
         }
     };
 
-    const handleNewSession = () => {
+    const handleNewSession = useCallback(() => {
         // Stop any polling
         if (pollingRef.current) {
             clearInterval(pollingRef.current);
@@ -723,7 +723,7 @@ export function VideoGenerator() {
         // Clear localStorage for this user
         if (user) clearSession(user.id);
         showToast("Started a new video session", "info");
-    };
+    }, [user, showToast]);
 
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
@@ -1155,7 +1155,7 @@ export function VideoGenerator() {
     );
 }
 
-function VideoFeedCard({
+const VideoFeedCard = memo(function VideoFeedCard({
     item,
     onExtend,
     isExtending,
@@ -1316,7 +1316,7 @@ function VideoFeedCard({
             </div>
         </div>
     );
-}
+});
 
 // Progress indicator component with steps
 function VideoProgressIndicator({ status, duration }: { status: string; duration: string }) {

@@ -18,7 +18,7 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Validate URL is from our storage (security check)
+        // Validate URL is from our storage (security check - strict domain matching)
         const allowedDomains = [
             "supabase.co",
             "supabase.in",
@@ -26,7 +26,15 @@ export async function GET(req: Request) {
         ];
         
         const urlObj = new URL(fileUrl);
-        const isAllowed = allowedDomains.some(domain => urlObj.hostname.includes(domain));
+        // Strict check: hostname must exactly match or end with .domain
+        const isAllowed = allowedDomains.some(domain => 
+            urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
+        );
+        
+        // Additional security: must be HTTPS
+        if (urlObj.protocol !== "https:") {
+            return NextResponse.json({ error: "Invalid URL protocol" }, { status: 400 });
+        }
         
         if (!isAllowed) {
             return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
@@ -70,8 +78,9 @@ export async function GET(req: Request) {
 
     } catch (error: any) {
         console.error("Download error:", error);
+        // Sanitize error - don't leak internal details
         return NextResponse.json(
-            { error: error.message || "Failed to download file" },
+            { error: "Failed to download file" },
             { status: 500 }
         );
     }

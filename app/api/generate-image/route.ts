@@ -11,7 +11,7 @@ import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 
 const GenerateSchema = z.object({
-    prompt: z.string().min(1, "Prompt is required"),
+    prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt too long (max 2000 chars)"),
     size: z.enum(["1024x1024", "512x512"]).optional().default("1024x1024"),
     quality: z.enum(["standard", "high", "ultra"]).optional().default("high"),
 });

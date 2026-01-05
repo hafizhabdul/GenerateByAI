@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
@@ -312,7 +312,7 @@ export function ImageGenerator() {
         }
     };
 
-    const handleGenerate = async () => {
+    const handleGenerate = useCallback(async () => {
         if (!prompt.trim()) {
             showToast("Please enter a prompt to generate", "warning");
             return;
@@ -391,9 +391,9 @@ export function ImageGenerator() {
             setLoading(false);
             setPendingGenerationId(null);
         }
-    };
+    }, [prompt, mode, user, showToast, refreshProfile]);
 
-    const handleSelectFromHistory = (item: Generation) => {
+    const handleSelectFromHistory = useCallback((item: Generation) => {
         // When selecting from history, we just add it to the feed
         const historyItem: FeedItem = {
             id: item.id,
@@ -406,15 +406,15 @@ export function ImageGenerator() {
         setFeed(prev => [...prev, historyItem]);
         setIsHero(false);
         setShowHistory(false);
-    };
+    }, []);
 
-    const handleNewSession = () => {
+    const handleNewSession = useCallback(() => {
         setFeed([]);
         setIsHero(true);
         setPrompt("");
         if (user) clearSession(user.id); // Clear localStorage for this user
         showToast("Started a new creative session", "info");
-    };
+    }, [user, showToast]);
 
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
@@ -578,7 +578,7 @@ export function ImageGenerator() {
     );
 }
 
-function FeedItemCard({ item }: { item: FeedItem }) {
+const FeedItemCard = memo(function FeedItemCard({ item }: { item: FeedItem }) {
     const router = useRouter();
     const [isDownloading, setIsDownloading] = useState(false);
     const { showToast } = useToast();
@@ -689,4 +689,4 @@ function FeedItemCard({ item }: { item: FeedItem }) {
             </div>
         </div>
     );
-}
+});

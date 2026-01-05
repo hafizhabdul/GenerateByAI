@@ -4,11 +4,12 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { processTokenCharge } from "@/lib/tokens-server";
 import { createKlingClient, getVideoCost, getAudioCost } from "@/lib/kling";
+import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 const StartVideoSchema = z.object({
     imageUrl: z.string().url().optional(),
-    prompt: z.string().min(1, "Prompt is required"),
-    negativePrompt: z.string().optional(),
+    prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt too long (max 2000 chars)"),
+    negativePrompt: z.string().max(1000).optional(),
     mode: z.enum(["std", "pro"]).optional().default("std"),
     duration: z.enum(["5", "10"]).optional().default("5"),
     aspectRatio: z.enum(["16:9", "9:16", "1:1"]).optional().default("16:9"),
@@ -53,6 +54,12 @@ export async function POST(req: Request) {
 
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Rate Limit Check (5 video starts per minute per user)
+        const rateLimit = checkRateLimit(`video-start:${user.id}`, 5, 60000);
+        if (!rateLimit.allowed) {
+            return createRateLimitResponse(rateLimit.resetIn);
         }
 
         // Token Balance Pre-Check (reserve tokens)

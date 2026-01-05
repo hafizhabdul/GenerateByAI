@@ -5,11 +5,12 @@ import { z } from "zod";
 import { persistExternalVideo } from "@/lib/storage-utils";
 import { processTokenCharge } from "@/lib/tokens-server";
 import { createKlingClient, getExtendCost } from "@/lib/kling";
+import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 const ExtendVideoSchema = z.object({
     generationId: z.string().uuid("Valid generation ID required"),
-    prompt: z.string().min(1, "Prompt is required"),
-    negativePrompt: z.string().optional(),
+    prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt too long"),
+    negativePrompt: z.string().max(1000).optional(),
 });
 
 export async function POST(req: Request) {
@@ -33,6 +34,12 @@ export async function POST(req: Request) {
 
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // Rate Limit Check (3 extensions per minute per user)
+        const rateLimit = checkRateLimit(`video-extend:${user.id}`, 3, 60000);
+        if (!rateLimit.allowed) {
+            return createRateLimitResponse(rateLimit.resetIn);
         }
 
         // --- Get Original Video ---

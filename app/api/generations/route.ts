@@ -15,8 +15,9 @@ export async function GET(req: Request) {
 
         const { searchParams } = new URL(req.url);
         const type = searchParams.get("type"); // 'image' | 'video' | null (all)
-        const limit = parseInt(searchParams.get("limit") || "50");
-        const offset = parseInt(searchParams.get("offset") || "0");
+        // Cap limit to prevent abuse (max 100)
+        const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+        const offset = Math.max(parseInt(searchParams.get("offset") || "0"), 0);
         const favorites = searchParams.get("favorites") === "true";
 
         let query = supabase

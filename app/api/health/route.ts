@@ -5,11 +5,10 @@ import { NextResponse } from "next/server";
  * GET /api/health
  */
 export async function GET() {
+  // Don't expose version/environment info for security
   return NextResponse.json({
     status: "ok",
     timestamp: new Date().toISOString(),
-    version: process.env.npm_package_version || "1.0.0",
-    environment: process.env.NODE_ENV || "development",
   });
 }
 
