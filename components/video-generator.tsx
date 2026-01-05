@@ -285,18 +285,15 @@ export function VideoGenerator() {
         }
     };
 
-    // Calculate token cost (aligned with lib/kling.ts getVideoCost)
+    // Calculate token cost (aligned with lib/kling.ts getVideoCost + getAudioCost)
     const getEstimatedCost = useCallback(() => {
         const baseCosts = {
             '5': { std: 100, pro: 120 },
             '10': { std: 180, pro: 220 },
         };
-        let cost = baseCosts[settings.duration][settings.mode];
-        // Audio adds 50% more cost (Kling 2.6)
-        if (settings.sound) {
-            cost = Math.ceil(cost * 1.5);
-        }
-        return cost;
+        const videoCost = baseCosts[settings.duration][settings.mode];
+        const audioCost = settings.sound ? 50 : 0; // Audio via Video2Audio API
+        return videoCost + audioCost;
     }, [settings]);
 
     // Auto-scroll to bottom when feed updates
@@ -687,11 +684,11 @@ export function VideoGenerator() {
                                 </p>
                             </div>
 
-                            {/* Native Audio (Kling 2.6) */}
+                            {/* AI Audio Generation */}
                             <div className="space-y-3">
                                 <label className="text-sm font-medium flex items-center gap-2">
                                     <Icon icon="ph:speaker-high-duotone" className="w-4 h-4 text-violet-400" />
-                                    Native Audio
+                                    AI Audio
                                     <span className="px-1.5 py-0.5 text-[10px] bg-violet-500/20 text-violet-400 rounded-md font-medium">NEW</span>
                                 </label>
                                 <button
@@ -710,7 +707,7 @@ export function VideoGenerator() {
                                             </div>
                                             <div className="text-xs text-muted-foreground mt-1">
                                                 {settings.sound
-                                                    ? "AI akan generate audio: dialog, efek suara, ambient"
+                                                    ? "AI akan generate audio: efek suara, ambient, musik"
                                                     : "Video tanpa audio (silent)"}
                                             </div>
                                         </div>
@@ -728,7 +725,7 @@ export function VideoGenerator() {
                                 {settings.sound && (
                                     <p className="text-xs text-violet-400/80 flex items-center gap-1">
                                         <Icon icon="ph:info" className="w-3 h-3" />
-                                        Audio menambah ~50% biaya token
+                                        Audio menambah +50 token
                                     </p>
                                 )}
                             </div>

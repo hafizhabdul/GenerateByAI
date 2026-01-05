@@ -103,10 +103,10 @@ export async function GET(req: NextRequest) {
             });
         }
 
-        // If succeeded, persist video and update record
+        // If succeeded, check if audio is needed and persist video
         if (status === "succeed") {
             const videoData = result.data.task_result?.videos?.[0];
-            
+
             if (!videoData?.url) {
                 return NextResponse.json({
                     status: "failed",
@@ -114,9 +114,97 @@ export async function GET(req: NextRequest) {
                 });
             }
 
+            // Check if we need to add audio
+            let finalVideoUrl = videoData.url;
+            let audioTaskId = null;
+
+            if (generationId) {
+                const { data: genRecord } = await supabase
+                    .from("generations")
+                    .select("metadata")
+                    .eq("id", generationId)
+                    .eq("user_id", user.id)
+                    .single();
+
+                const hasAudio = genRecord?.metadata?.hasAudio;
+                const existingAudioTaskId = genRecord?.metadata?.audioTaskId;
+
+                // If audio is requested but not started yet
+                if (hasAudio && !existingAudioTaskId) {
+                    console.log(`[Video] Starting audio generation for video: ${videoData.id}`);
+
+                    try {
+                        const audioTask = await kling.videoToAudio(videoData.id);
+
+                        if (audioTask.code === 0) {
+                            audioTaskId = audioTask.data.task_id;
+                            console.log(`[Video] Audio task started: ${audioTaskId}`);
+
+                            // Update metadata with audio task ID
+                            const adminClient = createAdminClient();
+                            await adminClient
+                                .from("generations")
+                                .update({
+                                    metadata: {
+                                        ...genRecord?.metadata,
+                                        klingVideoId: videoData.id,
+                                        audioTaskId: audioTaskId,
+                                    },
+                                })
+                                .eq("id", generationId)
+                                .eq("user_id", user.id);
+
+                            // Return processing status - audio is being generated
+                            return NextResponse.json({
+                                status: "processing",
+                                taskId,
+                                message: "Adding audio to video...",
+                                step: "audio",
+                            });
+                        } else {
+                            console.warn(`[Video] Audio generation failed: ${audioTask.message}`);
+                            // Continue without audio
+                        }
+                    } catch (audioError) {
+                        console.error("[Video] Audio generation error:", audioError);
+                        // Continue without audio
+                    }
+                }
+
+                // If audio task is in progress, check its status
+                if (existingAudioTaskId) {
+                    try {
+                        const audioResult = await kling.getVideoToAudioResult(existingAudioTaskId);
+
+                        if (audioResult.data.task_status === "processing" || audioResult.data.task_status === "submitted") {
+                            return NextResponse.json({
+                                status: "processing",
+                                taskId,
+                                message: "Adding audio to video...",
+                                step: "audio",
+                            });
+                        }
+
+                        if (audioResult.data.task_status === "succeed") {
+                            const audioVideoUrl = audioResult.data.task_result?.videos?.[0]?.url;
+                            if (audioVideoUrl) {
+                                finalVideoUrl = audioVideoUrl;
+                                console.log(`[Video] Audio added successfully`);
+                            }
+                        } else if (audioResult.data.task_status === "failed") {
+                            console.warn(`[Video] Audio failed: ${audioResult.data.task_status_msg}`);
+                            // Continue with original video
+                        }
+                    } catch (audioCheckError) {
+                        console.error("[Video] Audio status check error:", audioCheckError);
+                        // Continue with original video
+                    }
+                }
+            }
+
             // Persist video to storage
             console.log(`[Video] Persisting video for task ${taskId}...`);
-            const permanentUrl = await persistExternalVideo(videoData.url, user.id);
+            const permanentUrl = await persistExternalVideo(finalVideoUrl, user.id);
 
             // Update generation record
             if (generationId) {
@@ -129,6 +217,7 @@ export async function GET(req: NextRequest) {
                         metadata: {
                             klingVideoId: videoData.id,
                             duration: videoData.duration,
+                            hasAudio: finalVideoUrl !== videoData.url, // True if we used audio version
                         },
                     })
                     .eq("id", generationId)
@@ -143,6 +232,7 @@ export async function GET(req: NextRequest) {
                 url: permanentUrl,
                 klingVideoId: videoData.id,
                 duration: videoData.duration,
+                hasAudio: finalVideoUrl !== videoData.url,
             });
         }
 

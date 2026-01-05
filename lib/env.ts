@@ -10,6 +10,10 @@ const envSchema = z.object({
   SUMOPOD_API_KEY: z.string().min(1, "Sumopod API key is required"),
   SUMOPOD_BASE_URL: z.string().url().default("https://ai.sumopod.com/v1"),
 
+  // Kling AI (optional, required for video generation)
+  KLING_AI_ACCESS_KEY: z.string().optional(),
+  KLING_AI_SECRET_KEY: z.string().optional(),
+
   // Pakasir Payment (optional, required for payments)
   PAKASIR_SLUG: z.string().optional(),
   PAKASIR_API_KEY: z.string().optional(),
@@ -59,6 +63,11 @@ export const env = validateEnv();
 // Helper to check if Pakasir payment is configured
 export function isPaymentConfigured(): boolean {
   return Boolean(process.env.PAKASIR_SLUG && process.env.PAKASIR_API_KEY);
+}
+
+// Helper to check if Kling AI (video generation) is configured
+export function isKlingConfigured(): boolean {
+  return Boolean(process.env.KLING_AI_ACCESS_KEY && process.env.KLING_AI_SECRET_KEY);
 }
 
 // Legacy: Helper to check if Mayar is configured (deprecated)

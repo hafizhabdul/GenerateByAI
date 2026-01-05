@@ -184,7 +184,7 @@ export default function PricingPage() {
                     <UsageInfo icon="ph:image-square" label="Gambar HD" cost="20 token" />
                     <UsageInfo icon="ph:sparkle" label="Gambar Ultra" cost="40 token" />
                     <UsageInfo icon="ph:video" label="Video 5 detik" cost="100 token" />
-                    <UsageInfo icon="ph:speaker-high" label="Video + Audio" cost="150 token" />
+                    <UsageInfo icon="ph:speaker-high" label="+ AI Audio" cost="+50 token" />
                 </div>
             </div>
 

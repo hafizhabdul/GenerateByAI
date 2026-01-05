@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { processTokenCharge } from "@/lib/tokens-server";
-import { createKlingClient, getVideoCost } from "@/lib/kling";
+import { createKlingClient, getVideoCost, getAudioCost } from "@/lib/kling";
 
 const StartVideoSchema = z.object({
     imageUrl: z.string().url().optional(),
@@ -42,8 +42,10 @@ export async function POST(req: Request) {
             );
         }
 
-        // Calculate cost
-        const cost = getVideoCost(duration, mode, sound);
+        // Calculate cost: video + optional audio
+        const videoCost = getVideoCost(duration, mode);
+        const audioCost = sound ? getAudioCost() : 0;
+        const cost = videoCost + audioCost;
 
         // Auth Check
         const supabase = await createClient();
@@ -92,6 +94,7 @@ export async function POST(req: Request) {
         console.log(`[Video] Enhanced prompt: ${enhancedPrompt}`);
 
         // Start Video Generation (async - don't wait for completion)
+        // Note: Audio is added separately via Video2Audio API after video is ready
         let taskResponse;
         if (type === "image2video" && imageUrl) {
             taskResponse = await kling.imageToVideo({
@@ -101,7 +104,6 @@ export async function POST(req: Request) {
                 mode,
                 duration,
                 aspectRatio,
-                sound,
             });
         } else {
             taskResponse = await kling.textToVideo({
@@ -110,7 +112,6 @@ export async function POST(req: Request) {
                 mode,
                 duration,
                 aspectRatio,
-                sound,
             });
         }
 
@@ -139,7 +140,9 @@ export async function POST(req: Request) {
                     aspectRatio,
                     sourceType: type,
                     sourceImage: imageUrl || null,
-                    sound,
+                    hasAudio: sound,
+                    videoCost,
+                    audioCost,
                 },
             })
             .select("id")

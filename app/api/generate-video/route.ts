@@ -4,7 +4,8 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { persistExternalVideo } from "@/lib/storage-utils";
 import { processTokenCharge } from "@/lib/tokens-server";
-import { createKlingClient, getVideoCost } from "@/lib/kling";
+import { createKlingClient, getVideoCost, getAudioCost } from "@/lib/kling";
+import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 const GenerateVideoSchema = z.object({
     imageUrl: z.string().url().optional(),
@@ -39,8 +40,10 @@ export async function POST(req: Request) {
             );
         }
 
-        // Calculate cost based on duration, mode, and audio
-        const cost = getVideoCost(duration, mode, sound);
+        // Calculate cost: video + optional audio (separate API call)
+        const videoCost = getVideoCost(duration, mode);
+        const audioCost = sound ? getAudioCost() : 0;
+        const cost = videoCost + audioCost;
 
         // --- Auth Check ---
         const supabase = await createClient();
@@ -48,6 +51,12 @@ export async function POST(req: Request) {
 
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // --- Rate Limit Check (5 video requests per minute per user) ---
+        const rateLimit = checkRateLimit(`video:${user.id}`, 5, 60000);
+        if (!rateLimit.allowed) {
+            return createRateLimitResponse(rateLimit.resetIn);
         }
 
         // --- Token Balance Pre-Check ---
@@ -70,7 +79,7 @@ export async function POST(req: Request) {
             : "blurry, low quality, distorted, ugly, shaky camera, amateur, poorly lit";
         const enhancedNegative = negativePrompt || defaultNegative;
 
-        // --- Start Video Generation ---
+        // --- Step 1: Start Video Generation (without audio) ---
         let taskResponse;
         if (type === "image2video" && imageUrl) {
             taskResponse = await kling.imageToVideo({
@@ -80,7 +89,6 @@ export async function POST(req: Request) {
                 mode,
                 duration,
                 aspectRatio,
-                sound, // Kling 2.6 native audio
             });
         } else {
             taskResponse = await kling.textToVideo({
@@ -89,7 +97,6 @@ export async function POST(req: Request) {
                 mode,
                 duration,
                 aspectRatio,
-                sound, // Kling 2.6 native audio
             });
         }
 
@@ -98,17 +105,44 @@ export async function POST(req: Request) {
         }
 
         const taskId = taskResponse.data.task_id;
-        console.log(`[Video] Started task: ${taskId}`);
+        console.log(`[Video] Started video task: ${taskId}`);
 
-        // --- Poll for Completion ---
-        const result = await kling.waitForCompletion(taskId, type, 120, 5000);
+        // --- Poll for Video Completion ---
+        const videoResult = await kling.waitForCompletion(taskId, type, 120, 5000);
 
-        if (!result.data.task_result?.videos?.[0]?.url) {
+        if (!videoResult.data.task_result?.videos?.[0]?.url) {
             throw new Error("No video URL in result");
         }
 
-        const tempVideoUrl = result.data.task_result.videos[0].url;
-        const klingVideoId = result.data.task_result.videos[0].id;
+        let tempVideoUrl = videoResult.data.task_result.videos[0].url;
+        const klingVideoId = videoResult.data.task_result.videos[0].id;
+        console.log(`[Video] Video generation complete: ${klingVideoId}`);
+
+        // --- Step 2: Add Audio (if requested) ---
+        if (sound) {
+            console.log(`[Video] Adding audio to video: ${klingVideoId}`);
+
+            const audioTaskResponse = await kling.videoToAudio(klingVideoId);
+
+            if (audioTaskResponse.code !== 0) {
+                console.error(`[Video] Audio generation failed: ${audioTaskResponse.message}`);
+                // Continue without audio instead of failing completely
+            } else {
+                const audioTaskId = audioTaskResponse.data.task_id;
+                console.log(`[Video] Started audio task: ${audioTaskId}`);
+
+                // Poll for audio completion
+                const audioResult = await kling.waitForCompletion(audioTaskId, 'video2audio', 60, 5000);
+
+                if (audioResult.data.task_result?.videos?.[0]?.url) {
+                    tempVideoUrl = audioResult.data.task_result.videos[0].url;
+                    console.log(`[Video] Audio added successfully`);
+                } else {
+                    console.warn(`[Video] Audio task completed but no video URL, using original video`);
+                }
+            }
+        }
+
         console.log(`[Video] Generation complete, persisting...`);
 
         // --- Persist Video to Storage ---
@@ -130,7 +164,9 @@ export async function POST(req: Request) {
                 sourceType: type,
                 sourceImage: imageUrl || null,
                 klingVideoId: klingVideoId,
-                sound, // Kling 2.6 native audio
+                hasAudio: sound,
+                videoCost,
+                audioCost,
             },
         });
 
@@ -140,6 +176,7 @@ export async function POST(req: Request) {
             url: permanentUrl,
             duration,
             taskId,
+            hasAudio: sound,
         });
 
     } catch (error: any) {

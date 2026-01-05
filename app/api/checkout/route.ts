@@ -8,6 +8,7 @@ import {
   formatIDR,
   type TokenPackageId,
 } from "@/lib/pakasir";
+import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 /**
  * Create a checkout session for token purchase
@@ -33,6 +34,12 @@ export async function POST(request: NextRequest) {
 
     if (authError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // --- Rate Limit Check (5 checkout attempts per minute per user) ---
+    const rateLimit = checkRateLimit(`checkout:${user.id}`, 5, 60000);
+    if (!rateLimit.allowed) {
+      return createRateLimitResponse(rateLimit.resetIn);
     }
 
     // Parse request body

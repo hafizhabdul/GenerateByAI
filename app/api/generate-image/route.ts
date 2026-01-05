@@ -6,6 +6,7 @@ import { z } from "zod";
 import { persistExternalImage, persistBase64Image } from "@/lib/storage-utils";
 import { getTokenCost, QualityTier } from "@/lib/tokens";
 import { processTokenCharge } from "@/lib/tokens-server";
+import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
 
 
@@ -36,6 +37,12 @@ export async function POST(req: Request) {
 
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // --- Rate Limit Check (10 requests per minute per user) ---
+        const rateLimit = checkRateLimit(`image:${user.id}`, 10, 60000);
+        if (!rateLimit.allowed) {
+            return createRateLimitResponse(rateLimit.resetIn);
         }
 
         // --- 1. Token Balance Pre-Check ---

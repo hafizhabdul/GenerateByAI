@@ -25,7 +25,11 @@
       "mcp__chrome-devtools__take_screenshot",
       "WebFetch(domain:app.klingai.com)",
       "WebFetch(domain:kie.ai)",
-      "WebFetch(domain:klingai.com)"
+      "WebFetch(domain:klingai.com)",
+      "WebFetch(domain:useapi.net)",
+      "WebFetch(domain:piapi.ai)",
+      "WebFetch(domain:docs.aimlapi.com)",
+      "Bash(npm ls:*)"
     ]
   },
   "hooks": {

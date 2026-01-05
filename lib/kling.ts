@@ -43,6 +43,31 @@ interface VideoExtendRequest {
     callback_url?: string;
 }
 
+interface VideoToAudioRequest {
+    video_id: string;  // ID of the generated video from Kling
+    callback_url?: string;
+}
+
+interface VideoToAudioResult {
+    code: number;
+    message: string;
+    request_id: string;
+    data: {
+        task_id: string;
+        task_status: 'submitted' | 'processing' | 'succeed' | 'failed';
+        task_status_msg?: string;
+        created_at: number;
+        updated_at: number;
+        task_result?: {
+            videos: Array<{
+                id: string;
+                url: string;
+                duration: string;
+            }>;
+        };
+    };
+}
+
 interface KlingTaskResponse {
     code: number;
     message: string;
@@ -162,7 +187,7 @@ export class KlingClient {
 
     /**
      * Generate video from image (Image to Video)
-     * Supports Kling 2.6 with native audio generation
+     * Uses Kling v1.5 model (v2.6 with native audio not available in API yet)
      */
     async imageToVideo(options: {
         imageUrl: string;
@@ -172,10 +197,9 @@ export class KlingClient {
         duration?: '5' | '10';
         aspectRatio?: '16:9' | '9:16' | '1:1';
         cfgScale?: number;
-        sound?: boolean; // Enable native audio generation (Kling 2.6)
     }): Promise<KlingTaskResponse> {
         const body: ImageToVideoRequest = {
-            model_name: options.sound ? 'kling-v2-6' : 'kling-v1-5', // Use v2.6 for audio support
+            model_name: 'kling-v1-5',
             image: options.imageUrl,
             prompt: options.prompt,
             negative_prompt: options.negativePrompt || 'blurry, low quality, distorted, ugly',
@@ -185,17 +209,12 @@ export class KlingClient {
             cfg_scale: options.cfgScale || 0.85,
         };
 
-        // Only include sound parameter when enabled (v2.6 feature)
-        if (options.sound) {
-            body.sound = true;
-        }
-
         return this.request<KlingTaskResponse>('/v1/videos/image2video', body);
     }
 
     /**
      * Generate video from text (Text to Video)
-     * Supports Kling 2.6 with native audio generation
+     * Uses Kling v1.5 model (v2.6 with native audio not available in API yet)
      */
     async textToVideo(options: {
         prompt: string;
@@ -204,10 +223,9 @@ export class KlingClient {
         duration?: '5' | '10';
         aspectRatio?: '16:9' | '9:16' | '1:1';
         cfgScale?: number;
-        sound?: boolean; // Enable native audio generation (Kling 2.6)
     }): Promise<KlingTaskResponse> {
         const body: TextToVideoRequest = {
-            model_name: options.sound ? 'kling-v2-6' : 'kling-v1-5', // Use v2.6 for audio support
+            model_name: 'kling-v1-5',
             prompt: options.prompt,
             negative_prompt: options.negativePrompt || 'blurry, low quality, distorted, ugly',
             mode: options.mode || 'std',
@@ -215,11 +233,6 @@ export class KlingClient {
             aspect_ratio: options.aspectRatio || '16:9',
             cfg_scale: options.cfgScale || 0.5,
         };
-
-        // Only include sound parameter when enabled (v2.6 feature)
-        if (options.sound) {
-            body.sound = true;
-        }
 
         return this.request<KlingTaskResponse>('/v1/videos/text2video', body);
     }
@@ -266,20 +279,42 @@ export class KlingClient {
     }
 
     /**
+     * Add audio to an existing video using Video to Audio API
+     * Video must be 3-20 seconds long
+     */
+    async videoToAudio(videoId: string): Promise<KlingTaskResponse> {
+        const body: VideoToAudioRequest = {
+            video_id: videoId,
+        };
+
+        console.log(`[Kling] Adding audio to video: ${videoId}`);
+        return this.request<KlingTaskResponse>('/v1/videos/video2audio', body);
+    }
+
+    /**
+     * Get video-to-audio task result
+     */
+    async getVideoToAudioResult(taskId: string): Promise<VideoToAudioResult> {
+        return this.get<VideoToAudioResult>(`/v1/videos/video2audio/${taskId}`);
+    }
+
+    /**
      * Poll for task completion
      */
     async waitForCompletion(
         taskId: string,
-        type: 'image2video' | 'text2video' | 'video-extend' = 'image2video',
+        type: 'image2video' | 'text2video' | 'video-extend' | 'video2audio' = 'image2video',
         maxAttempts: number = 120,
         intervalMs: number = 5000
     ): Promise<KlingTaskResult> {
         for (let attempt = 0; attempt < maxAttempts; attempt++) {
-            let result: KlingTaskResult;
+            let result: KlingTaskResult | VideoToAudioResult;
             if (type === 'image2video') {
                 result = await this.getTaskResult(taskId);
             } else if (type === 'text2video') {
                 result = await this.getTextToVideoResult(taskId);
+            } else if (type === 'video2audio') {
+                result = await this.getVideoToAudioResult(taskId);
             } else {
                 result = await this.getExtendResult(taskId);
             }
@@ -287,18 +322,18 @@ export class KlingClient {
             console.log(`[Kling] Task ${taskId} status: ${result.data.task_status} (attempt ${attempt + 1})`);
 
             if (result.data.task_status === 'succeed') {
-                return result;
+                return result as KlingTaskResult;
             }
 
             if (result.data.task_status === 'failed') {
-                throw new Error(`Video generation failed: ${result.data.task_status_msg || 'Unknown error'}`);
+                throw new Error(`${type} failed: ${result.data.task_status_msg || 'Unknown error'}`);
             }
 
             // Wait before next poll
             await new Promise(resolve => setTimeout(resolve, intervalMs));
         }
 
-        throw new Error('Video generation timed out');
+        throw new Error(`${type} timed out`);
     }
 }
 
@@ -320,24 +355,17 @@ export function createKlingClient(): KlingClient {
 }
 
 /**
- * Calculate token cost based on video duration, mode, and audio
- * Audio-enabled videos cost ~1.5x more (Kling 2.6 pricing)
+ * Calculate token cost based on video duration and mode
+ * Audio is charged separately via getAudioCost()
  */
-export function getVideoCost(duration: '5' | '10', mode: 'std' | 'pro', sound: boolean = false): number {
+export function getVideoCost(duration: '5' | '10', mode: 'std' | 'pro'): number {
     // Base costs in app tokens
     const baseCosts = {
         '5': { std: 100, pro: 120 },   // 5 second video
         '10': { std: 180, pro: 220 },  // 10 second video
     };
 
-    let cost = baseCosts[duration][mode];
-
-    // Audio adds 50% more cost (Kling 2.6 native audio is more expensive)
-    if (sound) {
-        cost = Math.ceil(cost * 1.5);
-    }
-
-    return cost;
+    return baseCosts[duration][mode];
 }
 
 /**
@@ -346,4 +374,12 @@ export function getVideoCost(duration: '5' | '10', mode: 'std' | 'pro', sound: b
  */
 export function getExtendCost(): number {
     return 80; // Fixed cost for extending video by 5 seconds
+}
+
+/**
+ * Calculate token cost for adding audio to video
+ * Uses Video2Audio API (separate from video generation)
+ */
+export function getAudioCost(): number {
+    return 50; // Fixed cost for adding audio to video (3-20 seconds)
 }

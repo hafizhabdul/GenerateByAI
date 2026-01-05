@@ -21,6 +21,19 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=()",
   },
+  {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https://*.supabase.co https://ai.sumopod.com https://oaidalleapiprodscus.blob.core.windows.net",
+      "font-src 'self'",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://ai.sumopod.com https://api.iconify.design",
+      "media-src 'self' blob: https://*.supabase.co",
+      "frame-ancestors 'none'",
+    ].join("; "),
+  },
 ];
 
 const nextConfig: NextConfig = {
