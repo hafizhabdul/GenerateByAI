@@ -20,6 +20,23 @@ export default function RegisterPage() {
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
+
+    const handleGoogleSignup = async () => {
+        setGoogleLoading(true);
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback`,
+                },
+            });
+            if (error) throw error;
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : "Google signup failed", "error");
+            setGoogleLoading(false);
+        }
+    };
 
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -178,12 +195,28 @@ export default function RegisterPage() {
                             <div className="w-full border-t border-border" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-card px-2 text-muted-foreground">or</span>
+                            <span className="bg-card px-2 text-muted-foreground">or continue with</span>
                         </div>
                     </div>
 
+                    {/* Google OAuth */}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full h-12 gap-3"
+                        onClick={handleGoogleSignup}
+                        disabled={googleLoading}
+                    >
+                        {googleLoading ? (
+                            <Icon icon="ph:spinner" className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <Icon icon="flat-color-icons:google" className="w-5 h-5" />
+                        )}
+                        Continue with Google
+                    </Button>
+
                     {/* Login Link */}
-                    <p className="text-center text-sm text-muted-foreground">
+                    <p className="text-center text-sm text-muted-foreground mt-6">
                         Already have an account?{" "}
                         <Link href="/login" className="text-primary hover:underline font-medium">
                             Sign in

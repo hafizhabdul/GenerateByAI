@@ -19,8 +19,25 @@ function LoginForm() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [googleLoading, setGoogleLoading] = useState(false);
 
     const redirectTo = searchParams.get("redirect") || "/";
+
+    const handleGoogleLogin = async () => {
+        setGoogleLoading(true);
+        try {
+            const { error } = await supabase.auth.signInWithOAuth({
+                provider: "google",
+                options: {
+                    redirectTo: `${window.location.origin}/auth/callback?next=${redirectTo}`,
+                },
+            });
+            if (error) throw error;
+        } catch (error) {
+            showToast(error instanceof Error ? error.message : "Google login failed", "error");
+            setGoogleLoading(false);
+        }
+    };
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -130,12 +147,28 @@ function LoginForm() {
                             <div className="w-full border-t border-border" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                            <span className="bg-card px-2 text-muted-foreground">or</span>
+                            <span className="bg-card px-2 text-muted-foreground">or continue with</span>
                         </div>
                     </div>
 
+                    {/* Google OAuth */}
+                    <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full h-12 gap-3"
+                        onClick={handleGoogleLogin}
+                        disabled={googleLoading}
+                    >
+                        {googleLoading ? (
+                            <Icon icon="ph:spinner" className="w-5 h-5 animate-spin" />
+                        ) : (
+                            <Icon icon="flat-color-icons:google" className="w-5 h-5" />
+                        )}
+                        Continue with Google
+                    </Button>
+
                     {/* Register Link */}
-                    <p className="text-center text-sm text-muted-foreground">
+                    <p className="text-center text-sm text-muted-foreground mt-6">
                         Don&apos;t have an account?{" "}
                         <Link href="/register" className="text-primary hover:underline font-medium">
                             Sign up
