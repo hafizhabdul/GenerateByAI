@@ -24,7 +24,8 @@
       "WebSearch",
       "mcp__chrome-devtools__take_screenshot",
       "WebFetch(domain:app.klingai.com)",
-      "WebFetch(domain:kie.ai)"
+      "WebFetch(domain:kie.ai)",
+      "WebFetch(domain:klingai.com)"
     ]
   },
   "hooks": {

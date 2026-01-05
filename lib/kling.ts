@@ -117,6 +117,8 @@ export class KlingClient {
     private async request<T>(endpoint: string, body: object): Promise<T> {
         const token = await this.generateToken();
 
+        console.log('[Kling API] Request:', endpoint, JSON.stringify(body, null, 2));
+
         const response = await fetch(`${KLING_API_BASE}${endpoint}`, {
             method: 'POST',
             headers: {
@@ -128,7 +130,7 @@ export class KlingClient {
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error('Kling API error:', errorText);
+            console.error('[Kling API] Error:', errorText);
             throw new Error(`Kling API error: ${response.status} - ${errorText}`);
         }
 
@@ -173,7 +175,7 @@ export class KlingClient {
         sound?: boolean; // Enable native audio generation (Kling 2.6)
     }): Promise<KlingTaskResponse> {
         const body: ImageToVideoRequest = {
-            model_name: options.sound ? 'kling-v2-master' : 'kling-v1-5', // Use 2.6 for audio
+            model_name: options.sound ? 'kling-v2-6' : 'kling-v1-5', // Use v2.6 for audio support
             image: options.imageUrl,
             prompt: options.prompt,
             negative_prompt: options.negativePrompt || 'blurry, low quality, distorted, ugly',
@@ -181,8 +183,12 @@ export class KlingClient {
             duration: options.duration || '5',
             aspect_ratio: options.aspectRatio || '16:9',
             cfg_scale: options.cfgScale || 0.85,
-            sound: options.sound,
         };
+
+        // Only include sound parameter when enabled (v2.6 feature)
+        if (options.sound) {
+            body.sound = true;
+        }
 
         return this.request<KlingTaskResponse>('/v1/videos/image2video', body);
     }
@@ -201,15 +207,19 @@ export class KlingClient {
         sound?: boolean; // Enable native audio generation (Kling 2.6)
     }): Promise<KlingTaskResponse> {
         const body: TextToVideoRequest = {
-            model_name: options.sound ? 'kling-v2-master' : 'kling-v1-5', // Use 2.6 for audio
+            model_name: options.sound ? 'kling-v2-6' : 'kling-v1-5', // Use v2.6 for audio support
             prompt: options.prompt,
             negative_prompt: options.negativePrompt || 'blurry, low quality, distorted, ugly',
             mode: options.mode || 'std',
             duration: options.duration || '5',
             aspect_ratio: options.aspectRatio || '16:9',
             cfg_scale: options.cfgScale || 0.5,
-            sound: options.sound,
         };
+
+        // Only include sound parameter when enabled (v2.6 feature)
+        if (options.sound) {
+            body.sound = true;
+        }
 
         return this.request<KlingTaskResponse>('/v1/videos/text2video', body);
     }

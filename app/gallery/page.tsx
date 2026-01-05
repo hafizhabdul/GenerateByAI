@@ -20,6 +20,7 @@ export default function GalleryPage() {
     const [selectedItem, setSelectedItem] = useState<Generation | null>(null);
     const [generations, setGenerations] = useState<Generation[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isDownloading, setIsDownloading] = useState(false);
 
     useEffect(() => {
         if (user) {
@@ -77,6 +78,36 @@ export default function GalleryPage() {
             }
         } catch (error) {
             showToast("Failed to delete", "error");
+        }
+    };
+
+    const handleDownload = async (item: Generation) => {
+        if (!item.file_url || isDownloading) return;
+        setIsDownloading(true);
+        try {
+            const downloadUrl = `/api/download?url=${encodeURIComponent(item.file_url)}`;
+            const response = await fetch(downloadUrl);
+            if (!response.ok) {
+                const error = await response.json().catch(() => ({ error: "Download failed" }));
+                throw new Error(error.error || "Failed to download");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            const ext = item.type === "video" ? "mp4" : "png";
+            a.download = `ai-${item.type}-${Date.now()}.${ext}`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+            showToast(`${item.type === "video" ? "Video" : "Image"} downloaded!`, "success");
+        } catch (error) {
+            console.error("Download error:", error);
+            showToast(error instanceof Error ? error.message : "Failed to download", "error");
+        } finally {
+            setIsDownloading(false);
         }
     };
 
@@ -224,8 +255,16 @@ export default function GalleryPage() {
                                                 </span>
                                                 <div className="flex items-center gap-1">
                                                     <button
+                                                        onClick={(e) => { e.stopPropagation(); handleDownload(item); }}
+                                                        className="p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white/60 hover:text-white"
+                                                        title="Download"
+                                                    >
+                                                        <Icon icon="ph:download-simple" className="w-4 h-4" />
+                                                    </button>
+                                                    <button
                                                         onClick={(e) => { e.stopPropagation(); handleToggleFavorite(item.id, item.is_favorite); }}
                                                         className={`p-1.5 rounded-lg hover:bg-white/20 transition-colors ${item.is_favorite ? "text-red-400" : "text-white/60"}`}
+                                                        title={item.is_favorite ? "Remove from favorites" : "Add to favorites"}
                                                     >
                                                         <Icon icon={item.is_favorite ? "ph:heart-fill" : "ph:heart"} className="w-4 h-4" />
                                                     </button>
@@ -352,10 +391,14 @@ export default function GalleryPage() {
                                     <Button
                                         variant="primary"
                                         className="flex-1"
-                                        onClick={() => window.open(selectedItem.file_url, "_blank")}
+                                        onClick={() => handleDownload(selectedItem)}
+                                        disabled={isDownloading}
                                     >
-                                        <Icon icon="ph:download-simple-duotone" className="w-4 h-4" />
-                                        Download
+                                        <Icon
+                                            icon={isDownloading ? "ph:spinner" : "ph:download-simple-duotone"}
+                                            className={`w-4 h-4 ${isDownloading ? "animate-spin" : ""}`}
+                                        />
+                                        {isDownloading ? "Downloading..." : "Download"}
                                     </Button>
                                     <Button
                                         variant="ghost"
