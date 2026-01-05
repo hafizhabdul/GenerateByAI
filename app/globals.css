@@ -5,43 +5,43 @@
      PREMIUM DARK THEME - Ethereal Elegance
      ═══════════════════════════════════════════════════════════════ */
 
-  /* Core Colors */
-  --background: #030303;
-  --foreground: #fafafa;
+  /* Core Colors - Deep & Cozy */
+  --background: #0f0f11; /* Slightly softer black */
+  --foreground: #ffffff;
 
-  /* Surface Hierarchy */
-  --surface-1: #0a0a0a;
-  --surface-2: #121212;
+  /* Surface Hierarchy - Solid Blocks */
+  --surface-1: #18181b;
+  --surface-2: #27272a;
 
-  /* Text Gradients */
+  /* Text Gradients - REMOVED for Solid Look */
   --gradient-text-from: #ffffff;
-  --gradient-text-to: rgba(255, 255, 255, 0.7);
-  --surface-3: #1a1a1a;
-  --surface-4: #242424;
+  --gradient-text-to: #ffffff;
+  --surface-3: #3f3f46;
+  --surface-4: #52525b;
 
-  /* Card & Popover */
-  --card: #0d0d0d;
-  --card-foreground: #fafafa;
-  --popover: #141414;
-  --popover-foreground: #fafafa;
+  /* Card & Popover - High Contrast Borders */
+  --card: #18181b;
+  --card-foreground: #ffffff;
+  --popover: #27272a;
+  --popover-foreground: #ffffff;
 
-  /* Primary - Electric Violet */
-  --primary: #8b5cf6;
-  --primary-hover: #7c3aed;
-  --primary-foreground: #ffffff;
-  --primary-glow: rgba(139, 92, 246, 0.4);
+  /* Primary - Playful Orange */
+  --primary: #fb923c; /* Orange-400 */
+  --primary-hover: #f97316; /* Orange-500 */
+  --primary-foreground: #000000;
+  --primary-glow: transparent; /* Removed glow for solid look */
 
-  /* Secondary */
-  --secondary: #1c1c1c;
-  --secondary-foreground: #e5e5e5;
+  /* Secondary - Soft Lavender */
+  --secondary: #2e2e33;
+  --secondary-foreground: #e4e4e7;
 
   /* Muted */
-  --muted: #1a1a1a;
-  --muted-foreground: #737373;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
 
-  /* Accent */
-  --accent: #262626;
-  --accent-foreground: #fafafa;
+  /* Accent - Fun Pop */
+  --accent: #3f3f46;
+  --accent-foreground: #ffffff;
 
   /* Semantic Colors */
   --success: #22c55e;
@@ -56,15 +56,15 @@
   /* Borders & Inputs */
   --border: rgba(255, 255, 255, 0.08);
   --border-hover: rgba(255, 255, 255, 0.15);
-  --input: #141414;
-  --ring: #8b5cf6;
+  --input: #292524;
+  --ring: #f97316;
 
-  /* Radius System */
-  --radius-sm: 0.5rem;
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1.25rem;
-  --radius-2xl: 1.5rem;
+  /* Radius System - Cute & Bubbly */
+  --radius-sm: 0.75rem;
+  --radius-md: 1rem;
+  --radius-lg: 1.5rem;
+  --radius-xl: 2rem;
+  --radius-2xl: 2.5rem;
   --radius-full: 9999px;
 
   /* Spacing Scale */
@@ -92,12 +92,12 @@
   --text-6xl: clamp(2.5rem, 2rem + 4vw, 3.75rem);
   --text-7xl: clamp(3rem, 2.5rem + 5vw, 4.5rem);
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -2px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.25);
-  --shadow-glow: 0 0 20px var(--primary-glow);
+  /* Shadows - Flatter/Cleaner */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  --shadow-glow: none;
   --shadow-glow-lg: 0 0 40px var(--primary-glow);
 
   /* Transitions */

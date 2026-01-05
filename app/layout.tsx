@@ -22,12 +22,12 @@ const pacifico = Pacifico({ weight: "400", subsets: ["latin"], variable: "--font
 const oswald = Oswald({ subsets: ["latin"], variable: "--font-oswald" });
 
 export const metadata: Metadata = {
-  title: "Genzio Studio | Create Stunning Visuals",
-  description: "Transform your ideas into stunning visuals with AI-powered image and video generation. Premium, elegant, and incredibly fast.",
+  title: "SquirrAI | Create Stunning Visuals",
+  description: "Transform your ideas into stunning visuals with SquirrAI. Premium, elegant, and incredibly fast.",
   keywords: ["AI", "image generation", "video generation", "creative studio", "UGC", "product videos"],
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
     apple: "/logo.svg",
   },
 };

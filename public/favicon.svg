@@ -1,12 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <defs>
-    <linearGradient id="g1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#8B5CF6"/>
-      <stop offset="100%" style="stop-color:#6366F1"/>
-    </linearGradient>
-  </defs>
-  <rect width="32" height="32" rx="8" fill="url(#g1)"/>
-  <path d="M20 8 L20 16 L15 16 L15 20 L23 20 L23 8 Z" fill="white" opacity="0.95"/>
-  <path d="M12 8 L12 24 L17 24 L17 18.5 L15 18.5 L15 12 L20 12 L20 8 Z" fill="white" opacity="0.75"/>
-  <circle cx="21.5" cy="10.5" r="2" fill="white"/>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="128" fill="#1c1917"/>
+  <path d="M360 256c0-55-45-100-100-100-15 0-30 5-40 15-10-10-25-15-40-15-33 0-60 27-60 60v40c0 11 9 20 20 20s20-9 20-20v-40c0-11 9-20 20-20 5 0 10 2 15 5 5 3 8 8 8 15v40c0 33 27 60 60 60 11 0 20-9 20-20s-9-20-20-20c-11 0-20-9-20-20v-40c0-33 27-60 60-60 11 0 20 9 20 20s-9 20-20 20c-11 0-20 9-20 20v40c0 15-5 30-15 40-20 20-50 20-70 0-20-20-20-50 0-70 10-10 10-26 0-36s-26-10-36 0c-40 40-40 100 0 140 20 20 50 20 70 0 10-10 15-25 15-40v-20c0-11 9-20 20-20h20c11 0 20 9 20 20v20c0 33-27 60-60 60-11 0-20-9-20-20s9-20 20-20c55 0 100-45 100-100z" fill="#f97316"/>
+  <circle cx="180" cy="200" r="15" fill="#fff"/>
 </svg>

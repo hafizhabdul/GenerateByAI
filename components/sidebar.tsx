@@ -27,24 +27,23 @@ export function Sidebar() {
 
     return (
         <>
-            {/* Desktop Sidebar - Minimalist & Premium */}
-            <aside className="fixed left-6 top-6 bottom-6 w-16 rounded-full glass-panel flex flex-col items-center py-6 gap-6 z-[300] shadow-2xl hide-mobile border border-border bg-background/60 backdrop-blur-xl">
+            {/* Desktop Sidebar - Floating Dock Style */}
+            <aside className="fixed left-4 top-1/2 -translate-y-1/2 w-20 rounded-[2rem] flex flex-col items-center py-8 gap-8 z-[300] shadow-2xl hide-mobile border border-border bg-surface-1 transition-all hover:scale-[1.02] hover:border-primary/20">
                 {/* Logo - Custom Brand */}
                 <Link
                     href="/"
-                    className="relative group w-10 h-10 flex items-center justify-center mb-4 transition-transform hover:scale-110"
+                    className="relative group w-12 h-12 flex items-center justify-center mb-2 transition-transform hover:scale-110 hover:rotate-3"
                 >
-                    <div className="absolute inset-0 bg-primary/20 rounded-full blur-lg opacity-50 group-hover:opacity-100 transition-opacity" />
-                    <img src="/favicon.svg" alt="Genzio" className="w-8 h-8 relative z-10 rounded-lg" />
+                    <img src="/mascot.png" alt="SquirrAI" className="w-10 h-10 relative z-10 drop-shadow-lg" />
                 </Link>
 
                 {/* Nav Items - Clean & Centered */}
-                <nav className="flex-1 w-full flex flex-col items-center gap-4">
+                <nav className="flex-1 w-full flex flex-col items-center gap-6 justify-center">
                     {navItems.map((item) => (
                         <NavItem
                             key={item.href}
                             href={item.href}
-                            icon={<Icon icon={item.icon} className="w-5 h-5" />}
+                            icon={<Icon icon={item.icon} className="w-6 h-6" />}
                             label={item.label}
                             active={pathname === item.href}
                         />
@@ -52,11 +51,11 @@ export function Sidebar() {
                 </nav>
 
                 {/* Bottom Actions - Grouped Minimalist */}
-                <div className="w-full flex flex-col items-center gap-4 pb-2">
+                <div className="w-full flex flex-col items-center gap-6 pb-2">
 
                     {/* Minimalist Credit Ring */}
                     {!loading && profile && (
-                        <div className="group relative w-10 h-10 flex items-center justify-center">
+                        <div className="group relative w-12 h-12 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform">
                             {/* Ring */}
                             <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 36 36">
                                 <path
@@ -65,29 +64,31 @@ export function Sidebar() {
                                     stroke="currentColor"
                                     strokeOpacity="0.1"
                                     strokeWidth="3"
+                                    strokeLinecap="round"
                                 />
                                 <path
                                     d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
                                     fill="none"
-                                    stroke={creditsLeft < 10 ? "#ef4444" : "#8b5cf6"}
+                                    stroke={creditsLeft < 10 ? "#ef4444" : "#fb923c"}
                                     strokeWidth="3"
                                     strokeDasharray={`${100 - progress}, 100`}
                                     className="transition-all duration-500 ease-out"
+                                    strokeLinecap="round"
                                 />
                             </svg>
 
                             {/* Upgrade Icon inside Ring */}
                             <Link
                                 href="/pricing"
-                                className="w-6 h-6 flex items-center justify-center text-amber-500 hover:scale-110 transition-transform cursor-pointer z-10"
+                                className="w-8 h-8 flex items-center justify-center text-primary hover:text-white transition-colors z-10"
                             >
-                                <Icon icon="ph:crown-simple-fill" className="w-4 h-4" />
+                                <Icon icon="ph:crown-fill" className="w-5 h-5" />
                             </Link>
 
                             {/* Floating Tooltip */}
-                            <div className="absolute left-full ml-4 px-3 py-2 bg-popover border border-border rounded-xl shadow-xl opacity-0 translate-x-[-10px] invisible group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none w-max z-[400]">
-                                <div className="text-xs font-semibold text-foreground mb-0.5">{creditsLeft} Credits Left</div>
-                                <div className="text-[10px] text-amber-500 font-medium">Upgrade to Pro</div>
+                            <div className="absolute left-full ml-6 px-4 py-2 bg-surface-2 border border-border rounded-2xl shadow-xl opacity-0 translate-x-[-10px] invisible group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none w-max z-[400]">
+                                <div className="text-sm font-bold text-foreground mb-0.5">{creditsLeft} Credits</div>
+                                <div className="text-xs text-primary font-medium">Upgrade Plan</div>
                             </div>
                         </div>
                     )}
@@ -95,19 +96,19 @@ export function Sidebar() {
                     {/* Settings / Profile */}
                     <NavItem
                         href="/settings"
-                        icon={<Icon icon="ph:gear-duotone" className="w-5 h-5" />}
+                        icon={<Icon icon="ph:gear-six-fill" className="w-6 h-6" />}
                         label="Settings"
                         active={pathname === "/settings"}
                     />
 
-                    <div className="w-8 h-px bg-border" />
+                    <div className="w-10 h-px bg-white/10" />
 
                     {/* User Avatar - Ultra clean */}
                     <Link
                         href="/profile"
-                        className="w-10 h-10 rounded-full bg-gradient-to-tr from-surface-2 to-surface-3 border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-all"
+                        className="w-12 h-12 rounded-full bg-surface-2 border-2 border-transparent hover:border-primary flex items-center justify-center text-muted-foreground hover:text-white transition-all shadow-lg"
                     >
-                        <Icon icon="ph:user-duotone" className="w-5 h-5" />
+                        <Icon icon="ph:user-circle-fill" className="w-7 h-7" />
                     </Link>
                 </div>
             </aside>
@@ -153,16 +154,16 @@ function NavItem({
         <Link
             href={href}
             className={cn(
-                "relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 group",
+                "relative flex items-center justify-center w-12 h-12 rounded-2xl transition-all duration-300 group",
                 active
-                    ? "text-primary bg-primary/10 shadow-[0_0_15px_rgba(139,92,246,0.3)]"
-                    : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
+                    ? "text-white bg-primary scale-110"
+                    : "text-muted-foreground hover:text-white hover:bg-white/10"
             )}
         >
             {icon}
 
             {/* Minimal Tooltip */}
-            <div className="absolute left-full ml-4 px-3 py-1.5 bg-popover border border-border rounded-lg text-xs font-medium text-foreground opacity-0 translate-x-[-5px] invisible group-hover:opacity-100 group-hover:visible group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-[400] shadow-xl">
+            <div className="absolute left-full ml-6 px-4 py-2 bg-surface-2 border border-border rounded-xl text-sm font-bold text-foreground opacity-0 translate-x-[-10px] invisible group-hover:opacity-100 group-hover:visible group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-[400] shadow-xl">
                 {label}
             </div>
         </Link>

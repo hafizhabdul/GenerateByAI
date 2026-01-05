@@ -131,7 +131,7 @@ export default function PricingPage() {
                     Beli Token
                 </div>
                 <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-foreground">
-                    Pilih paket <span className="gradient-text">token kamu</span>
+                    Pilih paket <span className="text-primary">token kamu</span>
                 </h1>
                 <p className="text-muted-foreground max-w-lg mx-auto text-lg">
                     Beli token sekali, pakai kapan saja. Tanpa langganan bulanan.
@@ -153,7 +153,7 @@ export default function PricingPage() {
             </div>
 
             {/* Free Trial Banner */}
-            <div className="relative z-10 w-full max-w-4xl mb-8 p-4 rounded-2xl bg-gradient-to-r from-green-500/10 to-emerald-500/10 border border-green-500/30">
+            <div className="relative z-10 w-full max-w-4xl mb-8 p-4 rounded-2xl bg-green-500/10 border border-green-500/30">
                 <div className="flex items-center justify-center gap-3">
                     <Icon icon="ph:gift-fill" className="w-6 h-6 text-green-600 dark:text-green-400" />
                     <span className="text-green-700 dark:text-green-400 font-medium">
@@ -248,7 +248,7 @@ function TokenPackageCard({
             style={{ animationDelay: `${delay}ms` }}
         >
             {popular && (
-                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-primary to-indigo-600 rounded-full text-xs font-bold text-white shadow-lg shadow-primary/20 flex items-center gap-1">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 bg-primary rounded-full text-xs font-bold text-white shadow-lg shadow-primary/20 flex items-center gap-1">
                     <Icon icon="ph:shooting-star-fill" className="w-3 h-3" />
                     TERPOPULER
                 </div>
@@ -289,7 +289,7 @@ function TokenPackageCard({
                 className={cn(
                     "w-full h-12 rounded-xl text-sm font-medium transition-all duration-300",
                     popular
-                        ? "bg-gradient-to-r from-primary to-indigo-600 hover:opacity-90 shadow-glow text-white"
+                        ? "bg-primary hover:opacity-90 text-white"
                         : "bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                 )}
             >

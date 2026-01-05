@@ -37,11 +37,11 @@ export default function SettingsPage() {
                 <div className="container-fluid py-6 md:py-10 space-y-8 max-w-3xl">
                     {/* Header */}
                     <div className="space-y-2">
-                        <h1 className="font-bold tracking-tight gradient-text" style={{ fontSize: "var(--text-4xl)" }}>
+                        <h1 className="font-bold tracking-tight text-foreground" style={{ fontSize: "var(--text-4xl)" }}>
                             Settings
                         </h1>
                         <p className="text-muted-foreground" style={{ fontSize: "var(--text-base)" }}>
-                            Customize your Genzio Studio experience
+                            Customize your SquirrAI experience
                         </p>
                     </div>
 

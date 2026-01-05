@@ -32,7 +32,10 @@
       "Bash(npm ls:*)",
       "Skill(frontend-design)",
       "WebFetch(domain:www.aura.build)",
-      "WebFetch(domain:vercel.com)"
+      "WebFetch(domain:vercel.com)",
+      "WebFetch(domain:supahero.io)",
+      "WebFetch(domain:bentogrids.com)",
+      "WebFetch(domain:cta.gallery)"
     ]
   },
   "hooks": {

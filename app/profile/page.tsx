@@ -95,7 +95,7 @@ export default function ProfilePage() {
                 <div className="container-fluid py-6 md:py-10 space-y-8 max-w-3xl">
                     {/* Header */}
                     <div className="space-y-2">
-                        <h1 className="font-bold tracking-tight gradient-text" style={{ fontSize: "var(--text-4xl)" }}>
+                        <h1 className="font-bold tracking-tight text-foreground" style={{ fontSize: "var(--text-4xl)" }}>
                             Profile
                         </h1>
                         <p className="text-muted-foreground" style={{ fontSize: "var(--text-base)" }}>
@@ -105,7 +105,7 @@ export default function ProfilePage() {
 
                     {/* Profile Card */}
                     <Card variant="glass" className="overflow-hidden">
-                        <div className="h-24 bg-gradient-to-r from-primary via-purple-500 to-indigo-600" />
+                        <div className="h-24 bg-primary" />
                         <CardContent className="pt-0 pb-6 px-6">
                             <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12">
                                 {/* Avatar */}
@@ -192,7 +192,7 @@ export default function ProfilePage() {
                                     </div>
                                     <div className="h-3 rounded-full bg-surface-2 overflow-hidden">
                                         <div
-                                            className="h-full rounded-full bg-gradient-to-r from-primary to-purple-500"
+                                            className="h-full rounded-full bg-primary"
                                             style={{ width: `${(stats.tokensUsed / stats.tokensTotal) * 100}%` }}
                                         />
                                     </div>

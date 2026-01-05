@@ -709,7 +709,7 @@ export function VideoGenerator() {
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
             {/* Background Ambient Glow */}
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-violet-500/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-primary/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
 
             {/* Top Controls - New Session Button */}
             {feed.length > 0 && (
@@ -829,22 +829,22 @@ export function VideoGenerator() {
                             {/* AI Audio Generation */}
                             <div className="space-y-3">
                                 <label className="text-sm font-medium flex items-center gap-2">
-                                    <Icon icon="ph:speaker-high-duotone" className="w-4 h-4 text-violet-400" />
+                                    <Icon icon="ph:speaker-high-duotone" className="w-4 h-4 text-primary" />
                                     AI Audio
-                                    <span className="px-1.5 py-0.5 text-[10px] bg-violet-500/20 text-violet-400 rounded-md font-medium">NEW</span>
+                                    <span className="px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-md font-medium">NEW</span>
                                 </label>
                                 <button
                                     onClick={() => setSettings((s) => ({ ...s, sound: !s.sound }))}
                                     className={cn(
                                         "w-full p-4 rounded-xl border transition-all text-left",
                                         settings.sound
-                                            ? "border-violet-500 bg-violet-500/10"
+                                            ? "border-primary bg-primary/10"
                                             : "border-border hover:border-border-hover"
                                     )}
                                 >
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <div className={cn("font-medium", settings.sound ? "text-violet-400" : "text-foreground")}>
+                                            <div className={cn("font-medium", settings.sound ? "text-primary" : "text-foreground")}>
                                                 {settings.sound ? "Audio Enabled" : "Audio Disabled"}
                                             </div>
                                             <div className="text-xs text-muted-foreground mt-1">
@@ -855,7 +855,7 @@ export function VideoGenerator() {
                                         </div>
                                         <div className={cn(
                                             "w-12 h-7 rounded-full transition-all relative",
-                                            settings.sound ? "bg-violet-500" : "bg-surface-3"
+                                            settings.sound ? "bg-primary" : "bg-surface-3"
                                         )}>
                                             <div className={cn(
                                                 "absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-all",
@@ -865,7 +865,7 @@ export function VideoGenerator() {
                                     </div>
                                 </button>
                                 {settings.sound && (
-                                    <p className="text-xs text-violet-400/80 flex items-center gap-1">
+                                    <p className="text-xs text-primary/80 flex items-center gap-1">
                                         <Icon icon="ph:info" className="w-3 h-3" />
                                         Audio menambah +50 token
                                     </p>
@@ -899,12 +899,12 @@ export function VideoGenerator() {
                         isHero ? "opacity-100 translate-y-[-100px]" : "hidden"
                     )}
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-violet-500/10 border border-violet-500/20 text-xs font-medium text-violet-400 tracking-wider uppercase animate-fade-in">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
                         <Icon icon="ph:video-duotone" className="w-3 h-3" />
                         AI Video Generation
                     </div>
                     <h1
-                        className="font-bold tracking-tight gradient-text"
+                        className="font-bold tracking-tight text-foreground"
                         style={{ fontSize: "var(--text-5xl)" }}
                     >
                         {generationMode === "text2video" ? "Text to Video" : "Image to Video"}
@@ -978,7 +978,7 @@ export function VideoGenerator() {
                 )}
             >
                 <div className="w-full max-w-2xl mx-auto">
-                    <div className="rounded-2xl md:rounded-3xl p-3 flex flex-col gap-3 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 focus-within:shadow-[0_0_50px_rgba(139,92,246,0.15)] bg-background/80 backdrop-blur-xl border border-border">
+                    <div className="rounded-2xl md:rounded-3xl p-3 flex flex-col gap-3 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 bg-surface-1 border border-border">
                         {/* Image Preview - Only show for image2video mode */}
                         {generationMode === "image2video" && imagePreview && (
                             <div className="relative mx-3 mt-1">
@@ -1219,7 +1219,7 @@ function VideoFeedCard({
 
             {/* AI Response (Video) */}
             <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-violet-500 to-indigo-600 flex items-center justify-center shrink-0 shadow-glow">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
                     <Icon icon="ph:video-fill" className="w-4 h-4 text-white" />
                 </div>
 
@@ -1386,7 +1386,7 @@ function VideoProgressIndicator({ status, duration }: { status: string; duration
             <div className="space-y-2">
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                     <div
-                        className="h-full bg-gradient-to-r from-violet-500 to-primary rounded-full transition-all duration-1000 ease-out"
+                        className="h-full bg-primary rounded-full transition-all duration-1000 ease-out"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
