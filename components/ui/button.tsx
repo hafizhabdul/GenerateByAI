@@ -41,7 +41,7 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
                 )}
                 {...props}
             >
-                {loading && <Icon icon="ph:spinner" className="w-4 h-4 animate-spin" />}
+                {loading && <Icon icon="mingcute:loading-fill" className="w-4 h-4 animate-spin" />}
                 {children}
             </button>
         );

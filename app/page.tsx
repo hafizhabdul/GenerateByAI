@@ -63,7 +63,7 @@ export default function Home() {
               </div>
               <div className="flex items-center gap-3">
                  <Link href="/pricing" className="px-4 py-2 rounded-full bg-surface-2 border border-border flex items-center gap-2 text-sm font-medium hover:border-primary/50 transition-colors">
-                    <Icon icon="ph:crown-simple-fill" className="text-primary" />
+                    <Icon icon="mingcute:vip-2-fill" className="text-primary" />
                     <span>{planName} Plan</span>
                  </Link>
               </div>
@@ -82,14 +82,14 @@ export default function Home() {
                 </div>
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <div className="p-3 bg-black/10 w-fit rounded-2xl backdrop-blur-sm">
-                    <Icon icon="ph:image-square-fill" className="w-8 h-8" />
+                    <Icon icon="mingcute:ai-fill" className="w-8 h-8" />
                   </div>
                   <div className="max-w-[60%]">
                     <h2 className="text-3xl font-bold mb-2">Generate Images</h2>
                     <p className="opacity-90 text-lg">Create cute & amazing visuals with our AI.</p>
                   </div>
                   <div className="flex items-center gap-2 font-bold mt-4 group-hover:translate-x-2 transition-transform">
-                    Start Creating <Icon icon="ph:arrow-right-bold" />
+                    Start Creating <Icon icon="mingcute:arrow-right-fill" />
                   </div>
                 </div>
               </div>
@@ -97,11 +97,11 @@ export default function Home() {
               {/* Secondary Action: Video */}
               <Link href="/videos" className="group col-span-1 md:col-span-1 row-span-2 relative overflow-hidden rounded-[2.5rem] bg-surface-2 border border-border p-6 transition-all hover:scale-[1.02] hover:border-primary/50">
                  <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                   <Icon icon="ph:film-strip-fill" className="w-40 h-40 -rotate-12" />
+                   <Icon icon="mingcute:movie-fill" className="w-40 h-40 -rotate-12" />
                 </div>
                 <div className="relative z-10 h-full flex flex-col justify-between">
                    <div className="p-3 bg-surface-3 w-fit rounded-2xl">
-                    <Icon icon="ph:video-fill" className="w-6 h-6 text-blue-400" />
+                    <Icon icon="mingcute:video-fill" className="w-6 h-6 text-blue-400" />
                   </div>
                   <div>
                     <h3 className="text-xl font-bold mb-1">AI Video</h3>
@@ -114,7 +114,7 @@ export default function Home() {
               <Link href="/pricing" className="col-span-1 row-span-1 rounded-[2.5rem] bg-surface-1 border border-border p-6 flex flex-col justify-between group hover:border-primary/30 transition-colors">
                  <div className="flex justify-between items-start">
                     <div className="p-2 bg-surface-2 rounded-xl">
-                        <Icon icon="ph:coins-fill" className="w-5 h-5 text-yellow-400" />
+                        <Icon icon="mingcute:diamond-2-fill" className="w-5 h-5 text-yellow-400" />
                     </div>
                     {creditsLeft < 50 && (
                       <span className="text-xs font-medium text-red-400 bg-red-500/10 px-2 py-1 rounded-full">Low!</span>
@@ -127,11 +127,24 @@ export default function Home() {
               </Link>
 
               {/* Gallery Preview */}
-              <Link href="/gallery" className="col-span-1 row-span-1 rounded-[2.5rem] bg-surface-1 border border-border p-1 overflow-hidden group relative">
-                 <div className="absolute inset-0 bg-black/60 z-10 flex items-end p-6">
-                    <span className="font-bold text-white group-hover:translate-y-[-4px] transition-transform">Your Gallery</span>
-                 </div>
-                 <img src="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1000&auto=format&fit=crop" className="w-full h-full object-cover rounded-[2.2rem] opacity-60 group-hover:opacity-80 transition-opacity group-hover:scale-110 duration-500" alt="Gallery" />
+              <Link href="/gallery" className="col-span-1 row-span-1 rounded-[2.5rem] bg-surface-1 border border-border overflow-hidden group relative hover:border-primary/30 transition-colors">
+                 {/* Show first recent generation as thumbnail, or fallback to icon */}
+                 {recentGenerations.length > 0 && recentGenerations[0].file_url ? (
+                    <>
+                      <img src={recentGenerations[0].file_url} className="w-full h-full object-cover opacity-70 group-hover:opacity-90 group-hover:scale-110 transition-all duration-500" alt="Gallery" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent z-10 flex items-end p-6">
+                        <span className="font-bold text-white group-hover:translate-y-[-4px] transition-transform">Your Gallery</span>
+                      </div>
+                    </>
+                 ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center">
+                      <div className="p-4 bg-surface-2 rounded-2xl mb-3 group-hover:bg-primary/10 transition-colors">
+                        <Icon icon="mingcute:pic-fill" className="w-8 h-8 text-primary" />
+                      </div>
+                      <span className="font-bold text-foreground">Your Gallery</span>
+                      <span className="text-xs text-muted-foreground mt-1">View your creations</span>
+                    </div>
+                 )}
               </Link>
 
               {/* Community / Explore */}
@@ -141,7 +154,7 @@ export default function Home() {
                     <p className="text-xs text-muted-foreground">Explore trending styles</p>
                  </div>
                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center group-hover:rotate-45 transition-transform">
-                    <Icon icon="ph:compass-fill" className="w-6 h-6" />
+                    <Icon icon="mingcute:planet-fill" className="w-6 h-6" />
                  </div>
               </div>
 
@@ -174,7 +187,7 @@ export default function Home() {
                     onClick={() => setActiveView("create")}
                     className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center shrink-0 text-muted-foreground hover:text-primary hover:border-primary transition-colors cursor-pointer"
                   >
-                      <Icon icon="ph:plus" />
+                      <Icon icon="mingcute:add-fill" />
                   </div>
                </div>
 
@@ -188,7 +201,7 @@ export default function Home() {
                     onClick={() => setActiveView("dashboard")}
                     className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                    <Icon icon="ph:arrow-left" /> Back to Dashboard
+                    <Icon icon="mingcute:arrow-left-fill" /> Back to Dashboard
                 </button>
              </div>
              <div className="flex-1">

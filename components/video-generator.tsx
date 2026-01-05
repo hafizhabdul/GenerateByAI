@@ -32,27 +32,29 @@ type VideoSettings = {
 
 type GenerationMode = "image2video" | "text2video";
 
-// LocalStorage keys for persisting session
-const VIDEO_SESSION_KEY = "videoGeneratorSession";
-const VIDEO_HERO_KEY = "videoGeneratorHero";
-const PENDING_VIDEOS_KEY = "pendingVideos";
-const VIDEO_DRAFT_KEY = "videoGeneratorDraft"; // Save draft state (image, prompt, settings)
+// LocalStorage keys - will be suffixed with user ID for isolation
+const getSessionKey = (userId: string) => `videoGeneratorSession_${userId}`;
+const getHeroKey = (userId: string) => `videoGeneratorHero_${userId}`;
+const getPendingKey = (userId: string) => `pendingVideos_${userId}`;
+const getDraftKey = (userId: string) => `videoGeneratorDraft_${userId}`;
 
-// Helper to save full session to localStorage
-const saveSession = (feed: VideoFeedItem[], isHero: boolean) => {
+// Helper to save full session to localStorage (user-specific)
+const saveSession = (userId: string, feed: VideoFeedItem[], isHero: boolean) => {
+    if (!userId) return;
     try {
-        localStorage.setItem(VIDEO_SESSION_KEY, JSON.stringify(feed));
-        localStorage.setItem(VIDEO_HERO_KEY, JSON.stringify(isHero));
+        localStorage.setItem(getSessionKey(userId), JSON.stringify(feed));
+        localStorage.setItem(getHeroKey(userId), JSON.stringify(isHero));
     } catch (e) {
         console.error("Failed to save session:", e);
     }
 };
 
-// Helper to load session from localStorage
-const loadSession = (): { feed: VideoFeedItem[]; isHero: boolean } => {
+// Helper to load session from localStorage (user-specific)
+const loadSession = (userId: string): { feed: VideoFeedItem[]; isHero: boolean } => {
+    if (!userId) return { feed: [], isHero: true };
     try {
-        const savedFeed = localStorage.getItem(VIDEO_SESSION_KEY);
-        const savedHero = localStorage.getItem(VIDEO_HERO_KEY);
+        const savedFeed = localStorage.getItem(getSessionKey(userId));
+        const savedHero = localStorage.getItem(getHeroKey(userId));
         return {
             feed: savedFeed ? JSON.parse(savedFeed) : [],
             isHero: savedHero ? JSON.parse(savedHero) : true,
@@ -63,28 +65,31 @@ const loadSession = (): { feed: VideoFeedItem[]; isHero: boolean } => {
     }
 };
 
-// Helper to clear session
-const clearSession = () => {
-    localStorage.removeItem(VIDEO_SESSION_KEY);
-    localStorage.removeItem(VIDEO_HERO_KEY);
-    localStorage.removeItem(PENDING_VIDEOS_KEY);
-    localStorage.removeItem(VIDEO_DRAFT_KEY);
+// Helper to clear session (user-specific)
+const clearSession = (userId: string) => {
+    if (!userId) return;
+    localStorage.removeItem(getSessionKey(userId));
+    localStorage.removeItem(getHeroKey(userId));
+    localStorage.removeItem(getPendingKey(userId));
+    localStorage.removeItem(getDraftKey(userId));
 };
 
-// Helper to save pending videos for polling
-const savePendingVideos = (items: VideoFeedItem[]) => {
+// Helper to save pending videos for polling (user-specific)
+const savePendingVideos = (userId: string, items: VideoFeedItem[]) => {
+    if (!userId) return;
     const pending = items.filter(i => i.status === "pending" || i.status === "processing");
     if (pending.length > 0) {
-        localStorage.setItem(PENDING_VIDEOS_KEY, JSON.stringify(pending));
+        localStorage.setItem(getPendingKey(userId), JSON.stringify(pending));
     } else {
-        localStorage.removeItem(PENDING_VIDEOS_KEY);
+        localStorage.removeItem(getPendingKey(userId));
     }
 };
 
-// Helper to load pending videos from localStorage
-const loadPendingVideos = (): VideoFeedItem[] => {
+// Helper to load pending videos from localStorage (user-specific)
+const loadPendingVideos = (userId: string): VideoFeedItem[] => {
+    if (!userId) return [];
     try {
-        const stored = localStorage.getItem(PENDING_VIDEOS_KEY);
+        const stored = localStorage.getItem(getPendingKey(userId));
         if (stored) {
             return JSON.parse(stored);
         }
@@ -102,19 +107,21 @@ type DraftState = {
     settings: VideoSettings;
 };
 
-// Helper to save draft state (image preview, prompt, etc.)
-const saveDraft = (draft: DraftState) => {
+// Helper to save draft state (image preview, prompt, etc.) - user-specific
+const saveDraft = (userId: string, draft: DraftState) => {
+    if (!userId) return;
     try {
-        localStorage.setItem(VIDEO_DRAFT_KEY, JSON.stringify(draft));
+        localStorage.setItem(getDraftKey(userId), JSON.stringify(draft));
     } catch (e) {
         console.error("Failed to save draft:", e);
     }
 };
 
-// Helper to load draft state
-const loadDraft = (): DraftState | null => {
+// Helper to load draft state (user-specific)
+const loadDraft = (userId: string): DraftState | null => {
+    if (!userId) return null;
     try {
-        const stored = localStorage.getItem(VIDEO_DRAFT_KEY);
+        const stored = localStorage.getItem(getDraftKey(userId));
         if (stored) {
             return JSON.parse(stored);
         }
@@ -124,9 +131,10 @@ const loadDraft = (): DraftState | null => {
     return null;
 };
 
-// Helper to clear draft
-const clearDraft = () => {
-    localStorage.removeItem(VIDEO_DRAFT_KEY);
+// Helper to clear draft (user-specific)
+const clearDraft = (userId: string) => {
+    if (!userId) return;
+    localStorage.removeItem(getDraftKey(userId));
 };
 
 export function VideoGenerator() {
@@ -153,15 +161,26 @@ export function VideoGenerator() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
 
-    // Load session from localStorage on mount
+    // Load session from localStorage on mount - user-specific
     useEffect(() => {
-        const { feed: savedFeed, isHero: savedHero } = loadSession();
+        if (!user) {
+            // Reset state when no user (logged out)
+            setFeed([]);
+            setIsHero(true);
+            setPrompt("");
+            setImagePreview(null);
+            setImageFile(null);
+            setSessionLoaded(false);
+            return;
+        }
+
+        const { feed: savedFeed, isHero: savedHero } = loadSession(user.id);
         if (savedFeed.length > 0) {
             setFeed(savedFeed);
             setIsHero(savedHero);
         }
         // Also load pending videos that might need polling
-        const pending = loadPendingVideos();
+        const pending = loadPendingVideos(user.id);
         if (pending.length > 0) {
             setFeed(prev => {
                 const existingIds = new Set(prev.map(p => p.id));
@@ -175,7 +194,7 @@ export function VideoGenerator() {
         }
         
         // Load draft state (image preview, prompt, settings)
-        const draft = loadDraft();
+        const draft = loadDraft(user.id);
         if (draft) {
             if (draft.prompt) setPrompt(draft.prompt);
             if (draft.imagePreview) setImagePreview(draft.imagePreview);
@@ -188,7 +207,7 @@ export function VideoGenerator() {
         }
         
         setSessionLoaded(true);
-    }, []);
+    }, [user]);
 
     // Load video history on mount
     useEffect(() => {
@@ -201,30 +220,30 @@ export function VideoGenerator() {
 
     // Save session whenever feed changes (after initial load)
     useEffect(() => {
-        if (sessionLoaded) {
-            saveSession(feed, isHero);
-            savePendingVideos(feed);
+        if (sessionLoaded && user) {
+            saveSession(user.id, feed, isHero);
+            savePendingVideos(user.id, feed);
         }
-    }, [feed, isHero, sessionLoaded]);
+    }, [feed, isHero, sessionLoaded, user]);
 
     // Save draft state whenever prompt, imagePreview, generationMode, or settings change
     useEffect(() => {
-        if (sessionLoaded) {
-            saveDraft({
+        if (sessionLoaded && user) {
+            saveDraft(user.id, {
                 prompt,
                 imagePreview,
                 generationMode,
                 settings,
             });
         }
-    }, [prompt, imagePreview, generationMode, settings, sessionLoaded]);
+    }, [prompt, imagePreview, generationMode, settings, sessionLoaded, user]);
 
     // Handle page visibility change - resume polling when user returns to tab
     useEffect(() => {
         const handleVisibilityChange = () => {
-            if (document.visibilityState === 'visible') {
+            if (document.visibilityState === 'visible' && user) {
                 // User returned to tab - reload pending videos and force a poll
-                const pending = loadPendingVideos();
+                const pending = loadPendingVideos(user.id);
                 if (pending.length > 0) {
                     // Merge pending with current feed
                     setFeed(prev => {
@@ -249,7 +268,7 @@ export function VideoGenerator() {
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, []);
+    }, [user]);
 
     // Poll for pending video status
     useEffect(() => {
@@ -288,7 +307,7 @@ export function VideoGenerator() {
                                     ? { ...f, status: "completed" as const, videoUrl: data.url, canExtend: true }
                                     : f
                             );
-                            savePendingVideos(updated);
+                            if (user) savePendingVideos(user.id, updated);
                             return updated;
                         });
                         showToast("🎉 Video generated successfully!", "success");
@@ -300,7 +319,7 @@ export function VideoGenerator() {
                                     ? { ...f, status: "failed" as const, error: data.error || "Generation failed" }
                                     : f
                             );
-                            savePendingVideos(updated);
+                            if (user) savePendingVideos(user.id, updated);
                             return updated;
                         });
                         showToast(data.error || "Video generation failed", "error");
@@ -373,7 +392,7 @@ export function VideoGenerator() {
                 
                 // IMPORTANT: Merge with pending videos instead of replacing!
                 // This ensures in-progress generations are not lost when navigating away
-                const pendingVideos = loadPendingVideos();
+                const pendingVideos = user ? loadPendingVideos(user.id) : [];
                 const historyIds = new Set(historyItems.map(h => h.id));
                 const pendingIds = new Set(pendingVideos.map(p => p.generationId || p.id));
                 
@@ -405,16 +424,16 @@ export function VideoGenerator() {
                 }
             } else {
                 // No history from server - load pending from localStorage
-                const pendingVideos = loadPendingVideos();
+                const pendingVideos = user ? loadPendingVideos(user.id) : [];
                 if (pendingVideos.length > 0) {
                     setFeed(pendingVideos);
                     setIsHero(false);
                 }
             }
         } catch (error) {
-            console.error("Failed to load history:", error);
+            console.error("Failed to load history:");
             // On error, still try to load pending videos
-            const pendingVideos = loadPendingVideos();
+            const pendingVideos = user ? loadPendingVideos(user.id) : [];
             if (pendingVideos.length > 0) {
                 setFeed(pendingVideos);
                 setIsHero(false);
@@ -548,7 +567,7 @@ export function VideoGenerator() {
                         const updated = prev.map((item) =>
                             item.id === tempId ? { ...item, status: "processing" as const } : item
                         );
-                        savePendingVideos(updated);
+                        if (user) savePendingVideos(user.id, updated);
                         return updated;
                     });
                     imageUrl = await uploadImageToStorage(currentImageFile);
@@ -562,7 +581,7 @@ export function VideoGenerator() {
                 const updated = prev.map((item) =>
                     item.id === tempId ? { ...item, status: "processing" as const } : item
                 );
-                savePendingVideos(updated);
+                if (user) savePendingVideos(user.id, updated);
                 return updated;
             });
 
@@ -596,7 +615,7 @@ export function VideoGenerator() {
                         }
                         : item
                 );
-                savePendingVideos(updated);
+                if (user) savePendingVideos(user.id, updated);
                 return updated;
             });
 
@@ -613,7 +632,7 @@ export function VideoGenerator() {
                         ? { ...item, status: "failed" as const, error: errorMessage }
                         : item
                 );
-                savePendingVideos(updated);
+                if (user) savePendingVideos(user.id, updated);
                 return updated;
             });
         } finally {
@@ -701,8 +720,8 @@ export function VideoGenerator() {
         setPrompt("");
         setImagePreview(null);
         setImageFile(null);
-        // Clear localStorage
-        clearSession();
+        // Clear localStorage for this user
+        if (user) clearSession(user.id);
         showToast("Started a new video session", "info");
     };
 

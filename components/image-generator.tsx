@@ -19,11 +19,11 @@ type FeedItem = {
     created_at: string;
 };
 
-// LocalStorage keys for persisting session
-const IMAGE_SESSION_KEY = "imageGeneratorSession";
-const IMAGE_HERO_KEY = "imageGeneratorHero";
-const IMAGE_PENDING_KEY = "imageGeneratorPending";
-const IMAGE_DRAFT_KEY = "imageGeneratorDraft";
+// LocalStorage keys - will be suffixed with user ID for isolation
+const getSessionKey = (userId: string) => `imageGeneratorSession_${userId}`;
+const getHeroKey = (userId: string) => `imageGeneratorHero_${userId}`;
+const getPendingKey = (userId: string) => `imageGeneratorPending_${userId}`;
+const getDraftKey = (userId: string) => `imageGeneratorDraft_${userId}`;
 
 // Draft state type
 type DraftState = {
@@ -32,75 +32,82 @@ type DraftState = {
     quality: string;
 };
 
-// Helper to save session to localStorage
-const saveSession = (feed: FeedItem[], isHero: boolean) => {
+// Helper to save session to localStorage (user-specific)
+const saveSession = (userId: string, feed: FeedItem[], isHero: boolean) => {
+    if (!userId) return;
     try {
-        // Save ALL items including pending
-        localStorage.setItem(IMAGE_SESSION_KEY, JSON.stringify(feed));
-        localStorage.setItem(IMAGE_HERO_KEY, JSON.stringify(isHero));
+        localStorage.setItem(getSessionKey(userId), JSON.stringify(feed));
+        localStorage.setItem(getHeroKey(userId), JSON.stringify(isHero));
     } catch (e) {
         console.error("Failed to save session:", e);
     }
 };
 
-// Helper to save draft (prompt in progress)
-const saveDraft = (draft: DraftState) => {
+// Helper to save draft (prompt in progress) - user-specific
+const saveDraft = (userId: string, draft: DraftState) => {
+    if (!userId) return;
     try {
-        localStorage.setItem(IMAGE_DRAFT_KEY, JSON.stringify(draft));
+        localStorage.setItem(getDraftKey(userId), JSON.stringify(draft));
     } catch (e) {
         console.error("Failed to save draft:", e);
     }
 };
 
-// Helper to load draft
-const loadDraft = (): DraftState | null => {
+// Helper to load draft - user-specific
+const loadDraft = (userId: string): DraftState | null => {
+    if (!userId) return null;
     try {
-        const stored = localStorage.getItem(IMAGE_DRAFT_KEY);
+        const stored = localStorage.getItem(getDraftKey(userId));
         return stored ? JSON.parse(stored) : null;
     } catch (e) {
         return null;
     }
 };
 
-// Helper to clear draft
-const clearDraft = () => {
-    localStorage.removeItem(IMAGE_DRAFT_KEY);
+// Helper to clear draft - user-specific
+const clearDraft = (userId: string) => {
+    if (!userId) return;
+    localStorage.removeItem(getDraftKey(userId));
 };
 
-// Helper to save pending generation info (for recovery)
-const savePendingGeneration = (tempId: string, prompt: string) => {
+// Helper to save pending generation info (for recovery) - user-specific
+const savePendingGeneration = (userId: string, tempId: string, prompt: string) => {
+    if (!userId) return;
     try {
         const pending = {
             tempId,
             prompt,
             startTime: Date.now(),
         };
-        localStorage.setItem(IMAGE_PENDING_KEY, JSON.stringify(pending));
+        localStorage.setItem(getPendingKey(userId), JSON.stringify(pending));
     } catch (e) {
         console.error("Failed to save pending:", e);
     }
 };
 
-// Helper to clear pending generation
-const clearPendingGeneration = () => {
-    localStorage.removeItem(IMAGE_PENDING_KEY);
+// Helper to clear pending generation - user-specific
+const clearPendingGeneration = (userId: string) => {
+    if (!userId) return;
+    localStorage.removeItem(getPendingKey(userId));
 };
 
-// Helper to get pending generation
-const getPendingGeneration = (): { tempId: string; prompt: string; startTime: number } | null => {
+// Helper to get pending generation - user-specific
+const getPendingGeneration = (userId: string): { tempId: string; prompt: string; startTime: number } | null => {
+    if (!userId) return null;
     try {
-        const pending = localStorage.getItem(IMAGE_PENDING_KEY);
+        const pending = localStorage.getItem(getPendingKey(userId));
         return pending ? JSON.parse(pending) : null;
     } catch (e) {
         return null;
     }
 };
 
-// Helper to load session from localStorage
-const loadSession = (): { feed: FeedItem[]; isHero: boolean } => {
+// Helper to load session from localStorage - user-specific
+const loadSession = (userId: string): { feed: FeedItem[]; isHero: boolean } => {
+    if (!userId) return { feed: [], isHero: true };
     try {
-        const savedFeed = localStorage.getItem(IMAGE_SESSION_KEY);
-        const savedHero = localStorage.getItem(IMAGE_HERO_KEY);
+        const savedFeed = localStorage.getItem(getSessionKey(userId));
+        const savedHero = localStorage.getItem(getHeroKey(userId));
         return {
             feed: savedFeed ? JSON.parse(savedFeed) : [],
             isHero: savedHero ? JSON.parse(savedHero) : true,
@@ -111,12 +118,13 @@ const loadSession = (): { feed: FeedItem[]; isHero: boolean } => {
     }
 };
 
-// Helper to clear session
-const clearSession = () => {
-    localStorage.removeItem(IMAGE_SESSION_KEY);
-    localStorage.removeItem(IMAGE_HERO_KEY);
-    localStorage.removeItem(IMAGE_PENDING_KEY);
-    localStorage.removeItem(IMAGE_DRAFT_KEY);
+// Helper to clear session - user-specific
+const clearSession = (userId: string) => {
+    if (!userId) return;
+    localStorage.removeItem(getSessionKey(userId));
+    localStorage.removeItem(getHeroKey(userId));
+    localStorage.removeItem(getPendingKey(userId));
+    localStorage.removeItem(getDraftKey(userId));
 };
 
 export function ImageGenerator() {
@@ -138,8 +146,18 @@ export function ImageGenerator() {
     const abortControllerRef = useRef<AbortController | null>(null);
 
     // Load session from localStorage on mount + check for pending generations
+    // Only load when user is available to ensure user-specific data
     useEffect(() => {
-        const { feed: savedFeed, isHero: savedHero } = loadSession();
+        if (!user) {
+            // Reset state when no user (logged out)
+            setFeed([]);
+            setIsHero(true);
+            setPrompt("");
+            setSessionLoaded(false);
+            return;
+        }
+
+        const { feed: savedFeed, isHero: savedHero } = loadSession(user.id);
 
         if (savedFeed.length > 0) {
             // Check if there are any pending items that are too old (> 2 minutes = failed)
@@ -168,22 +186,22 @@ export function ImageGenerator() {
         }
 
         // Load draft state (prompt in progress)
-        const draft = loadDraft();
+        const draft = loadDraft(user.id);
         if (draft) {
             if (draft.prompt) setPrompt(draft.prompt);
             if (draft.mode) setMode(draft.mode);
         }
 
         setSessionLoaded(true);
-    }, []);
+    }, [user]);
 
     // Save draft whenever prompt or mode changes
     useEffect(() => {
-        if (sessionLoaded) {
+        if (sessionLoaded && user) {
             const quality = localStorage.getItem("generation_quality") || "high";
-            saveDraft({ prompt, mode, quality });
+            saveDraft(user.id, { prompt, mode, quality });
         }
-    }, [prompt, mode, sessionLoaded]);
+    }, [prompt, mode, sessionLoaded, user]);
 
     // Handle page visibility change - resume polling when user returns to tab
     useEffect(() => {
@@ -234,7 +252,7 @@ export function ImageGenerator() {
                         ));
                         setLoading(false);
                         setPendingGenerationId(null);
-                        clearPendingGeneration();
+                        clearPendingGeneration(user.id);
                         showToast("Image generation completed!", "success");
                     }
                 }
@@ -252,10 +270,10 @@ export function ImageGenerator() {
 
     // Save session whenever feed changes (after initial load)
     useEffect(() => {
-        if (sessionLoaded) {
-            saveSession(feed, isHero);
+        if (sessionLoaded && user) {
+            saveSession(user.id, feed, isHero);
         }
-    }, [feed, isHero, sessionLoaded]);
+    }, [feed, isHero, sessionLoaded, user]);
 
     // Auto-scroll to bottom when feed updates
     useEffect(() => {
@@ -307,7 +325,7 @@ export function ImageGenerator() {
         setShowHistory(false);
 
         // Clear draft since generation has started
-        clearDraft();
+        if (user) clearDraft(user.id);
 
         // Optimistic Update: Add pending item to feed
         const tempId = Date.now().toString();
@@ -321,7 +339,7 @@ export function ImageGenerator() {
 
         setFeed(prev => [...prev, optimisticItem]);
         setPendingGenerationId(tempId);
-        savePendingGeneration(tempId, currentPrompt);
+        if (user) savePendingGeneration(user.id, tempId, currentPrompt);
 
         try {
             if (mode === "video") {
@@ -330,7 +348,7 @@ export function ImageGenerator() {
                 setFeed(prev => prev.filter(item => item.id !== tempId)); // Remove pending item
                 setLoading(false);
                 setPendingGenerationId(null);
-                clearPendingGeneration();
+                if (user) clearPendingGeneration(user.id);
                 return;
             }
 
@@ -354,7 +372,7 @@ export function ImageGenerator() {
             ));
 
             showToast("Image generated successfully!", "success");
-            clearPendingGeneration();
+            if (user) clearPendingGeneration(user.id);
 
             // Refresh profile to update credits immediately
             await refreshProfile();
@@ -368,7 +386,7 @@ export function ImageGenerator() {
                     ? { ...item, status: "failed" }
                     : item
             ));
-            clearPendingGeneration();
+            if (user) clearPendingGeneration(user.id);
         } finally {
             setLoading(false);
             setPendingGenerationId(null);
@@ -394,7 +412,7 @@ export function ImageGenerator() {
         setFeed([]);
         setIsHero(true);
         setPrompt("");
-        clearSession(); // Clear localStorage
+        if (user) clearSession(user.id); // Clear localStorage for this user
         showToast("Started a new creative session", "info");
     };
 
@@ -412,7 +430,7 @@ export function ImageGenerator() {
                         onClick={handleNewSession}
                         className="animate-fade-in group"
                     >
-                        <Icon icon="ph:chat-circle-plus-duotone" className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+                        <Icon icon="mingcute:add-circle-fill" className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
                         New Session
                     </Button>
                 )}
@@ -431,14 +449,14 @@ export function ImageGenerator() {
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-border">
                             <div className="flex items-center gap-2">
-                                <Icon icon="ph:clock-counter-clockwise-duotone" className="w-5 h-5 text-primary" />
+                                <Icon icon="mingcute:time-fill" className="w-5 h-5 text-primary" />
                                 <h2 className="font-semibold">Chat History</h2>
                             </div>
                             <button
                                 onClick={() => setShowHistory(false)}
                                 className="p-2 rounded-lg hover:bg-white/5 transition-colors"
                             >
-                                <Icon icon="ph:x" className="w-5 h-5" />
+                                <Icon icon="mingcute:close-fill" className="w-5 h-5" />
                             </button>
                         </div>
                         {/* History List */}
@@ -457,7 +475,7 @@ export function ImageGenerator() {
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm line-clamp-2 mb-1">{item.prompt}</p>
                                                 <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                    <Icon icon="ph:clock" className="w-3 h-3" />
+                                                    <Icon icon="mingcute:time-line" className="w-3 h-3" />
                                                     {new Date(item.created_at).toLocaleDateString()}
                                                 </div>
                                             </div>
@@ -466,7 +484,7 @@ export function ImageGenerator() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                                    <Icon icon="ph:shooting-star-duotone" className="w-10 h-10 text-muted-foreground/50 mb-3" />
+                                    <Icon icon="mingcute:star-fill" className="w-10 h-10 text-muted-foreground/50 mb-3" />
                                     <p className="text-muted-foreground">No history yet</p>
                                 </div>
                             )}
@@ -489,7 +507,7 @@ export function ImageGenerator() {
                     isHero ? "opacity-100 translate-y-[-140px]" : "hidden" // Moved up much more (-140px)
                 )}>
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
-                        <Icon icon="ph:paint-brush-duotone" className="w-3 h-3" />
+                        <Icon icon="mingcute:palette-fill" className="w-3 h-3" />
                         SquirrAI
                     </div>
                     <h1 className="font-bold tracking-tight text-foreground" style={{ fontSize: "var(--text-5xl)" }}>
@@ -536,7 +554,7 @@ export function ImageGenerator() {
                                     onClick={() => setShowHistory(true)}
                                     className="p-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
                                 >
-                                    <Icon icon="ph:clock-counter-clockwise-duotone" className="w-6 h-6" />
+                                    <Icon icon="mingcute:time-fill" className="w-6 h-6" />
                                 </button>
                                 {/* Mode Toggles... (Keep simplified for now) */}
                             </div>
@@ -547,7 +565,7 @@ export function ImageGenerator() {
                                 size="lg"
                                 className="rounded-xl px-8"
                             >
-                                {!loading && <Icon icon="ph:paper-plane-tilt-fill" className="w-5 h-5" />}
+                                {!loading && <Icon icon="mingcute:send-fill" className="w-5 h-5" />}
                                 <span className="hidden sm:inline ml-2">Generate</span>
                             </Button>
                         </div>
@@ -606,13 +624,13 @@ function FeedItemCard({ item }: { item: FeedItem }) {
             {/* AI Response (Image) */}
             <div className="flex gap-4">
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                    <Icon icon="ph:shooting-star-fill" className="w-4 h-4 text-white" />
+                    <Icon icon="mingcute:sparkles-fill" className="w-4 h-4 text-white" />
                 </div>
 
                 <div className="flex-1 space-y-3">
                     {item.status === "pending" ? (
                         <div className="w-full aspect-square max-w-md rounded-2xl bg-surface-2 animate-pulse flex flex-col items-center justify-center border border-white/5">
-                            <Icon icon="ph:spinner" className="w-8 h-8 text-primary animate-spin mb-4" />
+                            <Icon icon="mingcute:loading-fill" className="w-8 h-8 text-primary animate-spin mb-4" />
                             <p className="text-sm text-muted-foreground">Creating masterpiece...</p>
                             <p className="text-xs text-muted-foreground/60 mt-2">You can navigate away, we&apos;ll save your result</p>
                         </div>
@@ -654,7 +672,7 @@ function FeedItemCard({ item }: { item: FeedItem }) {
                                         }
                                     }}
                                 >
-                                    <Icon icon="ph:video-duotone" className="w-4 h-4 mr-2" />
+                                    <Icon icon="mingcute:video-fill" className="w-4 h-4 mr-2" />
                                     Create Video
                                 </Button>
                             </div>

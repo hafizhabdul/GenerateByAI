@@ -8,10 +8,10 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 
 const navItems = [
-    { href: "/", icon: "ph:magic-wand-duotone", label: "Create" },
-    { href: "/studio", icon: "ph:paint-brush-duotone", label: "Studio" },
-    { href: "/gallery", icon: "ph:images-duotone", label: "Gallery" },
-    { href: "/videos", icon: "ph:video-duotone", label: "Videos" },
+    { href: "/", icon: "mingcute:sparkles-2-fill", label: "Create" },
+    { href: "/studio", icon: "mingcute:brush-3-fill", label: "Studio" },
+    { href: "/gallery", icon: "mingcute:pic-fill", label: "Gallery" },
+    { href: "/videos", icon: "mingcute:movie-fill", label: "Videos" },
 ];
 
 export function Sidebar() {
@@ -82,7 +82,7 @@ export function Sidebar() {
                                 href="/pricing"
                                 className="w-8 h-8 flex items-center justify-center text-primary hover:text-white transition-colors z-10"
                             >
-                                <Icon icon="ph:crown-fill" className="w-5 h-5" />
+                                <Icon icon="mingcute:vip-2-fill" className="w-5 h-5" />
                             </Link>
 
                             {/* Floating Tooltip */}
@@ -96,7 +96,7 @@ export function Sidebar() {
                     {/* Settings / Profile */}
                     <NavItem
                         href="/settings"
-                        icon={<Icon icon="ph:gear-six-fill" className="w-6 h-6" />}
+                        icon={<Icon icon="mingcute:settings-3-fill" className="w-6 h-6" />}
                         label="Settings"
                         active={pathname === "/settings"}
                     />
@@ -108,7 +108,7 @@ export function Sidebar() {
                         href="/profile"
                         className="w-12 h-12 rounded-full bg-surface-2 border-2 border-transparent hover:border-primary flex items-center justify-center text-muted-foreground hover:text-white transition-all shadow-lg"
                     >
-                        <Icon icon="ph:user-circle-fill" className="w-7 h-7" />
+                        <Icon icon="mingcute:user-3-fill" className="w-7 h-7" />
                     </Link>
                 </div>
             </aside>
@@ -130,7 +130,7 @@ export function Sidebar() {
                             </Link>
                         ))}
                         <Link href="/pricing" className="p-3 rounded-2xl text-amber-500 bg-amber-500/10">
-                            <Icon icon="ph:crown-simple-fill" className="w-6 h-6" />
+                            <Icon icon="mingcute:vip-2-fill" className="w-6 h-6" />
                         </Link>
                     </div>
                 </div>
