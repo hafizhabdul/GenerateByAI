@@ -36,6 +36,7 @@ type GenerationMode = "image2video" | "text2video";
 const VIDEO_SESSION_KEY = "videoGeneratorSession";
 const VIDEO_HERO_KEY = "videoGeneratorHero";
 const PENDING_VIDEOS_KEY = "pendingVideos";
+const VIDEO_DRAFT_KEY = "videoGeneratorDraft"; // Save draft state (image, prompt, settings)
 
 // Helper to save full session to localStorage
 const saveSession = (feed: VideoFeedItem[], isHero: boolean) => {
@@ -67,6 +68,7 @@ const clearSession = () => {
     localStorage.removeItem(VIDEO_SESSION_KEY);
     localStorage.removeItem(VIDEO_HERO_KEY);
     localStorage.removeItem(PENDING_VIDEOS_KEY);
+    localStorage.removeItem(VIDEO_DRAFT_KEY);
 };
 
 // Helper to save pending videos for polling
@@ -90,6 +92,41 @@ const loadPendingVideos = (): VideoFeedItem[] => {
         console.error("Failed to load pending videos:", e);
     }
     return [];
+};
+
+// Draft state type for persisting work in progress
+type DraftState = {
+    prompt: string;
+    imagePreview: string | null;
+    generationMode: GenerationMode;
+    settings: VideoSettings;
+};
+
+// Helper to save draft state (image preview, prompt, etc.)
+const saveDraft = (draft: DraftState) => {
+    try {
+        localStorage.setItem(VIDEO_DRAFT_KEY, JSON.stringify(draft));
+    } catch (e) {
+        console.error("Failed to save draft:", e);
+    }
+};
+
+// Helper to load draft state
+const loadDraft = (): DraftState | null => {
+    try {
+        const stored = localStorage.getItem(VIDEO_DRAFT_KEY);
+        if (stored) {
+            return JSON.parse(stored);
+        }
+    } catch (e) {
+        console.error("Failed to load draft:", e);
+    }
+    return null;
+};
+
+// Helper to clear draft
+const clearDraft = () => {
+    localStorage.removeItem(VIDEO_DRAFT_KEY);
 };
 
 export function VideoGenerator() {
@@ -136,6 +173,20 @@ export function VideoGenerator() {
             });
             setIsHero(false);
         }
+        
+        // Load draft state (image preview, prompt, settings)
+        const draft = loadDraft();
+        if (draft) {
+            if (draft.prompt) setPrompt(draft.prompt);
+            if (draft.imagePreview) setImagePreview(draft.imagePreview);
+            if (draft.generationMode) setGenerationMode(draft.generationMode);
+            if (draft.settings) setSettings(draft.settings);
+            // If there's a draft with content, exit hero state
+            if (draft.prompt || draft.imagePreview) {
+                setIsHero(false);
+            }
+        }
+        
         setSessionLoaded(true);
     }, []);
 
@@ -155,6 +206,50 @@ export function VideoGenerator() {
             savePendingVideos(feed);
         }
     }, [feed, isHero, sessionLoaded]);
+
+    // Save draft state whenever prompt, imagePreview, generationMode, or settings change
+    useEffect(() => {
+        if (sessionLoaded) {
+            saveDraft({
+                prompt,
+                imagePreview,
+                generationMode,
+                settings,
+            });
+        }
+    }, [prompt, imagePreview, generationMode, settings, sessionLoaded]);
+
+    // Handle page visibility change - resume polling when user returns to tab
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                // User returned to tab - reload pending videos and force a poll
+                const pending = loadPendingVideos();
+                if (pending.length > 0) {
+                    // Merge pending with current feed
+                    setFeed(prev => {
+                        const existingIds = new Set(prev.map(p => p.id));
+                        const newPending = pending.filter(p => !existingIds.has(p.id));
+                        if (newPending.length > 0) {
+                            return [...prev, ...newPending];
+                        }
+                        // Update existing items that might have taskIds
+                        const updated = prev.map(item => {
+                            const pendingItem = pending.find(p => p.id === item.id);
+                            if (pendingItem && !item.taskId && pendingItem.taskId) {
+                                return { ...item, taskId: pendingItem.taskId, generationId: pendingItem.generationId };
+                            }
+                            return item;
+                        });
+                        return updated;
+                    });
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, []);
 
     // Poll for pending video status
     useEffect(() => {
@@ -275,11 +370,55 @@ export function VideoGenerator() {
                     created_at: gen.created_at,
                     canExtend: !!gen.metadata?.klingVideoId,
                 }));
-                setFeed(historyItems.reverse()); // Oldest first
-                setIsHero(false);
+                
+                // IMPORTANT: Merge with pending videos instead of replacing!
+                // This ensures in-progress generations are not lost when navigating away
+                const pendingVideos = loadPendingVideos();
+                const historyIds = new Set(historyItems.map(h => h.id));
+                const pendingIds = new Set(pendingVideos.map(p => p.generationId || p.id));
+                
+                // Filter out completed items that are in pending (they'll be in history with correct status)
+                const stillPending = pendingVideos.filter(p => {
+                    // Keep if not in history yet (truly pending)
+                    if (!historyIds.has(p.id) && !historyIds.has(p.generationId || '')) {
+                        return true;
+                    }
+                    // Check if history says it's still processing
+                    const historyItem = historyItems.find(h => h.id === p.generationId || h.id === p.id);
+                    return historyItem && historyItem.status !== "completed";
+                });
+                
+                // Combine: history items + still-pending items (deduped)
+                const combined = [...historyItems];
+                for (const pending of stillPending) {
+                    if (!combined.some(c => c.id === pending.id || c.id === pending.generationId)) {
+                        combined.push(pending);
+                    }
+                }
+                
+                // Sort by created_at
+                combined.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+                
+                setFeed(combined);
+                if (combined.length > 0) {
+                    setIsHero(false);
+                }
+            } else {
+                // No history from server - load pending from localStorage
+                const pendingVideos = loadPendingVideos();
+                if (pendingVideos.length > 0) {
+                    setFeed(pendingVideos);
+                    setIsHero(false);
+                }
             }
         } catch (error) {
             console.error("Failed to load history:", error);
+            // On error, still try to load pending videos
+            const pendingVideos = loadPendingVideos();
+            if (pendingVideos.length > 0) {
+                setFeed(pendingVideos);
+                setIsHero(false);
+            }
         } finally {
             setLoadingHistory(false);
         }
@@ -377,6 +516,9 @@ export function VideoGenerator() {
         }
         setIsHero(false);
         setLoading(true);
+        
+        // Clear draft since generation has started
+        clearDraft();
 
         // Optimistic Update
         const tempId = Date.now().toString();

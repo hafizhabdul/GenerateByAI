@@ -23,6 +23,14 @@ type FeedItem = {
 const IMAGE_SESSION_KEY = "imageGeneratorSession";
 const IMAGE_HERO_KEY = "imageGeneratorHero";
 const IMAGE_PENDING_KEY = "imageGeneratorPending";
+const IMAGE_DRAFT_KEY = "imageGeneratorDraft";
+
+// Draft state type
+type DraftState = {
+    prompt: string;
+    mode: "image" | "video";
+    quality: string;
+};
 
 // Helper to save session to localStorage
 const saveSession = (feed: FeedItem[], isHero: boolean) => {
@@ -33,6 +41,30 @@ const saveSession = (feed: FeedItem[], isHero: boolean) => {
     } catch (e) {
         console.error("Failed to save session:", e);
     }
+};
+
+// Helper to save draft (prompt in progress)
+const saveDraft = (draft: DraftState) => {
+    try {
+        localStorage.setItem(IMAGE_DRAFT_KEY, JSON.stringify(draft));
+    } catch (e) {
+        console.error("Failed to save draft:", e);
+    }
+};
+
+// Helper to load draft
+const loadDraft = (): DraftState | null => {
+    try {
+        const stored = localStorage.getItem(IMAGE_DRAFT_KEY);
+        return stored ? JSON.parse(stored) : null;
+    } catch (e) {
+        return null;
+    }
+};
+
+// Helper to clear draft
+const clearDraft = () => {
+    localStorage.removeItem(IMAGE_DRAFT_KEY);
 };
 
 // Helper to save pending generation info (for recovery)
@@ -84,6 +116,7 @@ const clearSession = () => {
     localStorage.removeItem(IMAGE_SESSION_KEY);
     localStorage.removeItem(IMAGE_HERO_KEY);
     localStorage.removeItem(IMAGE_PENDING_KEY);
+    localStorage.removeItem(IMAGE_DRAFT_KEY);
 };
 
 export function ImageGenerator() {
@@ -107,7 +140,7 @@ export function ImageGenerator() {
     // Load session from localStorage on mount + check for pending generations
     useEffect(() => {
         const { feed: savedFeed, isHero: savedHero } = loadSession();
-        
+
         if (savedFeed.length > 0) {
             // Check if there are any pending items that are too old (> 2 minutes = failed)
             const now = Date.now();
@@ -122,10 +155,10 @@ export function ImageGenerator() {
                 }
                 return item;
             });
-            
+
             setFeed(updatedFeed);
             setIsHero(savedHero);
-            
+
             // Check if there's an active pending generation
             const pendingItem = updatedFeed.find(item => item.status === "pending");
             if (pendingItem) {
@@ -133,9 +166,37 @@ export function ImageGenerator() {
                 setLoading(true);
             }
         }
-        
+
+        // Load draft state (prompt in progress)
+        const draft = loadDraft();
+        if (draft) {
+            if (draft.prompt) setPrompt(draft.prompt);
+            if (draft.mode) setMode(draft.mode);
+        }
+
         setSessionLoaded(true);
     }, []);
+
+    // Save draft whenever prompt or mode changes
+    useEffect(() => {
+        if (sessionLoaded) {
+            const quality = localStorage.getItem("generation_quality") || "high";
+            saveDraft({ prompt, mode, quality });
+        }
+    }, [prompt, mode, sessionLoaded]);
+
+    // Handle page visibility change - resume polling when user returns to tab
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible' && pendingGenerationId) {
+                // User returned to tab with pending generation - trigger a check
+                console.log("[Image] User returned to tab, checking pending generation...");
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [pendingGenerationId]);
 
     // Handle pending generation recovery - check database for completed result
     useEffect(() => {
@@ -244,6 +305,9 @@ export function ImageGenerator() {
         setIsHero(false);
         setLoading(true);
         setShowHistory(false);
+
+        // Clear draft since generation has started
+        clearDraft();
 
         // Optimistic Update: Add pending item to feed
         const tempId = Date.now().toString();
