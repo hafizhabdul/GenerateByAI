@@ -87,7 +87,7 @@ function LoginForm() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">Email</label>
                             <div className="relative">
-                                <Icon icon="ph:envelope-duotone" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Icon icon="mingcute:mail-fill" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
                                     type="email"
                                     value={email}
@@ -103,7 +103,7 @@ function LoginForm() {
                         <div className="space-y-2">
                             <label className="text-sm font-medium text-foreground">Password</label>
                             <div className="relative">
-                                <Icon icon="ph:lock-duotone" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                                <Icon icon="mingcute:lock-fill" className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                                 <input
                                     type={showPassword ? "text" : "password"}
                                     value={password}
@@ -117,7 +117,7 @@ function LoginForm() {
                                     onClick={() => setShowPassword(!showPassword)}
                                     className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                                 >
-                                    <Icon icon={showPassword ? "ph:eye-slash" : "ph:eye"} className="w-4 h-4" />
+                                    <Icon icon={showPassword ? "mingcute:eye-close-fill" : "mingcute:eye-fill"} className="w-4 h-4" />
                                 </button>
                             </div>
                         </div>
@@ -160,7 +160,7 @@ function LoginForm() {
                         disabled={googleLoading}
                     >
                         {googleLoading ? (
-                            <Icon icon="ph:spinner" className="w-5 h-5 animate-spin" />
+                            <Icon icon="mingcute:loading-fill" className="w-5 h-5 animate-spin" />
                         ) : (
                             <Icon icon="flat-color-icons:google" className="w-5 h-5" />
                         )}
@@ -185,7 +185,7 @@ function LoginFallback() {
         <div className="min-h-screen min-h-[100dvh] flex items-center justify-center p-4 bg-background">
             <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[150px] pointer-events-none" />
             <Card variant="glass" className="w-full max-w-md relative z-10 flex items-center justify-center py-20">
-                <Icon icon="ph:spinner" className="w-8 h-8 animate-spin text-primary" />
+                <Icon icon="mingcute:loading-fill" className="w-8 h-8 animate-spin text-primary" />
             </Card>
         </div>
     );

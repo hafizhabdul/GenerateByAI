@@ -503,14 +503,14 @@ export function ImageGenerator() {
             >
                 {/* Hero Content - Moved Up Significantly */}
                 <div className={cn(
-                    "text-center space-y-4 md:space-y-6 transition-all duration-700 max-w-2xl mx-auto",
-                    isHero ? "opacity-100 translate-y-[-140px]" : "hidden" // Moved up much more (-140px)
+                    "text-center space-y-4 md:space-y-6 transition-all duration-700 max-w-2xl mx-auto px-4",
+                    isHero ? "opacity-100 translate-y-[-100px] md:translate-y-[-120px]" : "hidden"
                 )}>
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
-                        <Icon icon="mingcute:palette-fill" className="w-3 h-3" />
+                        <Icon icon="mingcute:palette-fill" className="w-4 h-4" />
                         SquirrAI
                     </div>
-                    <h1 className="font-bold tracking-tight text-foreground" style={{ fontSize: "var(--text-5xl)" }}>
+                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
                         Dream it. <br className="md:hidden" />
                         <span className="text-muted-foreground/50">Create it.</span>
                     </h1>
@@ -530,16 +530,18 @@ export function ImageGenerator() {
             <div className={cn(
                 "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
                 isHero
-                    ? "bottom-1/2 translate-y-[calc(50%+80px)] md:translate-y-[calc(50%+100px)]"
-                    : "bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-8"
-            )}>
-                <div className="w-full max-w-2xl mx-auto">
-                    <div className="rounded-[2rem] p-3 flex flex-col gap-2 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 bg-surface-1 border border-border">
+                    ? "bottom-1/2 translate-y-[calc(50%+60px)] md:translate-y-[calc(50%+80px)]"
+                    : "bottom-20 md:bottom-8"
+            )}
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+            >
+                <div className="w-full max-w-2xl mx-auto md:pl-24">
+                    <div className="rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 flex flex-col gap-2 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 bg-surface-1 border border-border">
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder="Describe what you want to create..."
-                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none px-6 py-4 min-h-[60px] max-h-[120px] resize-none placeholder:text-muted-foreground/70 text-foreground text-lg"
+                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none px-4 md:px-6 py-3 md:py-4 min-h-[50px] md:min-h-[60px] max-h-[100px] md:max-h-[120px] resize-none placeholder:text-muted-foreground/70 text-foreground"
                             style={{ fontSize: "var(--text-base)" }}
                             onKeyDown={(e) => {
                                 if (e.key === "Enter" && !e.shiftKey) {
@@ -548,13 +550,13 @@ export function ImageGenerator() {
                                 }
                             }}
                         />
-                        <div className="flex items-center justify-between px-4 pb-2 gap-2">
+                        <div className="flex items-center justify-between px-3 md:px-4 pb-2 gap-2">
                             <div className="flex items-center gap-2">
                                 <button
                                     onClick={() => setShowHistory(true)}
-                                    className="p-3 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
+                                    className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
                                 >
-                                    <Icon icon="mingcute:time-fill" className="w-6 h-6" />
+                                    <Icon icon="mingcute:time-fill" className="w-5 h-5" />
                                 </button>
                                 {/* Mode Toggles... (Keep simplified for now) */}
                             </div>
@@ -563,7 +565,7 @@ export function ImageGenerator() {
                                 disabled={loading || !prompt.trim()}
                                 loading={loading}
                                 size="lg"
-                                className="rounded-xl px-8"
+                                className="rounded-xl px-6 md:px-8"
                             >
                                 {!loading && <Icon icon="mingcute:send-fill" className="w-5 h-5" />}
                                 <span className="hidden sm:inline ml-2">Generate</span>
@@ -655,10 +657,11 @@ function FeedItemCard({ item }: { item: FeedItem }) {
                                     size="sm" 
                                     onClick={handleDownload} 
                                     disabled={isDownloading}
-                                    className="flex-1 min-w-[120px]"
+                                    className="flex-1 min-w-[100px] md:min-w-[120px]"
                                 >
-                                    <Icon icon={isDownloading ? "ph:spinner" : "ph:download-simple-duotone"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
-                                    {isDownloading ? "Downloading..." : "Download"}
+                                    <Icon icon={isDownloading ? "mingcute:loading-fill" : "mingcute:download-2-fill"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
+                                    <span className="hidden sm:inline">{isDownloading ? "Downloading..." : "Download"}</span>
+                                    <span className="sm:hidden">{isDownloading ? "..." : "Save"}</span>
                                 </Button>
                                 <Button
                                     variant="outline"

@@ -281,13 +281,13 @@ export default function StudioPage() {
                 <div className="flex items-center justify-between mb-6">
                     <div>
                         <h1 className="text-2xl font-bold flex items-center gap-2">
-                            <Icon icon="ph:paint-brush-duotone" className="w-6 h-6 text-primary" />
+                            <Icon icon="mingcute:brush-fill" className="w-6 h-6 text-primary" />
                             Creative Studio <span className="text-xs px-2 py-0.5 rounded-full bg-primary/20 text-primary border border-primary/20">BETA</span>
                         </h1>
                     </div>
                     {image && (
                         <Button variant="primary" onClick={handleSaveToGallery} disabled={isSaving}>
-                            {isSaving ? <Icon icon="ph:magic-wand" className="w-4 h-4 mr-2 animate-spin" /> : <Icon icon="ph:floppy-disk-duotone" className="w-4 h-4 mr-2" />}
+                            {isSaving ? <Icon icon="mingcute:loading-fill" className="w-4 h-4 mr-2 animate-spin" /> : <Icon icon="mingcute:save-fill" className="w-4 h-4 mr-2" />}
                             Save New Image
                         </Button>
                     )}
@@ -299,7 +299,7 @@ export default function StudioPage() {
                         {!image ? (
                             <div className="text-center space-y-4">
                                 <div className="w-20 h-20 bg-surface-2 rounded-full flex items-center justify-center mx-auto mb-4 border border-dashed border-white/20">
-                                    <Icon icon="ph:upload-simple-duotone" className="w-8 h-8 text-muted-foreground" />
+                                    <Icon icon="mingcute:upload-2-fill" className="w-8 h-8 text-muted-foreground" />
                                 </div>
                                 <h3 className="text-lg font-medium">Start Creating</h3>
                                 <div className="flex flex-col gap-2 max-w-xs mx-auto">
@@ -311,12 +311,12 @@ export default function StudioPage() {
                                             className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                                         />
                                         <Button className="w-full">
-                                            <Icon icon="ph:upload-simple" className="w-4 h-4 mr-2" />
+                                            <Icon icon="mingcute:upload-2-fill" className="w-4 h-4 mr-2" />
                                             Upload Photo
                                         </Button>
                                     </div>
                                     <Button variant="outline" onClick={() => { setLibraryOpen(true); fetchLibrary(); }}>
-                                        <Icon icon="ph:image-duotone" className="w-4 h-4 mr-2" />
+                                        <Icon icon="mingcute:image-fill" className="w-4 h-4 mr-2" />
                                         Select from Library
                                     </Button>
                                 </div>
@@ -340,7 +340,7 @@ export default function StudioPage() {
                                 className="absolute top-4 right-4 p-2 bg-black/50 backdrop-blur rounded-full hover:bg-red-500/20 hover:text-red-400 transition-colors z-30 shadow-lg border border-white/10"
                                 title="Reset Canvas"
                             >
-                                <Icon icon="ph:warning-circle" className="w-5 h-5 text-white" />
+                                <Icon icon="mingcute:refresh-2-fill" className="w-5 h-5 text-white" />
                             </button>
                         )}
                     </div>
@@ -353,19 +353,19 @@ export default function StudioPage() {
                                 onClick={() => setActiveTab("generate")}
                                 className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2", activeTab === "generate" ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}
                             >
-                                <Icon icon="ph:magic-wand" className="w-4 h-4" /> AI Magic
+                                <Icon icon="mingcute:magic-2-fill" className="w-4 h-4" /> AI Magic
                             </button>
                             <button
                                 onClick={() => setActiveTab("adjust")}
                                 className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2", activeTab === "adjust" ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}
                             >
-                                <Icon icon="ph:sliders-duotone" className="w-4 h-4" /> Adjust
+                                <Icon icon="mingcute:settings-3-fill" className="w-4 h-4" /> Adjust
                             </button>
                             <button
                                 onClick={() => setActiveTab("text")}
                                 className={cn("flex-1 py-2 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2", activeTab === "text" ? "bg-primary text-white" : "text-muted-foreground hover:text-white")}
                             >
-                                <Icon icon="ph:text-t-duotone" className="w-4 h-4" /> Text
+                                <Icon icon="mingcute:text-fill" className="w-4 h-4" /> Text
                             </button>
                         </div>
 
@@ -389,7 +389,7 @@ export default function StudioPage() {
                                                 generationMode === "photo" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"
                                             )}
                                         >
-                                            <Icon icon="ph:image" className="w-3 h-3" /> PHOTO
+                                            <Icon icon="mingcute:image-fill" className="w-3 h-3" /> PHOTO
                                         </button>
                                         <button
                                             onClick={() => setGenerationMode("video")}
@@ -398,7 +398,7 @@ export default function StudioPage() {
                                                 generationMode === "video" ? "bg-primary text-white" : "text-muted-foreground hover:text-white"
                                             )}
                                         >
-                                            <Icon icon="ph:magic-wand" className="w-3 h-3" /> VIDEO
+                                            <Icon icon="mingcute:video-fill" className="w-3 h-3" /> VIDEO
                                         </button>
                                     </div>
 
@@ -453,11 +453,11 @@ export default function StudioPage() {
                                         disabled={isGenerating || !image || (generationMode === "photo" && !mask)}
                                     >
                                         {isGenerating ? (
-                                            <><Icon icon="ph:magic-wand" className="w-5 h-5 mr-2 animate-spin" /> Magic happening...</>
+                                            <><Icon icon="mingcute:magic-2-fill" className="w-5 h-5 mr-2 animate-spin" /> Magic happening...</>
                                         ) : (
                                             <>
                                                 <div className="flex items-center">
-                                                    <Icon icon="ph:magic-wand-duotone" className="w-5 h-5 mr-2" /> {generationMode === "photo" ? "Generate Background" : "Generate Video"}
+                                                    <Icon icon="mingcute:magic-2-fill" className="w-5 h-5 mr-2" /> {generationMode === "photo" ? "Generate Background" : "Generate Video"}
                                                 </div>
                                                 <span className="text-[10px] opacity-70 font-normal">
                                                     Uses {generationMode === "photo" ? getTokenCost('image', quality) : getTokenCost('video')} tokens
@@ -527,7 +527,7 @@ export default function StudioPage() {
                                             <span style={{ fontFamily: FONT_OPTIONS.find(f => f.value === selectedFont)?.style }}>
                                                 {FONT_OPTIONS.find(f => f.value === selectedFont)?.label}
                                             </span>
-                                            <Icon icon="ph:caret-down" className="w-4 h-4 text-muted-foreground" />
+                                            <Icon icon="mingcute:down-fill" className="w-4 h-4 text-muted-foreground" />
                                         </button>
 
                                         {isFontOpen && (
@@ -549,7 +549,7 @@ export default function StudioPage() {
                                                             <span style={{ fontFamily: font.style }} className="text-sm font-medium">
                                                                 {font.label}
                                                             </span>
-                                                            {selectedFont === font.value && <Icon icon="ph:check" className="w-4 h-4 text-primary" />}
+                                                            {selectedFont === font.value && <Icon icon="mingcute:check-fill" className="w-4 h-4 text-primary" />}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -574,7 +574,7 @@ export default function StudioPage() {
                                             placeholder="Size"
                                         />
                                         <Button size="sm" className="flex-1" onClick={addText} disabled={!newText}>
-                                            <Icon icon="ph:plus" className="w-4 h-4 mr-2" /> Add
+                                            <Icon icon="mingcute:add-fill" className="w-4 h-4 mr-2" /> Add
                                         </Button>
                                     </div>
 
@@ -596,7 +596,7 @@ export default function StudioPage() {
                                                         </div>
                                                     </div>
                                                     <button onClick={() => removeText(t.id)} className="text-muted-foreground hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <Icon icon="ph:trash-duotone" className="w-4 h-4" />
+                                                        <Icon icon="mingcute:delete-2-fill" className="w-4 h-4" />
                                                     </button>
                                                 </div>
                                             ))}
@@ -620,12 +620,12 @@ export default function StudioPage() {
                             <div className="bg-surface-1 w-full max-w-3xl rounded-3xl border border-white/10 overflow-hidden flex flex-col h-[80vh] shadow-2xl">
                                 <div className="p-4 border-b border-white/10 flex items-center justify-between bg-surface-2/50 backdrop-blur">
                                     <h3 className="font-bold">Select from Library</h3>
-                                    <button onClick={() => setLibraryOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><Icon icon="ph:x" className="w-5 h-5" /></button>
+                                    <button onClick={() => setLibraryOpen(false)} className="p-2 hover:bg-white/10 rounded-full transition-colors"><Icon icon="mingcute:close-fill" className="w-5 h-5" /></button>
                                 </div>
                                 <div className="p-6 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-4">
                                     {loadingLibrary && (
                                         <div className="col-span-full flex justify-center py-12">
-                                            <Icon icon="ph:magic-wand" className="w-8 h-8 animate-spin text-primary" />
+                                            <Icon icon="mingcute:loading-fill" className="w-8 h-8 animate-spin text-primary" />
                                         </div>
                                     )}
                                     {!loadingLibrary && libraryImages.length === 0 && (

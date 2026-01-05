@@ -739,7 +739,7 @@ export function VideoGenerator() {
                         onClick={handleNewSession}
                         className="animate-fade-in group"
                     >
-                        <Icon icon="ph:video-camera-plus-duotone" className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
+                        <Icon icon="mingcute:add-circle-fill" className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
                         New Session
                     </Button>
                 </div>
@@ -757,14 +757,14 @@ export function VideoGenerator() {
                     >
                         <div className="flex items-center justify-between p-4 border-b border-border">
                             <div className="flex items-center gap-2">
-                                <Icon icon="ph:gear-six-duotone" className="w-5 h-5 text-primary" />
+                                <Icon icon="mingcute:settings-3-fill" className="w-5 h-5 text-primary" />
                                 <h2 className="font-semibold">Video Settings</h2>
                             </div>
                             <button
                                 onClick={() => setShowSettings(false)}
-                                className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                                className="p-2 rounded-xl hover:bg-white/5 transition-colors"
                             >
-                                <Icon icon="ph:x" className="w-5 h-5" />
+                                <Icon icon="mingcute:close-fill" className="w-5 h-5" />
                             </button>
                         </div>
 
@@ -848,7 +848,7 @@ export function VideoGenerator() {
                             {/* AI Audio Generation */}
                             <div className="space-y-3">
                                 <label className="text-sm font-medium flex items-center gap-2">
-                                    <Icon icon="ph:speaker-high-duotone" className="w-4 h-4 text-primary" />
+                                    <Icon icon="mingcute:volume-fill" className="w-4 h-4 text-primary" />
                                     AI Audio
                                     <span className="px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-md font-medium">NEW</span>
                                 </label>
@@ -885,7 +885,7 @@ export function VideoGenerator() {
                                 </button>
                                 {settings.sound && (
                                     <p className="text-xs text-primary/80 flex items-center gap-1">
-                                        <Icon icon="ph:info" className="w-3 h-3" />
+                                        <Icon icon="mingcute:information-fill" className="w-3 h-3" />
                                         Audio menambah +50 token
                                     </p>
                                 )}
@@ -915,16 +915,15 @@ export function VideoGenerator() {
                 <div
                     className={cn(
                         "text-center space-y-4 md:space-y-6 transition-all duration-700 max-w-2xl mx-auto",
-                        isHero ? "opacity-100 translate-y-[-100px]" : "hidden"
+                        isHero ? "opacity-100 translate-y-[-120px] md:translate-y-[-140px]" : "hidden"
                     )}
                 >
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
-                        <Icon icon="ph:video-duotone" className="w-3 h-3" />
+                        <Icon icon="mingcute:movie-fill" className="w-4 h-4" />
                         AI Video Generation
                     </div>
                     <h1
-                        className="font-bold tracking-tight text-foreground"
-                        style={{ fontSize: "var(--text-5xl)" }}
+                        className="text-4xl md:text-5xl font-bold tracking-tight text-foreground"
                     >
                         {generationMode === "text2video" ? "Text to Video" : "Image to Video"}
                     </h1>
@@ -940,25 +939,25 @@ export function VideoGenerator() {
                             <button
                                 onClick={() => setGenerationMode("text2video")}
                                 className={cn(
-                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
+                                    "px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2",
                                     generationMode === "text2video"
                                         ? "bg-primary text-white shadow-sm"
                                         : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
-                                <Icon icon="ph:text-aa" className="w-4 h-4" />
+                                <Icon icon="mingcute:text-fill" className="w-4 h-4" />
                                 Text to Video
                             </button>
                             <button
                                 onClick={() => setGenerationMode("image2video")}
                                 className={cn(
-                                    "px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
+                                    "px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2",
                                     generationMode === "image2video"
                                         ? "bg-primary text-white shadow-sm"
                                         : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
-                                <Icon icon="ph:image" className="w-4 h-4" />
+                                <Icon icon="mingcute:image-fill" className="w-4 h-4" />
                                 Image to Video
                             </button>
                         </div>
@@ -968,7 +967,7 @@ export function VideoGenerator() {
                 {/* Loading History */}
                 {loadingHistory && (
                     <div className="flex items-center justify-center py-20">
-                        <Icon icon="ph:spinner" className="w-8 h-8 animate-spin text-primary" />
+                        <Icon icon="mingcute:loading-fill" className="w-8 h-8 animate-spin text-primary" />
                     </div>
                 )}
 
@@ -992,12 +991,13 @@ export function VideoGenerator() {
                 className={cn(
                     "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
                     isHero
-                        ? "bottom-1/2 translate-y-[calc(50%+120px)]"
-                        : "bottom-[calc(5rem+env(safe-area-inset-bottom))] md:bottom-8"
+                        ? "bottom-1/2 translate-y-[calc(50%+140px)] md:translate-y-[calc(50%+160px)]"
+                        : "bottom-20 md:bottom-8"
                 )}
+                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
-                <div className="w-full max-w-2xl mx-auto">
-                    <div className="rounded-2xl md:rounded-3xl p-3 flex flex-col gap-3 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 bg-surface-1 border border-border">
+                <div className="w-full max-w-2xl mx-auto md:pl-24">
+                    <div className="rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 flex flex-col gap-3 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 bg-surface-1 border border-border">
                         {/* Image Preview - Only show for image2video mode */}
                         {generationMode === "image2video" && imagePreview && (
                             <div className="relative mx-3 mt-1">
@@ -1009,9 +1009,9 @@ export function VideoGenerator() {
                                     />
                                     <button
                                         onClick={removeImage}
-                                        className="absolute top-1 right-1 p-1 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
+                                        className="absolute top-1 right-1 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
                                     >
-                                        <Icon icon="ph:x" className="w-4 h-4" />
+                                        <Icon icon="mingcute:close-fill" className="w-3 h-3" />
                                     </button>
                                 </div>
                             </div>
@@ -1046,26 +1046,26 @@ export function VideoGenerator() {
                                     <button
                                         onClick={() => setGenerationMode("text2video")}
                                         className={cn(
-                                            "p-1.5 rounded transition-all",
+                                            "p-2 rounded-lg transition-all",
                                             generationMode === "text2video"
                                                 ? "bg-primary text-white"
-                                                : "text-muted-foreground hover:text-foreground"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
                                         )}
                                         title="Text to Video"
                                     >
-                                        <Icon icon="ph:text-aa" className="w-4 h-4" />
+                                        <Icon icon="mingcute:text-fill" className="w-4 h-4" />
                                     </button>
                                     <button
                                         onClick={() => setGenerationMode("image2video")}
                                         className={cn(
-                                            "p-1.5 rounded transition-all",
+                                            "p-2 rounded-lg transition-all",
                                             generationMode === "image2video"
                                                 ? "bg-primary text-white"
-                                                : "text-muted-foreground hover:text-foreground"
+                                                : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
                                         )}
                                         title="Image to Video"
                                     >
-                                        <Icon icon="ph:image" className="w-4 h-4" />
+                                        <Icon icon="mingcute:image-fill" className="w-4 h-4" />
                                     </button>
                                 </div>
 
@@ -1081,13 +1081,13 @@ export function VideoGenerator() {
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         className={cn(
-                                            "p-2 rounded-lg transition-colors flex items-center gap-2",
+                                            "p-2.5 rounded-xl transition-colors flex items-center gap-2",
                                             imagePreview
                                                 ? "text-primary bg-primary/10"
                                                 : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
                                         )}
                                     >
-                                        <Icon icon="ph:image-duotone" className="w-5 h-5" />
+                                        <Icon icon="mingcute:image-fill" className="w-5 h-5" />
                                         <span className="text-sm hidden sm:inline">
                                             {imagePreview ? "Change" : "Upload"}
                                         </span>
@@ -1097,9 +1097,9 @@ export function VideoGenerator() {
                                 {/* Settings Button */}
                                 <button
                                     onClick={() => setShowSettings(true)}
-                                    className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors flex items-center gap-2"
+                                    className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors flex items-center gap-2"
                                 >
-                                    <Icon icon="ph:gear-six-duotone" className="w-5 h-5" />
+                                    <Icon icon="mingcute:settings-3-fill" className="w-5 h-5" />
                                     <span className="text-xs hidden sm:inline">
                                         {settings.duration}s {settings.mode}
                                     </span>
@@ -1116,9 +1116,10 @@ export function VideoGenerator() {
                                     disabled={loading || !prompt.trim() || (generationMode === "image2video" && !imagePreview)}
                                     loading={loading}
                                     size="md"
+                                    className="rounded-xl"
                                 >
-                                    {!loading && <Icon icon="ph:video-duotone" className="w-4 h-4" />}
-                                    <span className="hidden sm:inline">Generate</span>
+                                    {!loading && <Icon icon="mingcute:movie-fill" className="w-4 h-4" />}
+                                    <span className="hidden sm:inline ml-1">Generate</span>
                                 </Button>
                             </div>
                         </div>
@@ -1230,7 +1231,7 @@ function VideoFeedCard({
                 <div className="max-w-[70%] bg-surface-2 border border-border rounded-2xl rounded-tr-sm px-6 py-4 shadow-sm">
                     <p className="text-foreground/90 leading-relaxed">{item.prompt}</p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
-                        <Icon icon="ph:clock" className="w-3 h-3" />
+                        <Icon icon="mingcute:time-fill" className="w-3 h-3" />
                         {item.duration}s {item.mode}
                     </div>
                 </div>
@@ -1239,7 +1240,7 @@ function VideoFeedCard({
             {/* AI Response (Video) */}
             <div className="flex gap-4">
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                    <Icon icon="ph:video-fill" className="w-4 h-4 text-white" />
+                    <Icon icon="mingcute:movie-fill" className="w-4 h-4 text-white" />
                 </div>
 
                 <div className="flex-1 space-y-3">
@@ -1271,9 +1272,9 @@ function VideoFeedCard({
                                         className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center hover:bg-white/30 transition-colors"
                                     >
                                         {isPlaying ? (
-                                            <Icon icon="ph:pause-fill" className="w-8 h-8 text-white" />
+                                            <Icon icon="mingcute:pause-fill" className="w-8 h-8 text-white" />
                                         ) : (
-                                            <Icon icon="ph:play-fill" className="w-8 h-8 text-white ml-1" />
+                                            <Icon icon="mingcute:play-fill" className="w-8 h-8 text-white ml-1" />
                                         )}
                                     </button>
                                 </div>
@@ -1281,12 +1282,12 @@ function VideoFeedCard({
                                 {/* Volume Control */}
                                 <button
                                     onClick={toggleMute}
-                                    className="absolute bottom-3 right-3 p-2 rounded-lg bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                                    className="absolute bottom-3 right-3 p-2 rounded-xl bg-black/50 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     {isMuted ? (
-                                        <Icon icon="ph:speaker-simple-x" className="w-4 h-4 text-white" />
+                                        <Icon icon="mingcute:volume-mute-fill" className="w-4 h-4 text-white" />
                                     ) : (
-                                        <Icon icon="ph:speaker-simple-high" className="w-4 h-4 text-white" />
+                                        <Icon icon="mingcute:volume-fill" className="w-4 h-4 text-white" />
                                     )}
                                 </button>
                             </div>
@@ -1294,7 +1295,7 @@ function VideoFeedCard({
                             {/* Action Bar - Always visible for better UX */}
                             <div className="flex items-center gap-2 mt-3">
                                 <Button variant="ghost" size="sm" onClick={handleDownload} disabled={isDownloading}>
-                                    <Icon icon={isDownloading ? "ph:spinner" : "ph:download-simple-duotone"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
+                                    <Icon icon={isDownloading ? "mingcute:loading-fill" : "mingcute:download-2-fill"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
                                     {isDownloading ? "Downloading..." : "Download"}
                                 </Button>
                                 {item.canExtend && (
@@ -1304,7 +1305,7 @@ function VideoFeedCard({
                                         onClick={onExtend}
                                         disabled={isExtending}
                                     >
-                                        <Icon icon={isExtending ? "ph:spinner" : "ph:arrow-clockwise-duotone"} className={cn("w-4 h-4 mr-2", isExtending && "animate-spin")} />
+                                        <Icon icon={isExtending ? "mingcute:loading-fill" : "mingcute:refresh-2-fill"} className={cn("w-4 h-4 mr-2", isExtending && "animate-spin")} />
                                         {isExtending ? "Extending..." : "Extend +5s"}
                                     </Button>
                                 )}
@@ -1323,10 +1324,10 @@ function VideoProgressIndicator({ status, duration }: { status: string; duration
     const [currentStep, setCurrentStep] = useState(0);
 
     const steps = [
-        { label: "Uploading image", icon: "ph:cloud-arrow-up" },
-        { label: "Analyzing content", icon: "ph:brain" },
-        { label: "Generating frames", icon: "ph:film-strip" },
-        { label: "Rendering video", icon: "ph:video" },
+        { label: "Uploading image", icon: "mingcute:upload-2-fill" },
+        { label: "Analyzing content", icon: "mingcute:brain-fill" },
+        { label: "Generating frames", icon: "mingcute:film-fill" },
+        { label: "Rendering video", icon: "mingcute:movie-fill" },
     ];
 
     // Estimate time based on duration setting
@@ -1389,9 +1390,9 @@ function VideoProgressIndicator({ status, duration }: { status: string; duration
                             )}
                         >
                             {index < currentStep ? (
-                                <Icon icon="ph:check-bold" className="w-4 h-4" />
+                                <Icon icon="mingcute:check-fill" className="w-4 h-4" />
                             ) : index === currentStep ? (
-                                <Icon icon="ph:spinner" className="w-4 h-4 animate-spin" />
+                                <Icon icon="mingcute:loading-fill" className="w-4 h-4 animate-spin" />
                             ) : (
                                 <Icon icon={step.icon} className="w-4 h-4" />
                             )}

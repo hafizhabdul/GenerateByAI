@@ -63,10 +63,10 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
 
 function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) => void }) {
     const icons = {
-        success: <Icon icon="ph:check-circle-duotone" className="w-5 h-5 text-success shrink-0" />,
-        error: <Icon icon="ph:warning-circle-duotone" className="w-5 h-5 text-destructive shrink-0" />,
-        warning: <Icon icon="ph:warning-duotone" className="w-5 h-5 text-warning shrink-0" />,
-        info: <Icon icon="ph:info-duotone" className="w-5 h-5 text-info shrink-0" />,
+        success: <Icon icon="mingcute:check-circle-fill" className="w-5 h-5 text-success shrink-0" />,
+        error: <Icon icon="mingcute:warning-fill" className="w-5 h-5 text-destructive shrink-0" />,
+        warning: <Icon icon="mingcute:alert-fill" className="w-5 h-5 text-warning shrink-0" />,
+        info: <Icon icon="mingcute:information-fill" className="w-5 h-5 text-info shrink-0" />,
     };
 
     const bgColors = {
@@ -91,7 +91,7 @@ function ToastItem({ toast, onRemove }: { toast: Toast; onRemove: (id: string) =
                 className="shrink-0 p-1 rounded-lg hover:bg-white/10 transition-colors text-muted-foreground hover:text-foreground"
                 aria-label="Dismiss"
             >
-                <Icon icon="ph:x" className="w-4 h-4" />
+                <Icon icon="mingcute:close-fill" className="w-4 h-4" />
             </button>
         </div>
     );
