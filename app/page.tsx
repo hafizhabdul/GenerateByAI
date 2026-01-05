@@ -1,14 +1,46 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { ImageGenerator } from "@/components/image-generator";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+import type { Generation } from "@/lib/supabase/types";
 
 export default function Home() {
   const [activeView, setActiveView] = useState<"dashboard" | "create">("dashboard");
+  const [recentGenerations, setRecentGenerations] = useState<Generation[]>([]);
+  const [loadingRecent, setLoadingRecent] = useState(true);
+  const { user, profile, loading: authLoading } = useAuth();
+
+  // Fetch recent generations
+  useEffect(() => {
+    const fetchRecent = async () => {
+      if (!user) {
+        setLoadingRecent(false);
+        return;
+      }
+      try {
+        const res = await fetch("/api/generations?limit=5");
+        if (res.ok) {
+          const data = await res.json();
+          setRecentGenerations(data.generations || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch recent:", err);
+      } finally {
+        setLoadingRecent(false);
+      }
+    };
+    fetchRecent();
+  }, [user]);
+
+  // Calculate credits
+  const creditsLeft = profile ? Math.max(0, (profile.tokens_total || 0) - (profile.tokens_used || 0)) : 0;
+  const planName = profile?.plan || "Free";
+  const userName = profile?.name?.split(" ")[0] || "Creator";
 
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground overflow-x-hidden selection:bg-primary/30 font-sans">
@@ -25,15 +57,15 @@ export default function Home() {
             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
               <div>
                 <h1 className="text-4xl md:text-5xl font-bold tracking-tight mb-2">
-                  Hello, <span className="text-primary">Creator!</span> 👋
+                  Hello, <span className="text-primary">{userName}!</span> 👋
                 </h1>
                 <p className="text-muted-foreground text-lg">What will you create with SquirrAI today?</p>
               </div>
               <div className="flex items-center gap-3">
-                 <div className="px-4 py-2 rounded-full bg-surface-2 border border-border flex items-center gap-2 text-sm font-medium">
-                    <Icon icon="ph:sparkle-fill" className="text-primary" />
-                    <span>Pro Plan Active</span>
-                 </div>
+                 <Link href="/pricing" className="px-4 py-2 rounded-full bg-surface-2 border border-border flex items-center gap-2 text-sm font-medium hover:border-primary/50 transition-colors">
+                    <Icon icon="ph:crown-simple-fill" className="text-primary" />
+                    <span>{planName} Plan</span>
+                 </Link>
               </div>
             </div>
 
@@ -45,8 +77,8 @@ export default function Home() {
                 onClick={() => setActiveView("create")}
                 className="group col-span-1 md:col-span-2 row-span-2 relative overflow-hidden rounded-[2.5rem] bg-primary text-primary-foreground p-8 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-xl"
               >
-                <div className="absolute -right-8 -bottom-8 w-64 h-64 opacity-90 group-hover:scale-110 transition-transform duration-500">
-                   <img src="/mascot.png" alt="SquirrAI Mascot" className="w-full h-full object-contain drop-shadow-2xl" />
+                <div className="absolute -right-8 -bottom-16 w-64 h-72 opacity-90 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
+                   <img src="/maskot.png" alt="SquirrAI Mascot" className="w-full h-auto object-cover object-top drop-shadow-2xl" style={{ marginBottom: '-60px' }} />
                 </div>
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <div className="p-3 bg-black/10 w-fit rounded-2xl backdrop-blur-sm">
@@ -79,18 +111,20 @@ export default function Home() {
               </Link>
 
               {/* Stats / Credits */}
-              <div className="col-span-1 row-span-1 rounded-[2.5rem] bg-surface-1 border border-border p-6 flex flex-col justify-between group hover:border-primary/30 transition-colors">
+              <Link href="/pricing" className="col-span-1 row-span-1 rounded-[2.5rem] bg-surface-1 border border-border p-6 flex flex-col justify-between group hover:border-primary/30 transition-colors">
                  <div className="flex justify-between items-start">
                     <div className="p-2 bg-surface-2 rounded-xl">
                         <Icon icon="ph:coins-fill" className="w-5 h-5 text-yellow-400" />
                     </div>
-                    <span className="text-xs font-medium text-muted-foreground bg-surface-2 px-2 py-1 rounded-full">Refills in 2d</span>
+                    {creditsLeft < 50 && (
+                      <span className="text-xs font-medium text-red-400 bg-red-500/10 px-2 py-1 rounded-full">Low!</span>
+                    )}
                  </div>
                  <div>
-                    <div className="text-3xl font-bold">850</div>
+                    <div className="text-3xl font-bold">{authLoading ? "..." : creditsLeft.toLocaleString()}</div>
                     <div className="text-sm text-muted-foreground">Credits left</div>
                  </div>
-              </div>
+              </Link>
 
               {/* Gallery Preview */}
               <Link href="/gallery" className="col-span-1 row-span-1 rounded-[2.5rem] bg-surface-1 border border-border p-1 overflow-hidden group relative">
@@ -114,10 +148,32 @@ export default function Home() {
                {/* Recent Activity List */}
                <div className="col-span-1 md:col-span-3 row-span-1 rounded-[2.5rem] bg-surface-1 border border-border p-6 flex items-center gap-4 overflow-x-auto hide-scrollbar">
                   <div className="shrink-0 text-sm font-bold text-muted-foreground w-24">Recent<br/>Creations</div>
-                  {[1,2,3,4,5].map((i) => (
-                      <div key={i} className="w-16 h-16 rounded-2xl bg-surface-2 shrink-0 border border-white/5 hover:border-primary/50 transition-colors cursor-pointer" />
-                  ))}
-                  <div className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center shrink-0 text-muted-foreground hover:text-primary hover:border-primary transition-colors cursor-pointer">
+                  {loadingRecent ? (
+                    // Loading skeleton
+                    [1,2,3,4,5].map((i) => (
+                      <div key={i} className="w-16 h-16 rounded-2xl bg-surface-2 shrink-0 border border-white/5 animate-pulse" />
+                    ))
+                  ) : recentGenerations.length > 0 ? (
+                    // Show actual recent generations
+                    recentGenerations.map((gen) => (
+                      <Link 
+                        key={gen.id} 
+                        href="/gallery"
+                        className="w-16 h-16 rounded-2xl bg-surface-2 shrink-0 border border-white/5 hover:border-primary/50 transition-colors cursor-pointer overflow-hidden"
+                      >
+                        {gen.file_url && (
+                          <img src={gen.file_url} alt="" className="w-full h-full object-cover" />
+                        )}
+                      </Link>
+                    ))
+                  ) : (
+                    // Empty state
+                    <div className="text-sm text-muted-foreground/50 italic">No creations yet. Start creating!</div>
+                  )}
+                  <div 
+                    onClick={() => setActiveView("create")}
+                    className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center shrink-0 text-muted-foreground hover:text-primary hover:border-primary transition-colors cursor-pointer"
+                  >
                       <Icon icon="ph:plus" />
                   </div>
                </div>
