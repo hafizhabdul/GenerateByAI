@@ -29,7 +29,10 @@
       "WebFetch(domain:useapi.net)",
       "WebFetch(domain:piapi.ai)",
       "WebFetch(domain:docs.aimlapi.com)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Skill(frontend-design)",
+      "WebFetch(domain:www.aura.build)",
+      "WebFetch(domain:vercel.com)"
     ]
   },
   "hooks": {
