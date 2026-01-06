@@ -13,6 +13,31 @@ import type { Generation } from "@/lib/supabase/types";
 
 type FilterType = "all" | "image" | "video";
 
+/**
+ * Get proxied video URL for videos from external CDNs (fal.ai)
+ * This solves CORS issues when playing videos in the browser
+ */
+function getProxiedVideoUrl(url: string | undefined | null): string | undefined {
+    if (!url) return undefined;
+    
+    // Check if URL is from fal.ai CDN - needs proxy
+    const falDomains = ["fal.media", "v3.fal.media", "fal.ai"];
+    try {
+        const urlObj = new URL(url);
+        const needsProxy = falDomains.some(domain => 
+            urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
+        );
+        
+        if (needsProxy) {
+            return `/api/video-proxy?url=${encodeURIComponent(url)}`;
+        }
+    } catch {
+        // Invalid URL, return as-is
+    }
+    
+    return url;
+}
+
 export default function GalleryPage() {
     const router = useRouter();
 
@@ -301,7 +326,7 @@ export default function GalleryPage() {
                                             <>
                                                 {item.type === "video" && item.file_url ? (
                                                     <video
-                                                        src={item.file_url}
+                                                        src={getProxiedVideoUrl(item.file_url)}
                                                         className="w-full h-full object-cover"
                                                         muted
                                                         loop
@@ -441,7 +466,7 @@ export default function GalleryPage() {
                                     <>
                                         {selectedItem.type === "video" && selectedItem.file_url ? (
                                             <video
-                                                src={selectedItem.file_url}
+                                                src={getProxiedVideoUrl(selectedItem.file_url)}
                                                 className="w-full h-64 md:h-[500px] object-contain"
                                                 controls
                                                 autoPlay

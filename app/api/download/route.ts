@@ -18,11 +18,14 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Validate URL is from our storage (security check - strict domain matching)
+        // Validate URL is from our storage or trusted providers (security check)
         const allowedDomains = [
             "supabase.co",
             "supabase.in",
             "storage.googleapis.com",
+            "fal.media",           // fal.ai CDN
+            "v3.fal.media",        // fal.ai v3 CDN
+            "fal.ai",              // fal.ai direct
         ];
         
         const urlObj = new URL(fileUrl);
@@ -37,6 +40,7 @@ export async function GET(req: Request) {
         }
         
         if (!isAllowed) {
+            console.log(`[Download] Blocked domain: ${urlObj.hostname}`);
             return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
         }
 

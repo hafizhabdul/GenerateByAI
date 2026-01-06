@@ -6,9 +6,11 @@ fal.config({
 });
 
 // Veo 3.1 model endpoints
+// Using fast variant for better pricing
+// Ref: https://fal.ai/models/fal-ai/veo3.1/fast/image-to-video/api
 const VEO_ENDPOINTS = {
-    textToVideo: "fal-ai/veo3",
-    imageToVideo: "fal-ai/veo3/image-to-video",
+    textToVideo: "fal-ai/veo3.1/fast",
+    imageToVideo: "fal-ai/veo3.1/fast/image-to-video",
 } as const;
 
 export interface VeoGenerateRequest {
@@ -49,16 +51,18 @@ export async function generateVeoVideo(
     
     try {
         // Build input based on endpoint type
+        // veo3.1/fast uses different parameter format
         const baseInput = {
             prompt,
-            duration: String(duration),
+            duration_seconds: duration, // number, not string
             aspect_ratio: aspectRatio,
-            enable_audio: enableAudio,
         };
         
         const input = imageUrl 
             ? { ...baseInput, image_url: imageUrl }
             : baseInput;
+        
+        console.log(`[fal.ai Veo 3.1] Input:`, JSON.stringify(input, null, 2));
         
         const result = await fal.subscribe(endpoint, {
             input: input as Parameters<typeof fal.subscribe>[1]["input"],
@@ -70,14 +74,18 @@ export async function generateVeoVideo(
             },
         });
         
-        console.log(`[fal.ai Veo 3.1] Generation complete:`, result);
+        console.log(`[fal.ai Veo 3.1] Generation complete - Full response:`, JSON.stringify(result.data, null, 2));
         
-        // Extract video URL from result
-        const videoUrl = (result.data as { video?: { url: string } })?.video?.url;
+        // Extract video URL from result - fal.ai veo3.1 returns video.url
+        const data = result.data as { video?: { url: string }; url?: string };
+        const videoUrl = data?.video?.url || data?.url;
         
         if (!videoUrl) {
+            console.error(`[fal.ai Veo 3.1] No video URL found in response:`, result.data);
             throw new Error("No video URL in response");
         }
+        
+        console.log(`[fal.ai Veo 3.1] Video URL:`, videoUrl);
         
         return {
             videoUrl,
@@ -85,7 +93,11 @@ export async function generateVeoVideo(
             hasAudio: enableAudio,
             requestId: result.requestId,
         };
-    } catch (error) {
+    } catch (error: unknown) {
+        // Log full error details for debugging
+        if (error && typeof error === 'object' && 'body' in error) {
+            console.error(`[fal.ai Veo 3.1] Error body:`, JSON.stringify((error as { body: unknown }).body, null, 2));
+        }
         console.error(`[fal.ai Veo 3.1] Error:`, error);
         throw error;
     }

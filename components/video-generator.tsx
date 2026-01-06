@@ -9,6 +9,31 @@ import { useAuth } from "@/lib/auth-context";
 
 type VideoTier = "standard" | "premium";
 
+/**
+ * Get proxied video URL for videos from external CDNs (fal.ai)
+ * This solves CORS issues when playing videos in the browser
+ */
+function getProxiedVideoUrl(url: string | undefined): string | undefined {
+    if (!url) return undefined;
+    
+    // Check if URL is from fal.ai CDN - needs proxy
+    const falDomains = ["fal.media", "v3.fal.media", "fal.ai"];
+    try {
+        const urlObj = new URL(url);
+        const needsProxy = falDomains.some(domain => 
+            urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
+        );
+        
+        if (needsProxy) {
+            return `/api/video-proxy?url=${encodeURIComponent(url)}`;
+        }
+    } catch {
+        // Invalid URL, return as-is
+    }
+    
+    return url;
+}
+
 type VideoFeedItem = {
     id: string;
     prompt: string;
@@ -796,7 +821,7 @@ export function VideoGenerator() {
     }, [user, showToast]);
 
     return (
-        <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
+        <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative">
             {/* Background Ambient Glow */}
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-primary/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
 
@@ -886,7 +911,7 @@ export function VideoGenerator() {
                                             <div>
                                                 <div className={cn("font-medium flex items-center gap-2", settings.tier === "premium" ? "text-primary" : "")}>
                                                     🎬 Premium
-                                                    <span className="px-1.5 py-0.5 text-[10px] bg-purple-600 text-white rounded-md">Veo 3.1</span>
+                                                    <span className="px-1.5 py-0.5 text-[10px] bg-primary text-white rounded-md">Veo 3.1</span>
                                                 </div>
                                                 <div className="text-xs text-muted-foreground mt-1">
                                                     Native audio • Cinematic quality • 100-160 tokens
@@ -1058,8 +1083,8 @@ export function VideoGenerator() {
 
                             {/* Premium Tier Info */}
                             {settings.tier === "premium" && (
-                            <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
-                                <div className="flex items-center gap-2 text-sm font-medium text-purple-400 mb-2">
+                            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                                <div className="flex items-center gap-2 text-sm font-medium text-primary mb-2">
                                     <Icon icon="mingcute:sparkles-fill" className="w-4 h-4" />
                                     Veo 3.1 Premium Features
                                 </div>
@@ -1097,7 +1122,7 @@ export function VideoGenerator() {
                 ref={scrollRef}
                 className={cn(
                     "flex-1 overflow-y-auto overflow-x-hidden scroll-smooth",
-                    isHero ? "flex items-center justify-center p-4" : "p-4 md:p-8 pb-72 md:pb-80"
+                    isHero ? "flex items-center justify-center p-4" : "p-4 md:p-8 pb-80 md:pb-96"
                 )}
             >
                 {/* Hero Content */}
@@ -1231,7 +1256,7 @@ export function VideoGenerator() {
                                 className={cn(
                                     "flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-all",
                                     settings.tier === "premium" 
-                                        ? "text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20" 
+                                        ? "text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20" 
                                         : "text-muted-foreground hover:text-foreground hover:bg-surface-2/50"
                                 )}
                             >
@@ -1455,7 +1480,7 @@ const VideoFeedCard = memo(function VideoFeedCard({
                         <Icon icon="mingcute:time-fill" className="w-3 h-3" />
                         {item.duration}s {item.tier !== "premium" && item.mode}
                         {item.tier === "premium" && (
-                            <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-purple-500/20 text-purple-400 rounded-md">
+                            <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-md">
                                 🎬 Veo 3.1
                             </span>
                         )}
@@ -1487,7 +1512,7 @@ const VideoFeedCard = memo(function VideoFeedCard({
                             <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/30">
                                 <video
                                     ref={videoRef}
-                                    src={item.videoUrl}
+                                    src={getProxiedVideoUrl(item.videoUrl)}
                                     className="w-full h-auto"
                                     loop
                                     muted={isMuted}
@@ -1543,7 +1568,7 @@ const VideoFeedCard = memo(function VideoFeedCard({
                                 )}
                                 {/* Show premium badge */}
                                 {item.tier === "premium" && (
-                                    <span className="flex items-center gap-1 text-xs text-purple-400 px-2 py-1">
+                                    <span className="flex items-center gap-1 text-xs text-primary px-2 py-1">
                                         <Icon icon="mingcute:volume-fill" className="w-3 h-3" />
                                         Audio included
                                     </span>
