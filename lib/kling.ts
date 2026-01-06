@@ -356,20 +356,21 @@ export function createKlingClient(): KlingClient {
 
 /**
  * Calculate token cost based on video duration and mode
- * Pricing calculated for 50% margin minimum
+ * ANTI-BONCOS PRICING - Updated for profitability
  * 
  * Kling API cost: ~$0.062/unit (5s std=5units, 5s pro=8units, 10s std=9units, 10s pro=14units)
- * 1 token = Rp 200, 1 USD = Rp 16.000
+ * 1 token = Rp 330 (based on Creator Pack: 1000 tokens = Rp 299.000)
+ * 1 USD = Rp 16.500
  * 
- * 5s std: $0.31 = Rp 4.960, sell 50 token = Rp 10.000, margin 50%
- * 5s pro: $0.50 = Rp 8.000, sell 80 token = Rp 16.000, margin 50%
- * 10s std: $0.56 = Rp 8.960, sell 90 token = Rp 18.000, margin 50%
- * 10s pro: $0.87 = Rp 13.920, sell 140 token = Rp 28.000, margin 50%
+ * 5s std: $0.31 = Rp 5.115, sell 25 token = Rp 8.250, margin 38%
+ * 5s pro: $0.50 = Rp 8.250, sell 45 token = Rp 14.850, margin 44%
+ * 10s std: $0.56 = Rp 9.240, sell 50 token = Rp 16.500, margin 44%
+ * 10s pro: $0.87 = Rp 14.355, sell 90 token = Rp 29.700, margin 52%
  */
 export function getVideoCost(duration: '5' | '10', mode: 'std' | 'pro'): number {
     const baseCosts = {
-        '5': { std: 50, pro: 80 },    // 5 second video
-        '10': { std: 90, pro: 140 },  // 10 second video
+        '5': { std: 25, pro: 45 },    // 5 second video
+        '10': { std: 50, pro: 90 },   // 10 second video
     };
 
     return baseCosts[duration][mode];
@@ -377,35 +378,37 @@ export function getVideoCost(duration: '5' | '10', mode: 'std' | 'pro'): number 
 
 /**
  * Calculate token cost for video extension
- * Extension adds 5 seconds (~$0.31 = Rp 4.960)
- * Sell 50 token = Rp 10.000, margin 50%
+ * Extension adds 5 seconds (~$0.31 = Rp 5.115)
+ * Sell 25 token = Rp 8.250, margin 38%
  */
 export function getExtendCost(): number {
-    return 50;
+    return 25;
 }
 
 /**
  * Calculate token cost for adding audio to video
- * Uses Video2Audio API (~$0.10 = Rp 1.600)
- * Sell 20 token = Rp 4.000, margin 60%
+ * Uses Video2Audio API (~$0.10 = Rp 1.650)
+ * Sell 10 token = Rp 3.300, margin 50%
  */
 export function getAudioCost(): number {
-    return 20;
+    return 10;
 }
 
 /**
  * Calculate token cost for Veo 3.1 Premium video generation
- * Always includes native audio
+ * Always includes native audio - HIGH MARGIN PREMIUM TIER
  * 
- * Veo API cost: ~$0.11/second with audio
- * 5s: $0.55 = Rp 8.800, sell 100 token = Rp 20.000, margin 56%
- * 8s: $0.88 = Rp 14.080, sell 160 token = Rp 32.000, margin 56%
+ * fal.ai Veo cost: ~$0.45/5s, ~$0.72/8s with audio
+ * 1 token = Rp 330, 1 USD = Rp 16.500
+ * 
+ * 5s: $0.45 = Rp 7.425, sell 250 token = Rp 82.500, margin 91%
+ * 8s: $0.72 = Rp 11.880, sell 400 token = Rp 132.000, margin 91%
  */
 export function getVeoPremiumCost(duration: '5' | '8' | '10'): number {
     const costs: Record<string, number> = {
-        '5': 100,   // Rp 8.800 cost, sell Rp 20.000
-        '8': 160,   // Rp 14.080 cost, sell Rp 32.000
-        '10': 200,  // Rp 17.600 cost, sell Rp 40.000
+        '5': 250,   // Premium 5s with audio
+        '8': 400,   // Premium 8s with audio
+        '10': 500,  // Premium 10s (if available)
     };
-    return costs[duration] || 100;
+    return costs[duration] || 250;
 }

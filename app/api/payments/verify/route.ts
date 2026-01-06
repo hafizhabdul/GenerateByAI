@@ -161,11 +161,12 @@ export async function POST(request: NextRequest) {
     const newTokenTotal = (profile.tokens_total || 0) + tokenPackage.tokens;
     
     // Determine plan based on package purchased
+    // Packages: starter (300), creator (1000), pro (4000)
     let newPlan = profile.plan || "free";
-    if (packageId === "business") {
-      newPlan = "business";
-    } else if (packageId === "pro" && newPlan !== "business") {
+    if (packageId === "pro") {
       newPlan = "pro";
+    } else if (packageId === "creator" && newPlan === "free") {
+      newPlan = "pro"; // Upgrade creator to pro tier access
     }
 
     // Update user's token balance and plan

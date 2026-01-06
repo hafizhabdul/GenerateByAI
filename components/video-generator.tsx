@@ -452,27 +452,28 @@ export function VideoGenerator() {
     // Calculate token cost based on tier
     // Standard (Kling): aligned with lib/kling.ts getVideoCost + getAudioCost
     // Premium (Veo 3.1): aligned with lib/fal.ts getVeoCost
+    // ANTI-BONCOS PRICING - Updated for profitability
     const getEstimatedCost = useCallback(() => {
         if (settings.tier === "premium") {
-            // Veo 3.1 costs (always with audio)
+            // Veo 3.1 costs (always with audio) - HIGH MARGIN
             const veoCosts: Record<string, number> = {
-                "5": 100,
-                "8": 160,
+                "5": 250,
+                "8": 400,
             };
-            return veoCosts[settings.duration] || 100;
+            return veoCosts[settings.duration] || 250;
         }
         
-        // Standard Kling costs (updated for profitability)
+        // Standard Kling costs (ANTI-BONCOS updated)
         // Note: Standard tier only supports "5" and "10" durations
         const baseCosts: Record<string, Record<string, number>> = {
-            '5': { std: 50, pro: 80 },
-            '10': { std: 90, pro: 140 },
+            '5': { std: 25, pro: 45 },
+            '10': { std: 50, pro: 90 },
         };
         
         // Fallback to "5" if duration is not valid for standard tier (e.g., "8" from premium)
         const duration = settings.duration === "8" ? "5" : settings.duration;
-        const videoCost = baseCosts[duration]?.[settings.mode] || 50;
-        const audioCost = settings.sound ? 20 : 0; // Audio via Video2Audio API
+        const videoCost = baseCosts[duration]?.[settings.mode] || 25;
+        const audioCost = settings.sound ? 10 : 0; // Audio via Video2Audio API
         return videoCost + audioCost;
     }, [settings]);
 

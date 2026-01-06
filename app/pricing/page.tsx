@@ -7,71 +7,48 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 
-// Token packages with IDR pricing
-// 1 token = Rp 200 base value
-// Image HD = 10 token = Rp 2.000
-// Video 5s std = 50 token = Rp 10.000
-// Video 5s pro = 80 token = Rp 16.000
-// Video Premium 5s = 100 token = Rp 20.000
+// Token packages with IDR pricing - ANTI-BONCOS PRICING
+// 1 token ~ $0.008 USD (Rp 128-130), margin target 50-60%
+// Image HD = 20 token, Video 5s std = 25 token, Veo 5s = 250 token
 const TOKEN_PACKAGES = [
     {
         id: "starter",
         name: "Starter Pack",
-        tokens: 150,
-        price: 25000,  // Rp 167/token - bonus 20%
-        description: "Cocok untuk mencoba",
+        tokens: 300,
+        price: 99000,  // Rp 330/token
+        description: "Cocok untuk trial",
         features: [
-            "150 Token",
+            "300 Token",
+            "~1x video Premium (Veo)",
+            "atau ~12x video Standard",
             "~15 gambar HD",
-            "~3 video 5 detik",
-            "Akses galeri",
         ],
         popular: false,
     },
     {
-        id: "basic",
-        name: "Basic Pack",
-        tokens: 500,
-        price: 79000,  // Rp 158/token - bonus 21%
-        description: "Untuk kreator pemula",
+        id: "creator",
+        name: "Creator Pack",
+        tokens: 1000,
+        price: 299000,  // Rp 299/token - best value
+        description: "Untuk kreator rutin",
         features: [
-            "500 Token",
+            "1.000 Token",
+            "~40x video Standard",
             "~50 gambar HD",
-            "~10 video 5 detik",
-            "Akses galeri",
-            "Download HD",
-        ],
-        popular: false,
-    },
-    {
-        id: "pro",
-        name: "Pro Pack",
-        tokens: 1500,
-        price: 199000,  // Rp 133/token - bonus 34%
-        description: "Pilihan terpopuler",
-        features: [
-            "1.500 Token",
-            "~150 gambar HD",
-            "~30 video 5 detik",
-            "Akses galeri",
-            "Download HD",
             "Priority queue",
         ],
         popular: true,
     },
     {
-        id: "business",
-        name: "Business Pack",
-        tokens: 5000,
-        price: 549000,  // Rp 110/token - bonus 45%
-        description: "Untuk profesional",
+        id: "pro",
+        name: "Pro Pack",
+        tokens: 4000,
+        price: 999000,  // Rp 250/token - volume discount
+        description: "Power user & agency",
         features: [
-            "5.000 Token",
-            "~500 gambar HD",
-            "~100 video 5 detik",
-            "Akses galeri",
-            "Download HD",
-            "Priority queue",
+            "4.000 Token",
+            "~160x video Standard",
+            "~200 gambar HD",
             "Commercial license",
         ],
         popular: false,
@@ -169,8 +146,8 @@ export default function PricingPage() {
                 </div>
             </div>
 
-            {/* Pricing Grid */}
-            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 max-w-6xl w-full px-4">
+            {/* Pricing Grid - 3 cards centered */}
+            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 max-w-4xl w-full px-4 mx-auto">
                 {TOKEN_PACKAGES.map((pkg, index) => (
                     <TokenPackageCard
                         key={pkg.id}
@@ -184,14 +161,14 @@ export default function PricingPage() {
             </div>
 
             {/* Token Usage Info */}
-            <div className="relative z-10 mt-12 md:mt-16 max-w-3xl w-full px-4">
+            <div className="relative z-10 mt-12 md:mt-16 max-w-4xl w-full px-4 mx-auto">
                 <h3 className="text-base md:text-lg font-medium text-foreground text-center mb-4 md:mb-6">Estimasi penggunaan token</h3>
-                <div className="grid grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
-                    <UsageInfo icon="mingcute:pic-fill" label="Gambar Standard" cost="10 token" />
-                    <UsageInfo icon="mingcute:image-fill" label="Gambar HD" cost="20 token" />
-                    <UsageInfo icon="mingcute:sparkles-fill" label="Gambar Ultra" cost="40 token" />
-                    <UsageInfo icon="mingcute:movie-fill" label="Video 5 detik" cost="100 token" />
-                    <UsageInfo icon="mingcute:volume-fill" label="+ AI Audio" cost="+50 token" />
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
+                    <UsageInfo icon="mingcute:pic-fill" label="Gambar" cost="20 token" />
+                    <UsageInfo icon="mingcute:movie-fill" label="Video Standard" cost="25 token" />
+                    <UsageInfo icon="mingcute:star-fill" label="Video Pro" cost="45 token" />
+                    <UsageInfo icon="mingcute:magic-2-fill" label="Video Premium" cost="250 token" />
+                    <UsageInfo icon="mingcute:volume-fill" label="+ AI Audio" cost="+10 token" />
                 </div>
             </div>
 

@@ -93,18 +93,23 @@ export async function generateVeoVideo(
 
 /**
  * Calculate token cost for Veo 3.1 video generation
- * Premium tier with native audio
+ * Premium tier with native audio - HIGH MARGIN TIER
+ * 
+ * fal.ai Veo cost: ~$0.45/5s, ~$0.72/8s with audio
+ * 1 token = Rp 330, 1 USD = Rp 16.500
+ * 
+ * 5s: $0.45 = Rp 7.425, sell 250 token = Rp 82.500, margin 91%
+ * 8s: $0.72 = Rp 11.880, sell 400 token = Rp 132.000, margin 91%
  */
 export function getVeoCost(duration: 5 | 8 | 10): number {
-    // Token costs based on duration
-    // ~$0.11/second with audio enabled
+    // Token costs based on duration - ANTI-BONCOS PRICING
     const costs: Record<number, number> = {
-        5: 100,   // ~Rp 8.800 cost, sell Rp 20.000
-        8: 160,   // ~Rp 14.000 cost, sell Rp 32.000
-        10: 200,  // ~Rp 17.600 cost, sell Rp 40.000
+        5: 250,   // Premium 5s with audio
+        8: 400,   // Premium 8s with audio
+        10: 500,  // Premium 10s (if available)
     };
     
-    return costs[duration] || 100;
+    return costs[duration] || 250;
 }
 
 /**

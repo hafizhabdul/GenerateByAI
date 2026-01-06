@@ -6,40 +6,32 @@
  * yang mendukung QRIS dan Virtual Account
  */
 
-// Token packages dengan harga IDR
-// 1 token = Rp 200 base, dengan discount untuk paket lebih besar
-// Cost: Image=Rp800, Video5s=Rp5000-8000, VideoVeo5s=Rp8800
-// Margin target: 50%+
+// Token packages dengan harga IDR - ANTI-BONCOS PRICING
+// Starter: 1 token = Rp 330 (99.000/300)
+// Creator: 1 token = Rp 299 (299.000/1000) - best seller
+// Pro: 1 token = Rp 250 (999.000/4000) - best value
 export const TOKEN_PACKAGES = {
   starter: {
     id: "starter",
     name: "Starter Pack",
-    tokens: 150,
-    price: 25000, // Rp 167/token - bonus 20% dari base Rp200
+    tokens: 300,
+    price: 99000, // Rp 330/token
     description: "Cocok untuk mencoba",
     popular: false,
   },
-  basic: {
-    id: "basic",
-    name: "Basic Pack",
-    tokens: 500,
-    price: 79000, // Rp 158/token - bonus 21%
-    description: "Untuk kreator pemula",
-    popular: false,
+  creator: {
+    id: "creator",
+    name: "Creator Pack",
+    tokens: 1000,
+    price: 299000, // Rp 299/token - 9% discount
+    description: "Pilihan terpopuler",
+    popular: true,
   },
   pro: {
     id: "pro",
     name: "Pro Pack",
-    tokens: 1500,
-    price: 199000, // Rp 133/token - bonus 34%
-    description: "Pilihan terpopuler",
-    popular: true,
-  },
-  business: {
-    id: "business",
-    name: "Business Pack",
-    tokens: 5000,
-    price: 549000, // Rp 110/token - bonus 45%
+    tokens: 4000,
+    price: 999000, // Rp 250/token - 24% discount
     description: "Untuk profesional",
     popular: false,
   },
