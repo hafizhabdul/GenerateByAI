@@ -139,7 +139,7 @@ export default function ProfilePage() {
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <Card variant="default" padding="sm">
                                 <CardContent className="flex flex-col items-center text-center p-4">
-                                    <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center text-violet-400 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-3">
                                         <Icon icon="mingcute:image-fill" className="w-5 h-5" />
                                     </div>
                                     <p className="text-2xl font-bold">{stats.imagesGenerated.toLocaleString()}</p>
@@ -148,7 +148,7 @@ export default function ProfilePage() {
                             </Card>
                             <Card variant="default" padding="sm">
                                 <CardContent className="flex flex-col items-center text-center p-4">
-                                    <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-400 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-3">
                                         <Icon icon="mingcute:video-fill" className="w-5 h-5" />
                                     </div>
                                     <p className="text-2xl font-bold">{stats.videosCreated}</p>
@@ -157,7 +157,7 @@ export default function ProfilePage() {
                             </Card>
                             <Card variant="default" padding="sm">
                                 <CardContent className="flex flex-col items-center text-center p-4">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center text-amber-400 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-3">
                                         <Icon icon="mingcute:flash-fill" className="w-5 h-5" />
                                     </div>
                                     <p className="text-2xl font-bold">{(stats.tokensUsed / 1000).toFixed(1)}K</p>
@@ -166,7 +166,7 @@ export default function ProfilePage() {
                             </Card>
                             <Card variant="default" padding="sm">
                                 <CardContent className="flex flex-col items-center text-center p-4">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mb-3">
+                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-3">
                                         <Icon icon="mingcute:flash-fill" className="w-5 h-5" />
                                     </div>
                                     <p className="text-2xl font-bold">{(stats.tokensRemaining / 1000).toFixed(1)}K</p>

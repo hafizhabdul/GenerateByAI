@@ -106,22 +106,22 @@ function HomeContent() {
               {/* Features Preview */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12">
                 <div className="p-6 rounded-2xl bg-surface-1 border border-border text-center hover:border-primary/30 transition-colors">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-violet-500/10 flex items-center justify-center">
-                    <Icon icon="mingcute:pic-fill" className="w-7 h-7 text-violet-400" />
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <Icon icon="mingcute:pic-fill" className="w-7 h-7 text-primary" />
                   </div>
                   <p className="font-bold text-lg">Generate Image</p>
                   <p className="text-sm text-muted-foreground mt-1">AI-powered image creation</p>
                 </div>
                 <div className="p-6 rounded-2xl bg-surface-1 border border-border text-center hover:border-primary/30 transition-colors">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-blue-500/10 flex items-center justify-center">
-                    <Icon icon="mingcute:movie-fill" className="w-7 h-7 text-blue-400" />
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <Icon icon="mingcute:movie-fill" className="w-7 h-7 text-primary" />
                   </div>
                   <p className="font-bold text-lg">Create Video</p>
                   <p className="text-sm text-muted-foreground mt-1">Turn images into videos</p>
                 </div>
                 <div className="p-6 rounded-2xl bg-surface-1 border border-border text-center hover:border-primary/30 transition-colors">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-amber-500/10 flex items-center justify-center">
-                    <Icon icon="mingcute:magic-2-fill" className="w-7 h-7 text-amber-400" />
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-primary/10 flex items-center justify-center">
+                    <Icon icon="mingcute:sparkles-2-fill" className="w-7 h-7 text-primary" />
                   </div>
                   <p className="font-bold text-lg">Premium Quality</p>
                   <p className="text-sm text-muted-foreground mt-1">Veo 3.1 with audio</p>

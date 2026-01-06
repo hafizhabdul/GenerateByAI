@@ -59,10 +59,10 @@ export default function DashboardPage() {
     };
 
     const statsData = [
-        { label: "Images Generated", value: stats?.imagesGenerated || 0, icon: "mingcute:image-fill", color: "text-violet-400" },
-        { label: "Videos Created", value: stats?.videosCreated || 0, icon: "mingcute:video-fill", color: "text-blue-400" },
-        { label: "Tokens Used", value: stats?.tokensUsed || 0, icon: "mingcute:flash-fill", color: "text-amber-400" },
-        { label: "Favorites", value: stats?.favorites || 0, icon: "mingcute:star-fill", color: "text-rose-400" },
+        { label: "Images Generated", value: stats?.imagesGenerated || 0, icon: "mingcute:image-fill", color: "text-primary" },
+        { label: "Videos Created", value: stats?.videosCreated || 0, icon: "mingcute:video-fill", color: "text-primary" },
+        { label: "Tokens Used", value: stats?.tokensUsed || 0, icon: "mingcute:flash-fill", color: "text-primary" },
+        { label: "Favorites", value: stats?.favorites || 0, icon: "mingcute:star-fill", color: "text-primary" },
     ];
 
     // Show welcome/landing page when not logged in
@@ -111,17 +111,17 @@ export default function DashboardPage() {
                             {/* Features Preview */}
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12">
                                 <div className="p-4 rounded-2xl bg-surface-1 border border-border text-center">
-                                    <Icon icon="mingcute:pic-fill" className="w-8 h-8 mx-auto mb-2 text-violet-400" />
+                                    <Icon icon="mingcute:pic-fill" className="w-8 h-8 mx-auto mb-2 text-primary" />
                                     <p className="font-medium">Generate Image</p>
                                     <p className="text-xs text-muted-foreground mt-1">AI-powered image creation</p>
                                 </div>
                                 <div className="p-4 rounded-2xl bg-surface-1 border border-border text-center">
-                                    <Icon icon="mingcute:movie-fill" className="w-8 h-8 mx-auto mb-2 text-blue-400" />
+                                    <Icon icon="mingcute:movie-fill" className="w-8 h-8 mx-auto mb-2 text-primary" />
                                     <p className="font-medium">Create Video</p>
                                     <p className="text-xs text-muted-foreground mt-1">Turn images into videos</p>
                                 </div>
                                 <div className="p-4 rounded-2xl bg-surface-1 border border-border text-center">
-                                    <Icon icon="mingcute:magic-2-fill" className="w-8 h-8 mx-auto mb-2 text-amber-400" />
+                                    <Icon icon="mingcute:sparkles-2-fill" className="w-8 h-8 mx-auto mb-2 text-primary" />
                                     <p className="font-medium">Premium Quality</p>
                                     <p className="text-xs text-muted-foreground mt-1">Veo 3.1 with audio</p>
                                 </div>
