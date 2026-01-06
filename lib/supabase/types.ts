@@ -53,7 +53,7 @@ export interface Database {
                     user_id: string;
                     type: 'image' | 'video';
                     prompt: string;
-                    file_url: string;
+                    file_url: string | null;
                     thumbnail_url: string | null;
                     file_size: number | null;
                     width: number | null;
@@ -64,6 +64,7 @@ export interface Database {
                     is_favorite: boolean;
                     created_at: string;
                     metadata: {
+                        taskId?: string;
                         duration?: string;
                         mode?: 'std' | 'pro';
                         aspectRatio?: string;
@@ -71,6 +72,10 @@ export interface Database {
                         sourceImage?: string | null;
                         klingVideoId?: string;
                         extendedFrom?: string;
+                        hasAudio?: boolean;
+                        audioTaskId?: string;
+                        videoCost?: number;
+                        audioCost?: number;
                     } | null;
                 };
                 Insert: {
@@ -78,7 +83,7 @@ export interface Database {
                     user_id: string;
                     type: 'image' | 'video';
                     prompt: string;
-                    file_url: string;
+                    file_url?: string | null;
                     thumbnail_url?: string | null;
                     file_size?: number | null;
                     width?: number | null;
@@ -95,7 +100,7 @@ export interface Database {
                     user_id?: string;
                     type?: 'image' | 'video';
                     prompt?: string;
-                    file_url?: string;
+                    file_url?: string | null;
                     thumbnail_url?: string | null;
                     file_size?: number | null;
                     width?: number | null;

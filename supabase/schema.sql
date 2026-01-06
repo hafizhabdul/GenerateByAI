@@ -59,7 +59,7 @@ CREATE TABLE generations (
     user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     type TEXT NOT NULL CHECK (type IN ('image', 'video')),
     prompt TEXT NOT NULL,
-    file_url TEXT NOT NULL,
+    file_url TEXT, -- nullable for pending video generations
     thumbnail_url TEXT,
     file_size INTEGER,
     width INTEGER,
@@ -68,6 +68,7 @@ CREATE TABLE generations (
     status TEXT DEFAULT 'completed' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
     tokens_used INTEGER DEFAULT 10,
     is_favorite BOOLEAN DEFAULT FALSE,
+    metadata JSONB DEFAULT NULL, -- flexible metadata storage for video settings, etc.
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -96,6 +97,7 @@ CREATE INDEX idx_generations_user_id ON generations(user_id);
 CREATE INDEX idx_generations_type ON generations(type);
 CREATE INDEX idx_generations_created_at ON generations(created_at DESC);
 CREATE INDEX idx_generations_is_favorite ON generations(is_favorite) WHERE is_favorite = TRUE;
+CREATE INDEX idx_generations_metadata ON generations USING GIN (metadata);
 
 -- ============================================
 -- PAYMENTS TABLE (Token Purchases)

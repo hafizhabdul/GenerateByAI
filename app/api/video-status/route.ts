@@ -215,22 +215,35 @@ export async function GET(req: NextRequest) {
             console.log(`[Video] Persisting video for task ${taskId}...`);
             const permanentUrl = await persistExternalVideo(finalVideoUrl, user.id);
 
-            // Update generation record
+            // Update generation record - preserve existing metadata
             if (generationId) {
+                // Get existing metadata first
+                const { data: existingGen } = await supabase
+                    .from("generations")
+                    .select("metadata")
+                    .eq("id", generationId)
+                    .eq("user_id", user.id)
+                    .single();
+
                 const adminClient = createAdminClient();
-                await adminClient
+                const { error: updateError } = await adminClient
                     .from("generations")
                     .update({
                         status: "completed",
                         file_url: permanentUrl,
                         metadata: {
+                            ...existingGen?.metadata,
                             klingVideoId: videoData.id,
                             duration: videoData.duration,
-                            hasAudio: finalVideoUrl !== videoData.url, // True if we used audio version
+                            hasAudio: finalVideoUrl !== videoData.url,
                         },
                     })
                     .eq("id", generationId)
                     .eq("user_id", user.id);
+
+                if (updateError) {
+                    console.error("[Video] Failed to update generation record:", updateError);
+                }
             }
 
             console.log(`[Video] Completed and persisted: ${taskId}`);

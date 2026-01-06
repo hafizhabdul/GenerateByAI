@@ -150,7 +150,7 @@ export function VideoGenerator() {
     const [sessionLoaded, setSessionLoaded] = useState(false);
     const [settings, setSettings] = useState<VideoSettings>({
         duration: "5",
-        mode: "std",
+        mode: "pro",
         aspectRatio: "16:9",
         sound: false, // Kling 2.6 native audio - off by default
     });

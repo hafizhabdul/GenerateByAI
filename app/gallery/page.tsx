@@ -34,6 +34,52 @@ export default function GalleryPage() {
         }
     }, [user]);
 
+    // Poll for processing videos to check their status
+    useEffect(() => {
+        const processingVideos = generations.filter(
+            g => g.type === "video" && g.status === "processing" && g.metadata?.taskId
+        );
+
+        if (processingVideos.length === 0) return;
+
+        const pollInterval = setInterval(async () => {
+            for (const video of processingVideos) {
+                try {
+                    const taskId = video.metadata?.taskId;
+                    if (!taskId) continue;
+
+                    const res = await fetch(
+                        `/api/video-status?taskId=${taskId}&generationId=${video.id}&type=${video.metadata?.sourceType || "image2video"}`
+                    );
+                    const data = await res.json();
+
+                    if (data.status === "completed" && data.url) {
+                        // Update local state with completed video
+                        setGenerations(prev =>
+                            prev.map(g =>
+                                g.id === video.id
+                                    ? { ...g, status: "completed" as const, file_url: data.url }
+                                    : g
+                            )
+                        );
+                    } else if (data.status === "failed") {
+                        setGenerations(prev =>
+                            prev.map(g =>
+                                g.id === video.id
+                                    ? { ...g, status: "failed" as const }
+                                    : g
+                            )
+                        );
+                    }
+                } catch (error) {
+                    console.error("Error polling video status:", error);
+                }
+            }
+        }, 5000); // Poll every 5 seconds
+
+        return () => clearInterval(pollInterval);
+    }, [generations]);
+
     const fetchGenerations = async () => {
         try {
             const res = await fetch("/api/generations");
@@ -123,6 +169,12 @@ export default function GalleryPage() {
 
     const imageCount = generations.filter(g => g.type === "image").length;
     const videoCount = generations.filter(g => g.type === "video").length;
+    const processingCount = generations.filter(g => g.status === "processing").length;
+
+    const handleRefresh = async () => {
+        setLoading(true);
+        await fetchGenerations();
+    };
 
     return (
         <div className="flex min-h-screen min-h-[100dvh] w-full bg-background text-foreground">
@@ -138,11 +190,22 @@ export default function GalleryPage() {
                             </h1>
                             <p className="text-muted-foreground text-xs md:text-sm">
                                 {loading ? "Loading..." : `${filteredItems.length} items (${imageCount} images, ${videoCount} videos)`}
+                                {processingCount > 0 && (
+                                    <span className="ml-2 text-primary">• {processingCount} generating</span>
+                                )}
                             </p>
                         </div>
 
-                        {/* View Toggle */}
+                        {/* View Toggle + Refresh */}
                         <div className="flex items-center gap-2">
+                            <button
+                                onClick={handleRefresh}
+                                disabled={loading}
+                                className="p-2 rounded-xl bg-surface-2 hover:bg-surface-3 transition-colors disabled:opacity-50"
+                                title="Refresh"
+                            >
+                                <Icon icon="mingcute:refresh-2-fill" className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+                            </button>
                             <div className="flex items-center p-1 bg-surface-2 rounded-xl">
                                 <button
                                     onClick={() => setView("grid")}
@@ -224,22 +287,40 @@ export default function GalleryPage() {
                                     onClick={() => setSelectedItem(item)}
                                 >
                                     <div className="relative aspect-square">
-                                        {item.type === "video" ? (
-                                            <video
-                                                src={item.file_url}
-                                                className="w-full h-full object-cover"
-                                                muted
-                                                loop
-                                                playsInline
-                                                onMouseEnter={(e) => e.currentTarget.play()}
-                                                onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
-                                            />
+                                        {item.status === "processing" ? (
+                                            <div className="w-full h-full flex flex-col items-center justify-center bg-surface-2 animate-pulse">
+                                                <Icon icon="mingcute:loading-fill" className="w-8 h-8 text-primary animate-spin mb-2" />
+                                                <span className="text-xs text-muted-foreground">Generating...</span>
+                                            </div>
+                                        ) : item.status === "failed" ? (
+                                            <div className="w-full h-full flex flex-col items-center justify-center bg-red-500/10 dark:bg-red-500/5">
+                                                <Icon icon="mingcute:alert-fill" className="w-8 h-8 text-red-500 mb-2" />
+                                                <span className="text-xs text-red-500">Failed</span>
+                                            </div>
                                         ) : (
-                                            <img
-                                                src={item.file_url}
-                                                alt={item.prompt}
-                                                className="w-full h-full object-cover"
-                                            />
+                                            <>
+                                                {item.type === "video" && item.file_url ? (
+                                                    <video
+                                                        src={item.file_url}
+                                                        className="w-full h-full object-cover"
+                                                        muted
+                                                        loop
+                                                        playsInline
+                                                        onMouseEnter={(e) => e.currentTarget.play()}
+                                                        onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
+                                                    />
+                                                ) : item.file_url ? (
+                                                    <img
+                                                        src={item.file_url}
+                                                        alt={item.prompt}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center bg-surface-2">
+                                                        <Icon icon="mingcute:file-unknown-fill" className="w-8 h-8 text-muted-foreground" />
+                                                    </div>
+                                                )}
+                                            </>
                                         )}
 
                                         {/* Type Badge */}
@@ -301,8 +382,8 @@ export default function GalleryPage() {
                             ) : (
                                 <>
                                     <div className="mb-6 md:mb-8">
-                                        <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-surface-2 flex items-center justify-center border border-border">
-                                            <Icon icon="mingcute:image-fill" className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground" />
+                                        <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-surface-1 flex items-center justify-center border border-border">
+                                            <Icon icon="mingcute:image-fill" className="w-12 h-12 md:w-16 md:h-16 text-primary/60" />
                                         </div>
                                     </div>
                                     <h3 className="font-semibold text-lg md:text-xl mb-2">Your gallery is empty</h3>
@@ -345,20 +426,39 @@ export default function GalleryPage() {
 
                         <div className="flex flex-col md:flex-row">
                             <div className="flex-1 bg-black">
-                                {selectedItem.type === "video" ? (
-                                    <video
-                                        src={selectedItem.file_url}
-                                        className="w-full h-64 md:h-[500px] object-contain"
-                                        controls
-                                        autoPlay
-                                        loop
-                                    />
+                                {selectedItem.status === "processing" ? (
+                                    <div className="w-full h-64 md:h-[500px] flex flex-col items-center justify-center text-white">
+                                        <Icon icon="mingcute:loading-fill" className="w-12 h-12 animate-spin mb-4" />
+                                        <p className="text-lg font-medium">Video is being generated...</p>
+                                        <p className="text-sm text-white/60">This may take a few minutes</p>
+                                    </div>
+                                ) : selectedItem.status === "failed" ? (
+                                    <div className="w-full h-64 md:h-[500px] flex flex-col items-center justify-center text-red-400">
+                                        <Icon icon="mingcute:alert-fill" className="w-12 h-12 mb-4" />
+                                        <p className="text-lg font-medium">Generation Failed</p>
+                                    </div>
                                 ) : (
-                                    <img
-                                        src={selectedItem.file_url}
-                                        alt={selectedItem.prompt}
-                                        className="w-full h-64 md:h-[500px] object-contain"
-                                    />
+                                    <>
+                                        {selectedItem.type === "video" && selectedItem.file_url ? (
+                                            <video
+                                                src={selectedItem.file_url}
+                                                className="w-full h-64 md:h-[500px] object-contain"
+                                                controls
+                                                autoPlay
+                                                loop
+                                            />
+                                        ) : selectedItem.file_url ? (
+                                            <img
+                                                src={selectedItem.file_url}
+                                                alt={selectedItem.prompt}
+                                                className="w-full h-64 md:h-[500px] object-contain"
+                                            />
+                                        ) : (
+                                            <div className="w-full h-64 md:h-[500px] flex items-center justify-center text-white/40">
+                                                <p>Media not available</p>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                             <div className="w-full md:w-80 p-4 md:p-6 space-y-3 md:space-y-4">

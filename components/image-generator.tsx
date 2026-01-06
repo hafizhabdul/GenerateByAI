@@ -219,7 +219,7 @@ export function ImageGenerator() {
     // Handle pending generation recovery - check database for completed result
     useEffect(() => {
         if (!pendingGenerationId || !user) return;
-        
+
         const checkPendingResult = async () => {
             try {
                 // Check if the generation completed in the database
@@ -227,7 +227,7 @@ export function ImageGenerator() {
                 if (res.ok) {
                     const data = await res.json();
                     const generations = data.generations || [];
-                    
+
                     // Find pending item in feed
                     const pendingItem = feed.find(item => item.id === pendingGenerationId);
                     if (!pendingItem) {
@@ -235,14 +235,14 @@ export function ImageGenerator() {
                         setPendingGenerationId(null);
                         return;
                     }
-                    
+
                     // Look for matching completed generation by prompt
-                    const matchedGeneration = generations.find((g: Generation) => 
-                        g.prompt === pendingItem.prompt && 
+                    const matchedGeneration = generations.find((g: Generation) =>
+                        g.prompt === pendingItem.prompt &&
                         g.status === "completed" &&
                         g.file_url
                     );
-                    
+
                     if (matchedGeneration) {
                         // Update feed with the result
                         setFeed(prev => prev.map(item =>
@@ -260,11 +260,11 @@ export function ImageGenerator() {
                 console.error("Error checking pending:", error);
             }
         };
-        
+
         // Poll every 3 seconds while there's a pending generation
         const interval = setInterval(checkPendingResult, 3000);
         checkPendingResult(); // Check immediately
-        
+
         return () => clearInterval(interval);
     }, [pendingGenerationId, user, feed]);
 
@@ -399,7 +399,7 @@ export function ImageGenerator() {
             id: item.id,
             type: item.type,
             prompt: item.prompt,
-            file_url: item.file_url,
+            file_url: item.file_url || undefined,
             status: item.status,
             created_at: item.created_at
         };
@@ -470,7 +470,13 @@ export function ImageGenerator() {
                                             className="w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3"
                                         >
                                             <div className="w-16 h-16 rounded-xl overflow-hidden bg-surface-2 shrink-0">
-                                                <img src={item.file_url} alt="" className="w-full h-full object-cover" />
+                                                {item.file_url ? (
+                                                    <img src={item.file_url} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center">
+                                                        <Icon icon="mingcute:pic-fill" className="text-muted-foreground w-6 h-6" />
+                                                    </div>
+                                                )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm line-clamp-2 mb-1">{item.prompt}</p>
@@ -533,7 +539,7 @@ export function ImageGenerator() {
                     ? "bottom-1/2 translate-y-[calc(50%+60px)] md:translate-y-[calc(50%+80px)]"
                     : "bottom-20 md:bottom-8"
             )}
-            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
                 <div className="w-full max-w-2xl mx-auto md:pl-24">
                     <div className="rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 flex flex-col gap-2 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 bg-surface-1 border border-border">
@@ -589,13 +595,13 @@ const FeedItemCard = memo(function FeedItemCard({ item }: { item: FeedItem }) {
         try {
             // Use our API endpoint to bypass CORS and handle download
             const downloadUrl = `/api/download?url=${encodeURIComponent(item.file_url)}`;
-            
+
             const response = await fetch(downloadUrl);
             if (!response.ok) {
                 const error = await response.json().catch(() => ({ error: "Download failed" }));
                 throw new Error(error.error || "Failed to download image");
             }
-            
+
             const blob = await response.blob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
@@ -652,10 +658,10 @@ const FeedItemCard = memo(function FeedItemCard({ item }: { item: FeedItem }) {
 
                             {/* Action Bar - Always visible */}
                             <div className="flex flex-wrap items-center gap-2 mt-3 p-2 bg-surface-2/50 rounded-xl border border-border/50">
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    onClick={handleDownload} 
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleDownload}
                                     disabled={isDownloading}
                                     className="flex-1 min-w-[100px] md:min-w-[120px]"
                                 >

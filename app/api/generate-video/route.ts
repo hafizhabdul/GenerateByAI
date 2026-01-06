@@ -150,7 +150,7 @@ export async function POST(req: Request) {
 
         // --- Save Record & Deduct Tokens ---
         const adminClient = createAdminClient();
-        await adminClient.from("generations").insert({
+        const { error: insertError } = await adminClient.from("generations").insert({
             user_id: user.id,
             type: "video",
             prompt: prompt,
@@ -169,6 +169,12 @@ export async function POST(req: Request) {
                 audioCost,
             },
         });
+
+        if (insertError) {
+            console.error("[Video] Failed to save generation record:", insertError);
+            // Don't fail the request - video was generated successfully
+            // Just log the error and continue
+        }
 
         await commitCharge();
 
