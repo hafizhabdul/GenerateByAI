@@ -18,11 +18,23 @@ export default function SettingsPage() {
 
     useEffect(() => {
         setMounted(true);
+        // Load saved settings
         const savedQuality = localStorage.getItem("generation_quality");
         if (savedQuality) setQuality(savedQuality as any);
+
+        const savedNotifications = localStorage.getItem("notifications_enabled");
+        if (savedNotifications !== null) {
+            setNotifications(savedNotifications === "true");
+        }
     }, []);
 
     if (!mounted) return null;
+
+    const handleNotificationToggle = (newValue: boolean) => {
+        setNotifications(newValue);
+        localStorage.setItem("notifications_enabled", String(newValue));
+        showToast(newValue ? "Notifications enabled" : "Notifications disabled", "success");
+    };
 
     const handleSave = () => {
         localStorage.setItem("generation_quality", quality);
@@ -109,7 +121,7 @@ export default function SettingsPage() {
                                 <button
                                     key={option.value}
                                     onClick={() => setQuality(option.value as typeof quality)}
-                                    className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${quality === option.value
+                                    className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${quality === option.value
                                         ? "border-primary bg-primary/5"
                                         : "border-border hover:border-border-hover"
                                         }`}
@@ -139,7 +151,7 @@ export default function SettingsPage() {
                                     <CardDescription>Get notified when generations complete</CardDescription>
                                 </div>
                                 <button
-                                    onClick={() => setNotifications(!notifications)}
+                                    onClick={() => handleNotificationToggle(!notifications)}
                                     className={`w-12 h-7 rounded-full transition-colors relative ${notifications ? "bg-primary" : "bg-surface-3"
                                         }`}
                                 >
@@ -148,30 +160,6 @@ export default function SettingsPage() {
                                 </button>
                             </div>
                         </CardHeader>
-                    </Card>
-
-                    {/* Security */}
-                    <Card variant="glass">
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                    <Icon icon="mingcute:shield-fill" className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <CardTitle>Security</CardTitle>
-                                    <CardDescription>Manage your security settings</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-4 space-y-3">
-                            <button className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:border-border-hover transition-colors">
-                                <div className="flex items-center gap-3">
-                                    <Icon icon="mingcute:key-2-fill" className="w-5 h-5 text-muted-foreground" />
-                                    <span>API Key Configuration</span>
-                                </div>
-                                <Icon icon="mingcute:right-fill" className="w-5 h-5 text-muted-foreground" />
-                            </button>
-                        </CardContent>
                     </Card>
 
                     {/* Save Button */}
@@ -185,3 +173,4 @@ export default function SettingsPage() {
         </div>
     );
 }
+

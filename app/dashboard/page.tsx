@@ -17,9 +17,9 @@ interface Stats {
 }
 
 const quickActions = [
-    { label: "Generate Image", href: "/?view=create", icon: "mingcute:image-fill", color: "from-violet-500 to-purple-600" },
-    { label: "Create Video", href: "/videos", icon: "mingcute:video-fill", color: "from-blue-500 to-cyan-600" },
-    { label: "View Gallery", href: "/gallery", icon: "mingcute:star-fill", color: "from-amber-500 to-orange-600" },
+    { label: "Generate Image", href: "/?view=create", icon: "mingcute:image-fill", color: "bg-violet-500" },
+    { label: "Create Video", href: "/videos", icon: "mingcute:video-fill", color: "bg-blue-500" },
+    { label: "View Gallery", href: "/gallery", icon: "mingcute:star-fill", color: "bg-amber-500" },
 ];
 
 export default function DashboardPage() {
@@ -73,7 +73,7 @@ export default function DashboardPage() {
                 <div className="container-fluid py-6 md:py-10 space-y-8">
                     {/* Header */}
                     <div className="space-y-2">
-                        <h1 className="font-bold tracking-tight gradient-text" style={{ fontSize: "var(--text-4xl)" }}>
+                        <h1 className="font-bold tracking-tight text-foreground" style={{ fontSize: "var(--text-4xl)" }}>
                             Dashboard
                         </h1>
                         <p className="text-muted-foreground" style={{ fontSize: "var(--text-base)" }}>
@@ -120,7 +120,7 @@ export default function DashboardPage() {
                                         </div>
                                         <div className="h-3 rounded-full bg-surface-2 overflow-hidden">
                                             <div
-                                                className="h-full rounded-full bg-gradient-to-r from-primary to-purple-500 transition-all duration-500"
+                                                className="h-full rounded-full bg-primary transition-all duration-500"
                                                 style={{
                                                     width: `${(stats.tokensUsed / (stats.tokensUsed + stats.tokensRemaining)) * 100}%`
                                                 }}
@@ -138,7 +138,7 @@ export default function DashboardPage() {
                                         <Link key={action.label} href={action.href}>
                                             <Card variant="default" hover className="group overflow-hidden">
                                                 <CardContent className="p-6 flex items-center gap-4">
-                                                    <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
+                                                    <div className={`w-12 h-12 rounded-2xl ${action.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
                                                         <Icon icon={action.icon} className="w-6 h-6 text-white" />
                                                     </div>
                                                     <div>

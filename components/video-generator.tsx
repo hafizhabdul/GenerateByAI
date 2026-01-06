@@ -986,7 +986,7 @@ export function VideoGenerator() {
                 )}
             </div>
 
-            {/* Floating Input Bar */}
+            {/* Floating Input Bar - Elegant Premium Design */}
             <div
                 className={cn(
                     "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
@@ -997,79 +997,102 @@ export function VideoGenerator() {
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
                 <div className="w-full max-w-2xl mx-auto md:pl-24">
-                    <div className="rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 flex flex-col gap-3 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 bg-surface-1 border border-border">
-                        {/* Image Preview - Only show for image2video mode */}
+                    {/* Main Container - Clean & Minimal */}
+                    <div className="relative rounded-2xl md:rounded-3xl bg-card/95 backdrop-blur-xl border border-border/50 shadow-[0_4px_24px_rgba(0,0,0,0.12)] overflow-hidden transition-shadow duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.16)]">
+
+                        {/* Top Bar - Mode & Settings */}
+                        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border/30">
+                            {/* Mode Toggle - Elegant Underline Style */}
+                            <div className="flex items-center gap-6">
+                                <button
+                                    onClick={() => setGenerationMode("text2video")}
+                                    className={cn(
+                                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors",
+                                        generationMode === "text2video"
+                                            ? "text-foreground"
+                                            : "text-muted-foreground hover:text-foreground/70"
+                                    )}
+                                >
+                                    <Icon icon="mingcute:text-fill" className="w-4 h-4" />
+                                    <span>Text to Video</span>
+                                    {generationMode === "text2video" && (
+                                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setGenerationMode("image2video")}
+                                    className={cn(
+                                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors",
+                                        generationMode === "image2video"
+                                            ? "text-foreground"
+                                            : "text-muted-foreground hover:text-foreground/70"
+                                    )}
+                                >
+                                    <Icon icon="mingcute:image-fill" className="w-4 h-4" />
+                                    <span>Image to Video</span>
+                                    {generationMode === "image2video" && (
+                                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                                    )}
+                                </button>
+                            </div>
+
+                            {/* Settings - Minimal Chip */}
+                            <button
+                                onClick={() => setShowSettings(true)}
+                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-surface-2/50 transition-all"
+                            >
+                                <Icon icon="mingcute:settings-3-line" className="w-3.5 h-3.5" />
+                                <span className="font-medium">{settings.duration}s · {settings.mode === "pro" ? "Pro" : "Standard"}</span>
+                            </button>
+                        </div>
+
+                        {/* Image Preview - Clean Card */}
                         {generationMode === "image2video" && imagePreview && (
-                            <div className="relative mx-3 mt-1">
-                                <div className="relative w-32 h-32 rounded-xl overflow-hidden border border-border">
-                                    <img
-                                        src={imagePreview}
-                                        alt="Product"
-                                        className="w-full h-full object-cover"
-                                    />
+                            <div className="px-5 pt-4">
+                                <div className="relative group/img w-fit">
+                                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden border border-border/50 shadow-sm">
+                                        <img
+                                            src={imagePreview}
+                                            alt="Source"
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
                                     <button
                                         onClick={removeImage}
-                                        className="absolute top-1 right-1 p-1.5 rounded-full bg-black/60 hover:bg-black/80 transition-colors"
+                                        className="absolute -top-2 -right-2 p-1.5 rounded-full bg-card border border-border shadow-sm hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-950 dark:hover:border-red-800 transition-all opacity-0 group-hover/img:opacity-100"
                                     >
-                                        <Icon icon="mingcute:close-fill" className="w-3 h-3" />
+                                        <Icon icon="mingcute:close-line" className="w-3 h-3 text-muted-foreground hover:text-red-500" />
                                     </button>
                                 </div>
                             </div>
                         )}
 
-                        {/* Prompt Input */}
-                        <textarea
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder={
-                                generationMode === "text2video"
-                                    ? "Describe your video scene in detail... (e.g., 'Cinematic shot of a luxury perfume bottle rotating slowly on a marble surface, golden hour lighting, soft reflections, particles floating in the air')"
-                                    : imagePreview
-                                        ? "Describe the motion you want... (e.g., 'Slow zoom in with gentle rotation, soft lighting transitions, particles floating around the product')"
-                                        : "Upload your image first, then describe the motion..."
-                            }
-                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none px-4 md:px-6 py-2 min-h-[50px] max-h-[100px] resize-none placeholder:text-muted-foreground/70 text-foreground"
-                            style={{ fontSize: "var(--text-base)" }}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleGenerate();
+                        {/* Prompt Input - Clean & Spacious */}
+                        <div className="px-5 py-4">
+                            <textarea
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder={
+                                    generationMode === "text2video"
+                                        ? "Describe the video you want to create..."
+                                        : imagePreview
+                                            ? "Describe how you want the image to move..."
+                                            : "Upload an image first..."
                                 }
-                            }}
-                        />
+                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none min-h-[56px] max-h-[120px] resize-none placeholder:text-muted-foreground/40 text-foreground text-[15px] leading-relaxed"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleGenerate();
+                                    }
+                                }}
+                            />
+                        </div>
 
-                        {/* Bottom Controls */}
-                        <div className="flex items-center justify-between px-2 md:px-4 pb-1 gap-2">
-                            <div className="flex items-center gap-2">
-                                {/* Mode Toggle (compact) */}
-                                <div className="flex items-center p-1 bg-surface-2 rounded-lg border border-border">
-                                    <button
-                                        onClick={() => setGenerationMode("text2video")}
-                                        className={cn(
-                                            "p-2 rounded-lg transition-all",
-                                            generationMode === "text2video"
-                                                ? "bg-primary text-white"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
-                                        )}
-                                        title="Text to Video"
-                                    >
-                                        <Icon icon="mingcute:text-fill" className="w-4 h-4" />
-                                    </button>
-                                    <button
-                                        onClick={() => setGenerationMode("image2video")}
-                                        className={cn(
-                                            "p-2 rounded-lg transition-all",
-                                            generationMode === "image2video"
-                                                ? "bg-primary text-white"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
-                                        )}
-                                        title="Image to Video"
-                                    >
-                                        <Icon icon="mingcute:image-fill" className="w-4 h-4" />
-                                    </button>
-                                </div>
-
-                                {/* Upload Button - Only show for image2video mode */}
+                        {/* Bottom Bar - Actions */}
+                        <div className="flex items-center justify-between px-5 pb-4 pt-1">
+                            <div className="flex items-center gap-3">
+                                {/* Upload Button */}
                                 <input
                                     ref={fileInputRef}
                                     type="file"
@@ -1081,71 +1104,70 @@ export function VideoGenerator() {
                                     <button
                                         onClick={() => fileInputRef.current?.click()}
                                         className={cn(
-                                            "p-2.5 rounded-xl transition-colors flex items-center gap-2",
+                                            "flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-all",
                                             imagePreview
-                                                ? "text-primary bg-primary/10"
-                                                : "text-muted-foreground hover:text-foreground hover:bg-surface-2"
+                                                ? "text-primary border-primary/30 bg-primary/5"
+                                                : "text-muted-foreground border-border/50 hover:border-border hover:text-foreground"
                                         )}
                                     >
-                                        <Icon icon="mingcute:image-fill" className="w-5 h-5" />
-                                        <span className="text-sm hidden sm:inline">
-                                            {imagePreview ? "Change" : "Upload"}
-                                        </span>
+                                        <Icon icon={imagePreview ? "mingcute:check-line" : "mingcute:upload-3-line"} className="w-4 h-4" />
+                                        <span className="hidden sm:inline font-medium">{imagePreview ? "Uploaded" : "Upload Image"}</span>
                                     </button>
                                 )}
-
-                                {/* Settings Button */}
-                                <button
-                                    onClick={() => setShowSettings(true)}
-                                    className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors flex items-center gap-2"
-                                >
-                                    <Icon icon="mingcute:settings-3-fill" className="w-5 h-5" />
-                                    <span className="text-xs hidden sm:inline">
-                                        {settings.duration}s {settings.mode}
-                                    </span>
-                                </button>
                             </div>
 
-                            {/* Cost Badge & Generate */}
-                            <div className="flex items-center gap-3">
-                                <div className="text-xs text-muted-foreground hidden sm:block">
-                                    <span className="text-primary font-medium">{getEstimatedCost()}</span> tokens
-                                </div>
-                                <Button
+                            <div className="flex items-center gap-4">
+                                {/* Token Cost - Subtle */}
+                                <span className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
+                                    <Icon icon="mingcute:token-line" className="w-3.5 h-3.5" />
+                                    <span className="font-medium">{getEstimatedCost()} tokens</span>
+                                </span>
+
+                                {/* Generate Button - Solid & Refined */}
+                                <button
                                     onClick={handleGenerate}
                                     disabled={loading || !prompt.trim() || (generationMode === "image2video" && !imagePreview)}
-                                    loading={loading}
-                                    size="md"
-                                    className="rounded-xl"
+                                    className={cn(
+                                        "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
+                                        loading || !prompt.trim() || (generationMode === "image2video" && !imagePreview)
+                                            ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                            : "bg-foreground text-background hover:opacity-90 active:scale-[0.98] shadow-sm"
+                                    )}
                                 >
-                                    {!loading && <Icon icon="mingcute:movie-fill" className="w-4 h-4" />}
-                                    <span className="hidden sm:inline ml-1">Generate</span>
-                                </Button>
+                                    {loading ? (
+                                        <Icon icon="mingcute:loading-line" className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <Icon icon="mingcute:sparkles-2-line" className="w-4 h-4" />
+                                    )}
+                                    <span>{loading ? "Creating..." : "Generate"}</span>
+                                </button>
                             </div>
                         </div>
 
-                        {/* Quick Prompt Suggestions */}
+                        {/* Suggestions - Minimal Pills */}
                         {!prompt && (
-                            <div className="px-3 pb-2 flex flex-wrap gap-2">
-                                {(generationMode === "image2video" ? [
-                                    "Slow elegant rotation with studio lighting",
-                                    "Cinematic zoom in with floating particles",
-                                    "Gentle orbit with soft shadow transitions",
-                                    "Dynamic reveal with light rays",
-                                ] : [
-                                    "Luxury perfume bottle rotating on marble, golden hour",
-                                    "Coffee cup with steam rising, cozy morning light",
-                                    "Tech gadget floating in space with neon glow",
-                                    "Nature landscape with cinematic drone movement",
-                                ]).map((suggestion, i) => (
-                                    <button
-                                        key={i}
-                                        onClick={() => setPrompt(suggestion)}
-                                        className="text-xs px-3 py-1.5 rounded-full bg-surface-2 hover:bg-primary/20 hover:text-primary border border-border transition-colors truncate max-w-[200px]"
-                                    >
-                                        {suggestion}
-                                    </button>
-                                ))}
+                            <div className="px-5 pb-4 pt-2 border-t border-border/20">
+                                <div className="flex flex-wrap gap-2">
+                                    {(generationMode === "image2video" ? [
+                                        "Slow rotation with soft lighting",
+                                        "Gentle zoom with particles",
+                                        "Cinematic orbit",
+                                        "Light reveal effect",
+                                    ] : [
+                                        "Perfume bottle on marble surface",
+                                        "Coffee with rising steam",
+                                        "Floating tech product",
+                                        "Cinematic landscape",
+                                    ]).map((suggestion, i) => (
+                                        <button
+                                            key={i}
+                                            onClick={() => setPrompt(suggestion)}
+                                            className="px-3 py-1.5 text-xs text-muted-foreground bg-surface-2/50 hover:bg-surface-2 hover:text-foreground rounded-lg border border-transparent hover:border-border/50 transition-all"
+                                        >
+                                            {suggestion}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>

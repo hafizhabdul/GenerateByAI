@@ -133,7 +133,7 @@ export default function GalleryPage() {
                     {/* Header */}
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 md:gap-4">
                         <div className="space-y-1">
-                            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight gradient-text">
+                            <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
                                 Gallery
                             </h1>
                             <p className="text-muted-foreground text-xs md:text-sm">
@@ -251,7 +251,7 @@ export default function GalleryPage() {
                                         )}
 
                                         {/* Hover Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3 md:p-4">
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3 md:p-4">
                                             <p className="text-white text-xs md:text-sm line-clamp-2 mb-2">{item.prompt}</p>
                                             <div className="flex items-center justify-between">
                                                 <span className="text-white/60 text-[10px] md:text-xs">
@@ -300,12 +300,10 @@ export default function GalleryPage() {
                                 </>
                             ) : (
                                 <>
-                                    <div className="relative mb-6 md:mb-8">
-                                        <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-gradient-to-br from-primary/20 to-violet-500/20 flex items-center justify-center border border-primary/20">
-                                            <Icon icon="mingcute:sparkles-fill" className="w-12 h-12 md:w-16 md:h-16 text-primary" />
+                                    <div className="mb-6 md:mb-8">
+                                        <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-surface-2 flex items-center justify-center border border-border">
+                                            <Icon icon="mingcute:image-fill" className="w-12 h-12 md:w-16 md:h-16 text-muted-foreground" />
                                         </div>
-                                        <div className="absolute -top-2 -right-2 w-6 h-6 md:w-8 md:h-8 rounded-full bg-violet-500/30 animate-pulse" />
-                                        <div className="absolute -bottom-3 -left-3 w-5 h-5 md:w-6 md:h-6 rounded-full bg-primary/40 animate-pulse delay-300" />
                                     </div>
                                     <h3 className="font-semibold text-lg md:text-xl mb-2">Your gallery is empty</h3>
                                     <p className="text-muted-foreground text-xs md:text-sm mb-6 md:mb-8 max-w-sm">
