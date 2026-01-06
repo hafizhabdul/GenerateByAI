@@ -10,9 +10,12 @@ const envSchema = z.object({
   SUMOPOD_API_KEY: z.string().min(1, "Sumopod API key is required"),
   SUMOPOD_BASE_URL: z.string().url().default("https://ai.sumopod.com/v1"),
 
-  // Kling AI (optional, required for video generation)
+  // Kling AI (optional, required for standard video generation)
   KLING_AI_ACCESS_KEY: z.string().optional(),
   KLING_AI_SECRET_KEY: z.string().optional(),
+
+  // fal.ai (optional, required for premium video generation with Veo 3.1)
+  FAL_KEY: z.string().optional(),
 
   // Pakasir Payment (optional, required for payments)
   PAKASIR_SLUG: z.string().optional(),

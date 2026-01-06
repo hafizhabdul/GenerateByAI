@@ -6,13 +6,16 @@
  * yang mendukung QRIS dan Virtual Account
  */
 
-// Token packages dengan harga IDR (margin 40-60% profit)
+// Token packages dengan harga IDR
+// 1 token = Rp 200 base, dengan discount untuk paket lebih besar
+// Cost: Image=Rp800, Video5s=Rp5000-8000, VideoVeo5s=Rp8800
+// Margin target: 50%+
 export const TOKEN_PACKAGES = {
   starter: {
     id: "starter",
     name: "Starter Pack",
-    tokens: 100,
-    price: 29000, // IDR - bisa buat ~10 gambar atau 1 video 5 detik
+    tokens: 150,
+    price: 25000, // Rp 167/token - bonus 20% dari base Rp200
     description: "Cocok untuk mencoba",
     popular: false,
   },
@@ -20,7 +23,7 @@ export const TOKEN_PACKAGES = {
     id: "basic",
     name: "Basic Pack",
     tokens: 500,
-    price: 119000, // IDR - bisa buat ~50 gambar atau 5 video
+    price: 79000, // Rp 158/token - bonus 21%
     description: "Untuk kreator pemula",
     popular: false,
   },
@@ -28,7 +31,7 @@ export const TOKEN_PACKAGES = {
     id: "pro",
     name: "Pro Pack",
     tokens: 1500,
-    price: 299000, // IDR - bisa buat ~150 gambar atau 15 video
+    price: 199000, // Rp 133/token - bonus 34%
     description: "Pilihan terpopuler",
     popular: true,
   },
@@ -36,7 +39,7 @@ export const TOKEN_PACKAGES = {
     id: "business",
     name: "Business Pack",
     tokens: 5000,
-    price: 899000, // IDR - bisa buat ~500 gambar atau 50 video
+    price: 549000, // Rp 110/token - bonus 45%
     description: "Untuk profesional",
     popular: false,
   },

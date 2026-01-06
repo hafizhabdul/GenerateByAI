@@ -7,6 +7,8 @@ import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 
+type VideoTier = "standard" | "premium";
+
 type VideoFeedItem = {
     id: string;
     prompt: string;
@@ -21,13 +23,16 @@ type VideoFeedItem = {
     sourceType?: "image2video" | "text2video";
     taskId?: string; // Kling task ID for polling
     generationId?: string; // Database generation ID
+    tier?: VideoTier; // standard (Kling) or premium (Veo 3.1)
+    provider?: string; // kling or fal-veo-3.1
 };
 
 type VideoSettings = {
-    duration: "5" | "10";
+    duration: "5" | "8" | "10"; // 5/10 for standard (Kling), 5/8 for premium (Veo 3.1)
     mode: "std" | "pro";
     aspectRatio: "16:9" | "9:16" | "1:1";
     sound: boolean; // Kling 2.6 native audio
+    tier: VideoTier; // standard (Kling) or premium (Veo 3.1)
 };
 
 type GenerationMode = "image2video" | "text2video";
@@ -153,6 +158,7 @@ export function VideoGenerator() {
         mode: "pro",
         aspectRatio: "16:9",
         sound: false, // Kling 2.6 native audio - off by default
+        tier: "standard", // Default to Kling (standard tier)
     });
 
     const { showToast } = useToast();
@@ -443,14 +449,30 @@ export function VideoGenerator() {
         }
     };
 
-    // Calculate token cost (aligned with lib/kling.ts getVideoCost + getAudioCost)
+    // Calculate token cost based on tier
+    // Standard (Kling): aligned with lib/kling.ts getVideoCost + getAudioCost
+    // Premium (Veo 3.1): aligned with lib/fal.ts getVeoCost
     const getEstimatedCost = useCallback(() => {
-        const baseCosts = {
-            '5': { std: 100, pro: 120 },
-            '10': { std: 180, pro: 220 },
+        if (settings.tier === "premium") {
+            // Veo 3.1 costs (always with audio)
+            const veoCosts: Record<string, number> = {
+                "5": 100,
+                "8": 160,
+            };
+            return veoCosts[settings.duration] || 100;
+        }
+        
+        // Standard Kling costs (updated for profitability)
+        // Note: Standard tier only supports "5" and "10" durations
+        const baseCosts: Record<string, Record<string, number>> = {
+            '5': { std: 50, pro: 80 },
+            '10': { std: 90, pro: 140 },
         };
-        const videoCost = baseCosts[settings.duration][settings.mode];
-        const audioCost = settings.sound ? 50 : 0; // Audio via Video2Audio API
+        
+        // Fallback to "5" if duration is not valid for standard tier (e.g., "8" from premium)
+        const duration = settings.duration === "8" ? "5" : settings.duration;
+        const videoCost = baseCosts[duration]?.[settings.mode] || 50;
+        const audioCost = settings.sound ? 20 : 0; // Audio via Video2Audio API
         return videoCost + audioCost;
     }, [settings]);
 
@@ -550,6 +572,8 @@ export function VideoGenerator() {
             mode: settings.mode,
             created_at: new Date().toISOString(),
             sourceType: currentMode,
+            tier: settings.tier,
+            provider: settings.tier === "premium" ? "fal-veo-3.1" : "kling",
         };
 
         setFeed((prev) => {
@@ -585,41 +609,86 @@ export function VideoGenerator() {
                 return updated;
             });
 
-            // Start async video generation (returns immediately with taskId)
-            const res = await fetch("/api/video-start", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    imageUrl,
-                    prompt: currentPrompt,
-                    mode: settings.mode,
-                    duration: settings.duration,
-                    aspectRatio: settings.aspectRatio,
-                    type: currentMode,
-                    sound: settings.sound,
-                }),
-            });
+            // Use different endpoint based on tier
+            if (settings.tier === "premium") {
+                // Premium tier: Use Veo 3.1 via fal.ai (synchronous)
+                const res = await fetch("/api/generate-video-premium", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        imageUrl,
+                        prompt: currentPrompt,
+                        duration: settings.duration,
+                        aspectRatio: settings.aspectRatio,
+                        type: currentMode,
+                    }),
+                });
 
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Video generation failed");
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Premium video generation failed");
 
-            // Update with taskId for polling - video is now generating in background
-            setFeed((prev) => {
-                const updated = prev.map((item) =>
-                    item.id === tempId
-                        ? {
-                            ...item,
-                            status: "processing" as const,
-                            taskId: data.taskId,
-                            generationId: data.generationId,
-                        }
-                        : item
-                );
-                if (user) savePendingVideos(user.id, updated);
-                return updated;
-            });
+                // Premium generation is synchronous - update with result immediately
+                setFeed((prev) => {
+                    const updated = prev.map((item) =>
+                        item.id === tempId
+                            ? {
+                                ...item,
+                                status: "completed" as const,
+                                videoUrl: data.videoUrl,
+                                generationId: data.generation?.id,
+                                tier: "premium" as const,
+                                provider: "fal-veo-3.1",
+                                canExtend: false, // Veo videos cannot be extended
+                            }
+                            : item
+                    );
+                    if (user) savePendingVideos(user.id, updated);
+                    return updated;
+                });
 
-            showToast("🚀 Video generation started! You can navigate away - we'll keep generating.", "success");
+                showToast("🎬 Premium video generated with native audio!", "success");
+                
+                // Refresh profile to update token balance
+                if (refreshProfile) refreshProfile();
+            } else {
+                // Standard tier: Use Kling (async with polling)
+                const res = await fetch("/api/video-start", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        imageUrl,
+                        prompt: currentPrompt,
+                        mode: settings.mode,
+                        duration: settings.duration,
+                        aspectRatio: settings.aspectRatio,
+                        type: currentMode,
+                        sound: settings.sound,
+                    }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Video generation failed");
+
+                // Update with taskId for polling - video is now generating in background
+                setFeed((prev) => {
+                    const updated = prev.map((item) =>
+                        item.id === tempId
+                            ? {
+                                ...item,
+                                status: "processing" as const,
+                                taskId: data.taskId,
+                                generationId: data.generationId,
+                                tier: "standard" as const,
+                                provider: "kling",
+                            }
+                            : item
+                    );
+                    if (user) savePendingVideos(user.id, updated);
+                    return updated;
+                });
+
+                showToast("🚀 Video generation started! You can navigate away - we'll keep generating.", "success");
+            }
 
         } catch (err) {
             console.error(err);
@@ -769,28 +838,120 @@ export function VideoGenerator() {
                         </div>
 
                         <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                            {/* Video Tier Selection */}
+                            <div className="space-y-3">
+                                <label className="text-sm font-medium flex items-center gap-2">
+                                    <Icon icon="mingcute:video-fill" className="w-4 h-4 text-primary" />
+                                    Video Tier
+                                </label>
+                                <div className="grid grid-cols-1 gap-2">
+                                    <button
+                                        onClick={() => setSettings((s) => ({ ...s, tier: "standard", duration: "5", sound: false }))}
+                                        className={cn(
+                                            "p-4 rounded-xl border transition-all text-left",
+                                            settings.tier === "standard"
+                                                ? "border-primary bg-primary/10"
+                                                : "border-border hover:border-border-hover"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className={cn("font-medium flex items-center gap-2", settings.tier === "standard" ? "text-primary" : "")}>
+                                                    ⚡ Standard
+                                                    <span className="px-1.5 py-0.5 text-[10px] bg-surface-3 rounded-md">Kling</span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground mt-1">
+                                                    No audio • Can extend video • 50-140 tokens
+                                                </div>
+                                            </div>
+                                            <div className={cn(
+                                                "w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center",
+                                                settings.tier === "standard" ? "border-primary bg-primary" : "border-muted-foreground"
+                                            )}>
+                                                {settings.tier === "standard" && <Icon icon="mingcute:check-fill" className="w-3 h-3 text-white" />}
+                                            </div>
+                                        </div>
+                                    </button>
+                                    <button
+                                        onClick={() => setSettings((s) => ({ ...s, tier: "premium", duration: "5", sound: true }))}
+                                        className={cn(
+                                            "p-4 rounded-xl border transition-all text-left",
+                                            settings.tier === "premium"
+                                                ? "border-primary bg-primary/10"
+                                                : "border-border hover:border-border-hover"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className={cn("font-medium flex items-center gap-2", settings.tier === "premium" ? "text-primary" : "")}>
+                                                    🎬 Premium
+                                                    <span className="px-1.5 py-0.5 text-[10px] bg-purple-600 text-white rounded-md">Veo 3.1</span>
+                                                </div>
+                                                <div className="text-xs text-muted-foreground mt-1">
+                                                    Native audio • Cinematic quality • 100-160 tokens
+                                                </div>
+                                                <div className="text-xs text-green-500 mt-1 flex items-center gap-1">
+                                                    <Icon icon="mingcute:volume-fill" className="w-3 h-3" />
+                                                    Includes voice, SFX, ambient sounds
+                                                </div>
+                                            </div>
+                                            <div className={cn(
+                                                "w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center",
+                                                settings.tier === "premium" ? "border-primary bg-primary" : "border-muted-foreground"
+                                            )}>
+                                                {settings.tier === "premium" && <Icon icon="mingcute:check-fill" className="w-3 h-3 text-white" />}
+                                            </div>
+                                        </div>
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* Duration */}
                             <div className="space-y-3">
                                 <label className="text-sm font-medium">Duration</label>
                                 <div className="grid grid-cols-2 gap-2">
-                                    {(["5", "10"] as const).map((d) => (
-                                        <button
-                                            key={d}
-                                            onClick={() => setSettings((s) => ({ ...s, duration: d }))}
-                                            className={cn(
-                                                "p-3 rounded-xl border transition-all text-center",
-                                                settings.duration === d
-                                                    ? "border-primary bg-primary/10 text-primary"
-                                                    : "border-border hover:border-border-hover"
-                                            )}
-                                        >
-                                            {d} seconds
-                                        </button>
-                                    ))}
+                                    {settings.tier === "premium" ? (
+                                        // Premium (Veo 3.1): 5s or 8s
+                                        <>
+                                            {(["5", "8"] as const).map((d) => (
+                                                <button
+                                                    key={d}
+                                                    onClick={() => setSettings((s) => ({ ...s, duration: d as "5" | "10" }))}
+                                                    className={cn(
+                                                        "p-3 rounded-xl border transition-all text-center",
+                                                        settings.duration === d
+                                                            ? "border-primary bg-primary/10 text-primary"
+                                                            : "border-border hover:border-border-hover"
+                                                    )}
+                                                >
+                                                    {d} seconds
+                                                </button>
+                                            ))}
+                                        </>
+                                    ) : (
+                                        // Standard (Kling): 5s or 10s
+                                        <>
+                                            {(["5", "10"] as const).map((d) => (
+                                                <button
+                                                    key={d}
+                                                    onClick={() => setSettings((s) => ({ ...s, duration: d }))}
+                                                    className={cn(
+                                                        "p-3 rounded-xl border transition-all text-center",
+                                                        settings.duration === d
+                                                            ? "border-primary bg-primary/10 text-primary"
+                                                            : "border-border hover:border-border-hover"
+                                                    )}
+                                                >
+                                                    {d} seconds
+                                                </button>
+                                            ))}
+                                        </>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Quality Mode */}
+                            {/* Quality Mode - Only for Standard tier */}
+                            {settings.tier === "standard" && (
                             <div className="space-y-3">
                                 <label className="text-sm font-medium">Quality</label>
                                 <div className="grid grid-cols-2 gap-2">
@@ -820,6 +981,7 @@ export function VideoGenerator() {
                                     </button>
                                 </div>
                             </div>
+                            )}
 
                             {/* Aspect Ratio */}
                             <div className="space-y-3">
@@ -845,7 +1007,8 @@ export function VideoGenerator() {
                                 </p>
                             </div>
 
-                            {/* AI Audio Generation */}
+                            {/* AI Audio Generation - Only for Standard tier */}
+                            {settings.tier === "standard" && (
                             <div className="space-y-3">
                                 <label className="text-sm font-medium flex items-center gap-2">
                                     <Icon icon="mingcute:volume-fill" className="w-4 h-4 text-primary" />
@@ -886,10 +1049,35 @@ export function VideoGenerator() {
                                 {settings.sound && (
                                     <p className="text-xs text-primary/80 flex items-center gap-1">
                                         <Icon icon="mingcute:information-fill" className="w-3 h-3" />
-                                        Audio menambah +50 token
+                                        Audio menambah +20 token
                                     </p>
                                 )}
                             </div>
+                            )}
+
+                            {/* Premium Tier Info */}
+                            {settings.tier === "premium" && (
+                            <div className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20">
+                                <div className="flex items-center gap-2 text-sm font-medium text-purple-400 mb-2">
+                                    <Icon icon="mingcute:sparkles-fill" className="w-4 h-4" />
+                                    Veo 3.1 Premium Features
+                                </div>
+                                <ul className="text-xs text-muted-foreground space-y-1">
+                                    <li className="flex items-center gap-2">
+                                        <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
+                                        Native audio (voice, SFX, ambient) included
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
+                                        40-60% better frame consistency
+                                    </li>
+                                    <li className="flex items-center gap-2">
+                                        <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
+                                        Cinematic quality from Google DeepMind
+                                    </li>
+                                </ul>
+                            </div>
+                            )}
 
                             {/* Cost Estimate */}
                             <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
@@ -1039,10 +1227,20 @@ export function VideoGenerator() {
                             {/* Settings - Minimal Chip */}
                             <button
                                 onClick={() => setShowSettings(true)}
-                                className="flex items-center gap-2 px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground rounded-lg hover:bg-surface-2/50 transition-all"
+                                className={cn(
+                                    "flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-all",
+                                    settings.tier === "premium" 
+                                        ? "text-purple-400 hover:text-purple-300 bg-purple-500/10 hover:bg-purple-500/20" 
+                                        : "text-muted-foreground hover:text-foreground hover:bg-surface-2/50"
+                                )}
                             >
                                 <Icon icon="mingcute:settings-3-line" className="w-3.5 h-3.5" />
-                                <span className="font-medium">{settings.duration}s · {settings.mode === "pro" ? "Pro" : "Standard"}</span>
+                                <span className="font-medium">
+                                    {settings.tier === "premium" 
+                                        ? `🎬 Premium · ${settings.duration}s`
+                                        : `${settings.duration}s · ${settings.mode === "pro" ? "Pro" : "Std"}`
+                                    }
+                                </span>
                             </button>
                         </div>
 
@@ -1254,7 +1452,17 @@ const VideoFeedCard = memo(function VideoFeedCard({
                     <p className="text-foreground/90 leading-relaxed">{item.prompt}</p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                         <Icon icon="mingcute:time-fill" className="w-3 h-3" />
-                        {item.duration}s {item.mode}
+                        {item.duration}s {item.tier !== "premium" && item.mode}
+                        {item.tier === "premium" && (
+                            <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-purple-500/20 text-purple-400 rounded-md">
+                                🎬 Veo 3.1
+                            </span>
+                        )}
+                        {item.tier !== "premium" && (
+                            <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-surface-3 text-muted-foreground rounded-md">
+                                Kling
+                            </span>
+                        )}
                     </div>
                 </div>
             </div>
@@ -1320,7 +1528,8 @@ const VideoFeedCard = memo(function VideoFeedCard({
                                     <Icon icon={isDownloading ? "mingcute:loading-fill" : "mingcute:download-2-fill"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
                                     {isDownloading ? "Downloading..." : "Download"}
                                 </Button>
-                                {item.canExtend && (
+                                {/* Extend only available for standard (Kling) videos */}
+                                {item.canExtend && item.tier !== "premium" && (
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -1330,6 +1539,13 @@ const VideoFeedCard = memo(function VideoFeedCard({
                                         <Icon icon={isExtending ? "mingcute:loading-fill" : "mingcute:refresh-2-fill"} className={cn("w-4 h-4 mr-2", isExtending && "animate-spin")} />
                                         {isExtending ? "Extending..." : "Extend +5s"}
                                     </Button>
+                                )}
+                                {/* Show premium badge */}
+                                {item.tier === "premium" && (
+                                    <span className="flex items-center gap-1 text-xs text-purple-400 px-2 py-1">
+                                        <Icon icon="mingcute:volume-fill" className="w-3 h-3" />
+                                        Audio included
+                                    </span>
                                 )}
                             </div>
                         </div>

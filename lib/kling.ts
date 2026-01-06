@@ -356,13 +356,20 @@ export function createKlingClient(): KlingClient {
 
 /**
  * Calculate token cost based on video duration and mode
- * Audio is charged separately via getAudioCost()
+ * Pricing calculated for 50% margin minimum
+ * 
+ * Kling API cost: ~$0.062/unit (5s std=5units, 5s pro=8units, 10s std=9units, 10s pro=14units)
+ * 1 token = Rp 200, 1 USD = Rp 16.000
+ * 
+ * 5s std: $0.31 = Rp 4.960, sell 50 token = Rp 10.000, margin 50%
+ * 5s pro: $0.50 = Rp 8.000, sell 80 token = Rp 16.000, margin 50%
+ * 10s std: $0.56 = Rp 8.960, sell 90 token = Rp 18.000, margin 50%
+ * 10s pro: $0.87 = Rp 13.920, sell 140 token = Rp 28.000, margin 50%
  */
 export function getVideoCost(duration: '5' | '10', mode: 'std' | 'pro'): number {
-    // Base costs in app tokens
     const baseCosts = {
-        '5': { std: 100, pro: 120 },   // 5 second video
-        '10': { std: 180, pro: 220 },  // 10 second video
+        '5': { std: 50, pro: 80 },    // 5 second video
+        '10': { std: 90, pro: 140 },  // 10 second video
     };
 
     return baseCosts[duration][mode];
@@ -370,16 +377,35 @@ export function getVideoCost(duration: '5' | '10', mode: 'std' | 'pro'): number 
 
 /**
  * Calculate token cost for video extension
- * Extension adds 5 seconds
+ * Extension adds 5 seconds (~$0.31 = Rp 4.960)
+ * Sell 50 token = Rp 10.000, margin 50%
  */
 export function getExtendCost(): number {
-    return 80; // Fixed cost for extending video by 5 seconds
+    return 50;
 }
 
 /**
  * Calculate token cost for adding audio to video
- * Uses Video2Audio API (separate from video generation)
+ * Uses Video2Audio API (~$0.10 = Rp 1.600)
+ * Sell 20 token = Rp 4.000, margin 60%
  */
 export function getAudioCost(): number {
-    return 50; // Fixed cost for adding audio to video (3-20 seconds)
+    return 20;
+}
+
+/**
+ * Calculate token cost for Veo 3.1 Premium video generation
+ * Always includes native audio
+ * 
+ * Veo API cost: ~$0.11/second with audio
+ * 5s: $0.55 = Rp 8.800, sell 100 token = Rp 20.000, margin 56%
+ * 8s: $0.88 = Rp 14.080, sell 160 token = Rp 32.000, margin 56%
+ */
+export function getVeoPremiumCost(duration: '5' | '8' | '10'): number {
+    const costs: Record<string, number> = {
+        '5': 100,   // Rp 8.800 cost, sell Rp 20.000
+        '8': 160,   // Rp 14.080 cost, sell Rp 32.000
+        '10': 200,  // Rp 17.600 cost, sell Rp 40.000
+    };
+    return costs[duration] || 100;
 }

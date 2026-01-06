@@ -8,17 +8,22 @@ import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
 
 // Token packages with IDR pricing
+// 1 token = Rp 200 base value
+// Image HD = 10 token = Rp 2.000
+// Video 5s std = 50 token = Rp 10.000
+// Video 5s pro = 80 token = Rp 16.000
+// Video Premium 5s = 100 token = Rp 20.000
 const TOKEN_PACKAGES = [
     {
         id: "starter",
         name: "Starter Pack",
-        tokens: 100,
-        price: 29000,
+        tokens: 150,
+        price: 25000,  // Rp 167/token - bonus 20%
         description: "Cocok untuk mencoba",
         features: [
-            "100 Token",
-            "~10 gambar HD",
-            "~1 video 5 detik",
+            "150 Token",
+            "~15 gambar HD",
+            "~3 video 5 detik",
             "Akses galeri",
         ],
         popular: false,
@@ -27,12 +32,12 @@ const TOKEN_PACKAGES = [
         id: "basic",
         name: "Basic Pack",
         tokens: 500,
-        price: 119000,
+        price: 79000,  // Rp 158/token - bonus 21%
         description: "Untuk kreator pemula",
         features: [
             "500 Token",
             "~50 gambar HD",
-            "~5 video 5 detik",
+            "~10 video 5 detik",
             "Akses galeri",
             "Download HD",
         ],
@@ -42,12 +47,12 @@ const TOKEN_PACKAGES = [
         id: "pro",
         name: "Pro Pack",
         tokens: 1500,
-        price: 299000,
+        price: 199000,  // Rp 133/token - bonus 34%
         description: "Pilihan terpopuler",
         features: [
             "1.500 Token",
             "~150 gambar HD",
-            "~15 video 5 detik",
+            "~30 video 5 detik",
             "Akses galeri",
             "Download HD",
             "Priority queue",
@@ -58,12 +63,12 @@ const TOKEN_PACKAGES = [
         id: "business",
         name: "Business Pack",
         tokens: 5000,
-        price: 899000,
+        price: 549000,  // Rp 110/token - bonus 45%
         description: "Untuk profesional",
         features: [
             "5.000 Token",
             "~500 gambar HD",
-            "~50 video 5 detik",
+            "~100 video 5 detik",
             "Akses galeri",
             "Download HD",
             "Priority queue",

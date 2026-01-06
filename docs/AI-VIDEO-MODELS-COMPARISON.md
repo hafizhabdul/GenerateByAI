@@ -4,24 +4,63 @@
 
 ---
 
+## ⚠️ PENTING: Status API Availability
+
+| Model | Web App | API Available | Audio via API | Extend via API |
+|-------|---------|---------------|---------------|----------------|
+| Kling AI v1.5 | ✅ | ✅ `kling-v1-5` | ✅ Video-to-Audio | ✅ |
+| Kling AI v2.6 | ✅ | ❌ Belum tersedia | ❌ | ❌ |
+| Hailuo/MiniMax | ✅ | ✅ via AIML API | ❌ | ❌ |
+| Google Veo 3 | ✅ | ✅ Flow API | ✅ Native | ❌ |
+| Runway Gen-4 | ✅ | ✅ | ❌ | ❌ |
+| Sora 2 | ✅ | ❌ | ✅ Native | ❌ |
+| Luma Ray2 | ✅ | ✅ | ❌ | ❌ |
+
+---
+
 ## Ringkasan Eksekutif
 
 | Model | Harga Mulai | Max Durasi | Audio | Resolusi | Commercial Use |
 |-------|-------------|------------|-------|----------|----------------|
-| **Kling AI** | $9.79 (trial) | 10 detik | Ya (TTS, V2A) | 1080p | Ya |
-| **Runway Gen-4** | $12/bulan | ~10 detik | Tidak | 4K | Ya (dari Pro) |
-| **Pika Labs** | $8/bulan | 25 detik | Tidak | 1080p | Ya |
-| **Luma AI Ray3** | $7.99/bulan | 10 detik | Tidak | 4K | Ya (dari Plus) |
-| **Hailuo AI** | $14.99/bulan | 10 detik | Ya (TTS, VO) | 1080p-4K | Ya |
-| **Google Veo 3** | $19.99/bulan | 60 detik | **Ya (native)** | 1080p | Ya |
-| **OpenAI Sora 2** | $200/bulan (Pro) | 20 detik | **Ya (native)** | 1080p | Ya |
-| **Synthesia** | $18/bulan | Unlimited* | Ya (TTS) | 1080p | Ya |
+| **Kling AI v1.5** | $9.79 (trial) | 10 detik | Ya (V2A API) | 1080p | Ya |
+| **Hailuo 2.3** | ~$0.28/video | 6 detik | ❌ | 1080p | Ya |
+| **Runway Gen-4** | $12/bulan | ~10 detik | ❌ | 4K | Ya (dari Pro) |
+| **Luma Ray2** | $9.99/bulan | 10 detik | ❌ | 4K | Ya |
+| **Google Veo 3** | $19.99/bulan | 8 detik | **✅ Native** | 1080p | Ya (watermark) |
+| **OpenAI Sora 2** | $200/bulan (Pro) | 20 detik | **✅ Native** | 1080p | Ya |
+| **Dreamina** | Free tier | 5 detik | ✅ | 1080p | Ya |
 
-*Synthesia: Avatar-based, credit-limited per bulan
+---
+
+## 🎯 REKOMENDASI: Alternatif Veo 3.1 dengan Audio + Extend
+
+### Pilihan Terbaik untuk API dengan Audio:
+
+| Ranking | Model | Audio | Extend | Harga/Video | Catatan |
+|---------|-------|-------|--------|-------------|---------|
+| 1️⃣ | **Kling v1.5 + V2A** | ✅ Video-to-Audio | ✅ | ~$0.50 | **SUDAH DIPAKAI** - Best value |
+| 2️⃣ | **Hailuo 2.3 via AIML** | ❌ | ❌ | ~$0.28 | Kualitas bagus, tanpa audio |
+| 3️⃣ | **Veo 3 Fast** | ✅ Native | ❌ | ~$1.50 | Mahal tapi audio terbaik |
+| 4️⃣ | **Dreamina** | ✅ | ❌ | Free tier | ByteDance, masih beta |
+
+### Kesimpulan:
+**Kling AI v1.5 yang Anda gunakan adalah pilihan TERBAIK** untuk kombinasi:
+- ✅ API tersedia & stabil
+- ✅ Audio via Video-to-Audio API  
+- ✅ Video Extend support
+- ✅ Harga 3x lebih murah dari Veo 3
 
 ---
 
 ## 1. Kling AI (by Kuaishou)
+
+### ⚠️ API Model Availability
+
+| Model | Status API | Fitur |
+|-------|------------|-------|
+| `kling-v1-5` | ✅ Tersedia | Image2Video, Text2Video, Extend, V2A |
+| `kling-v2-0` | ❌ Belum | - |
+| `kling-v2-6` | ❌ Belum | Native audio di web app saja |
 
 ### Pricing Plans
 
@@ -62,18 +101,6 @@
 - **Aspect Ratio**: 16:9, 9:16, 1:1
 - **Audio**: Ya (Text-to-Audio, Video-to-Audio)
 - **API**: Ya (JWT Authentication)
-- **API Domain**: `https://api-singapore.klingai.com`
-
-### Kelebihan
-- Harga sangat kompetitif untuk kualitas yang ditawarkan
-- Fitur lengkap termasuk audio generation
-- API tersedia dengan dokumentasi baik
-- Trial package murah untuk testing
-
-### Kekurangan
-- Durasi maksimal hanya 10 detik per generation
-- Antrian bisa lama saat peak hours
-- Berbasis di China (latency untuk region lain)
 
 ---
 
