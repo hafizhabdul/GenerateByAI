@@ -23,7 +23,7 @@ const quickActions = [
 ];
 
 export default function DashboardPage() {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
     const [stats, setStats] = useState<Stats | null>(null);
     const [recentActivity, setRecentActivity] = useState<Generation[]>([]);
     const [loading, setLoading] = useState(true);
@@ -64,6 +64,74 @@ export default function DashboardPage() {
         { label: "Tokens Used", value: stats?.tokensUsed || 0, icon: "mingcute:flash-fill", color: "text-amber-400" },
         { label: "Favorites", value: stats?.favorites || 0, icon: "mingcute:star-fill", color: "text-rose-400" },
     ];
+
+    // Show welcome/landing page when not logged in
+    if (!authLoading && !user) {
+        return (
+            <div className="flex min-h-screen min-h-[100dvh] w-full bg-background text-foreground">
+                <Sidebar />
+                <main className="flex-1 pl-0 md:pl-28 pb-20 md:pb-0">
+                    <div className="container-fluid py-6 md:py-10 flex flex-col items-center justify-center min-h-[80vh]">
+                        {/* Welcome Hero */}
+                        <div className="text-center space-y-6 max-w-2xl mx-auto px-4">
+                            <div className="w-20 h-20 mx-auto mb-4 rounded-3xl bg-primary/10 flex items-center justify-center">
+                                <Icon icon="mingcute:sparkles-2-fill" className="w-10 h-10 text-primary" />
+                            </div>
+                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
+                                Selamat datang di <span className="text-primary">SquirrAI</span>
+                            </h1>
+                            <p className="text-muted-foreground text-base md:text-lg max-w-md mx-auto">
+                                Platform AI untuk generate gambar dan video berkualitas tinggi. Login untuk mulai berkreasi!
+                            </p>
+                            
+                            {/* CTA Buttons */}
+                            <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
+                                <Link href="/login">
+                                    <button className="w-full sm:w-auto px-8 py-3 rounded-xl bg-primary text-white font-medium hover:opacity-90 transition-all flex items-center justify-center gap-2">
+                                        <Icon icon="mingcute:login-fill" className="w-5 h-5" />
+                                        Login
+                                    </button>
+                                </Link>
+                                <Link href="/register">
+                                    <button className="w-full sm:w-auto px-8 py-3 rounded-xl bg-surface-2 border border-border text-foreground font-medium hover:bg-surface-3 transition-all flex items-center justify-center gap-2">
+                                        <Icon icon="mingcute:user-add-fill" className="w-5 h-5" />
+                                        Daftar Gratis
+                                    </button>
+                                </Link>
+                            </div>
+
+                            {/* Free Credits Banner */}
+                            <div className="mt-8 p-4 rounded-2xl bg-green-500/10 border border-green-500/20">
+                                <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+                                    <Icon icon="mingcute:gift-fill" className="w-5 h-5" />
+                                    <span className="font-medium">Daftar sekarang & dapatkan 100 token GRATIS!</span>
+                                </div>
+                            </div>
+
+                            {/* Features Preview */}
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12">
+                                <div className="p-4 rounded-2xl bg-surface-1 border border-border text-center">
+                                    <Icon icon="mingcute:pic-fill" className="w-8 h-8 mx-auto mb-2 text-violet-400" />
+                                    <p className="font-medium">Generate Image</p>
+                                    <p className="text-xs text-muted-foreground mt-1">AI-powered image creation</p>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-surface-1 border border-border text-center">
+                                    <Icon icon="mingcute:movie-fill" className="w-8 h-8 mx-auto mb-2 text-blue-400" />
+                                    <p className="font-medium">Create Video</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Turn images into videos</p>
+                                </div>
+                                <div className="p-4 rounded-2xl bg-surface-1 border border-border text-center">
+                                    <Icon icon="mingcute:magic-2-fill" className="w-8 h-8 mx-auto mb-2 text-amber-400" />
+                                    <p className="font-medium">Premium Quality</p>
+                                    <p className="text-xs text-muted-foreground mt-1">Veo 3.1 with audio</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="flex min-h-screen min-h-[100dvh] w-full bg-background text-foreground">

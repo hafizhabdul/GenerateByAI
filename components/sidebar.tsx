@@ -53,7 +53,7 @@ export function Sidebar() {
                 {/* Bottom Actions - Grouped Minimalist */}
                 <div className="w-full flex flex-col items-center gap-4 pb-1">
 
-                    {/* Minimalist Credit Ring */}
+                    {/* Minimalist Credit Ring - Show only when logged in */}
                     {!loading && profile && (
                         <div className="group relative w-11 h-11 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform">
                             {/* Ring */}
@@ -93,6 +93,22 @@ export function Sidebar() {
                         </div>
                     )}
 
+                    {/* Login Prompt - Show when not logged in */}
+                    {!loading && !profile && (
+                        <Link
+                            href="/login"
+                            className="group relative w-11 h-11 flex items-center justify-center rounded-xl bg-primary/10 hover:bg-primary/20 text-primary hover:scale-105 transition-all"
+                        >
+                            <Icon icon="mingcute:user-add-fill" className="w-5 h-5" />
+                            
+                            {/* Floating Tooltip */}
+                            <div className="absolute left-full ml-5 px-3 py-2 bg-surface-2 border border-border rounded-xl shadow-xl opacity-0 translate-x-[-10px] invisible group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none w-max z-[400]">
+                                <div className="text-sm font-bold text-foreground mb-0.5">Login</div>
+                                <div className="text-xs text-muted-foreground">Sign in to start</div>
+                            </div>
+                        </Link>
+                    )}
+
                     {/* Settings / Profile */}
                     <NavItem
                         href="/settings"
@@ -130,10 +146,17 @@ export function Sidebar() {
                                 <span className="text-[10px] font-medium">{item.label}</span>
                             </Link>
                         ))}
-                        <Link href="/pricing" className="p-3 rounded-xl text-amber-500 bg-amber-500/10 flex flex-col items-center gap-1">
-                            <Icon icon="mingcute:vip-2-fill" className="w-5 h-5" />
-                            <span className="text-[10px] font-medium">Pro</span>
-                        </Link>
+                        {profile ? (
+                            <Link href="/pricing" className="p-3 rounded-xl text-amber-500 bg-amber-500/10 flex flex-col items-center gap-1">
+                                <Icon icon="mingcute:vip-2-fill" className="w-5 h-5" />
+                                <span className="text-[10px] font-medium">Pro</span>
+                            </Link>
+                        ) : (
+                            <Link href="/login" className="p-3 rounded-xl text-primary bg-primary/10 flex flex-col items-center gap-1">
+                                <Icon icon="mingcute:user-add-fill" className="w-5 h-5" />
+                                <span className="text-[10px] font-medium">Login</span>
+                            </Link>
+                        )}
                     </div>
                 </div>
             </nav>

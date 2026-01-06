@@ -60,6 +60,80 @@ function HomeContent() {
   const planName = profile?.plan || "Free";
   const userName = profile?.name?.split(" ")[0] || "Creator";
 
+  // Show landing page when not logged in
+  if (!authLoading && !user) {
+    return (
+      <div className="flex min-h-screen w-full bg-background text-foreground overflow-x-hidden selection:bg-primary/30 font-sans">
+        <Sidebar />
+        <main className="flex-1 flex flex-col relative w-full pl-0 md:pl-28 pb-20 md:pb-0">
+          <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 lg:p-10 max-w-4xl mx-auto w-full">
+            {/* Welcome Hero */}
+            <div className="text-center space-y-6 w-full">
+              <div className="w-24 h-24 mx-auto mb-6">
+                <img src="/mascot.png" alt="SquirrAI" className="w-full h-full drop-shadow-2xl" />
+              </div>
+              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
+                Selamat datang di <span className="text-primary">SquirrAI</span>
+              </h1>
+              <p className="text-muted-foreground text-lg md:text-xl max-w-xl mx-auto">
+                Platform AI untuk generate gambar dan video berkualitas tinggi. Login untuk mulai berkreasi!
+              </p>
+              
+              {/* CTA Buttons */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
+                <Link href="/login">
+                  <button className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-primary text-white font-bold text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/30">
+                    <Icon icon="mingcute:login-fill" className="w-6 h-6" />
+                    Login
+                  </button>
+                </Link>
+                <Link href="/register">
+                  <button className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-surface-2 border border-border text-foreground font-bold text-lg hover:bg-surface-3 transition-all flex items-center justify-center gap-2">
+                    <Icon icon="mingcute:user-add-fill" className="w-6 h-6" />
+                    Daftar Gratis
+                  </button>
+                </Link>
+              </div>
+
+              {/* Free Credits Banner */}
+              <div className="mt-10 p-5 rounded-2xl bg-green-500/10 border border-green-500/20 max-w-md mx-auto">
+                <div className="flex items-center justify-center gap-3 text-green-600 dark:text-green-400">
+                  <Icon icon="mingcute:gift-fill" className="w-6 h-6" />
+                  <span className="font-bold text-lg">Daftar & dapatkan 100 token GRATIS!</span>
+                </div>
+              </div>
+
+              {/* Features Preview */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12">
+                <div className="p-6 rounded-2xl bg-surface-1 border border-border text-center hover:border-primary/30 transition-colors">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-violet-500/10 flex items-center justify-center">
+                    <Icon icon="mingcute:pic-fill" className="w-7 h-7 text-violet-400" />
+                  </div>
+                  <p className="font-bold text-lg">Generate Image</p>
+                  <p className="text-sm text-muted-foreground mt-1">AI-powered image creation</p>
+                </div>
+                <div className="p-6 rounded-2xl bg-surface-1 border border-border text-center hover:border-primary/30 transition-colors">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-blue-500/10 flex items-center justify-center">
+                    <Icon icon="mingcute:movie-fill" className="w-7 h-7 text-blue-400" />
+                  </div>
+                  <p className="font-bold text-lg">Create Video</p>
+                  <p className="text-sm text-muted-foreground mt-1">Turn images into videos</p>
+                </div>
+                <div className="p-6 rounded-2xl bg-surface-1 border border-border text-center hover:border-primary/30 transition-colors">
+                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-amber-500/10 flex items-center justify-center">
+                    <Icon icon="mingcute:magic-2-fill" className="w-7 h-7 text-amber-400" />
+                  </div>
+                  <p className="font-bold text-lg">Premium Quality</p>
+                  <p className="text-sm text-muted-foreground mt-1">Veo 3.1 with audio</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen w-full bg-background text-foreground overflow-x-hidden selection:bg-primary/30 font-sans">
       {/* Navigation - Floating Dock Style */}
