@@ -1,1 +1,6 @@
 karna saat ini paket trial di kling habis yang harganya 10$ dapet 100 credit, gua mau ganti ke fal.ai pake model wan/v2.6/text-to-video dan wan/v2.6/image-to-video karna bisa 5/10/15 detik dan resolutionnya 720/1080 nah harganya itu kalo 720p 0.1$ per detik dan 0.15 per detik untuk yg 1080p, tolong implementasikan di project ini tetapi pikirkan terlebih dahulu token usagenya sehingga saya cuan dan juga monetizenya apa sudah oke, dan sesuaikan kembali untuk video settingsnya agar sesuai dengan penggunaan model itu
+nah apakah sudah dipikirkan jika 1 user ada limit untuk generate image/videonya dalam sehari?agar tidak terjadi sesuatu yang tidak diinginkan
+dan apakah sudah dipikirkan untuk concurency nya?jadi tidak akan ada bentrok dan error ketika ada user yang berbarengan melakukan generate image/video
+dan coba pikirkan error handlingnya ketika image/video gagal di generate, apakah sudah ada tombol regenerate atau semacamnya thanks
+saya ingin nambahin fitur image-to-image menggunakan model di fal.ai fal-ai/gpt-image-1.5/edit, jadi di image generator ada fitur tersebut karna mungkin misal orang punya produk dia ingin ditambahkan background atau something like that jadi bisa menggunakan itu
+dan untuk extend video mungkin bisa menggunakan fal-ai/veo3.1/fast/extend-video tetapi untuk fitur extend hanya ada khusus untuk model veo3.1 saja yah

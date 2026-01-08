@@ -239,14 +239,17 @@ function HomeContent() {
                 )}
               </Link>
 
-              {/* Community / Explore */}
-              <div className="col-span-2 md:col-span-1 row-span-1 rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-surface-2 border border-white/5 p-3 md:p-4 lg:p-6 flex items-center justify-between group cursor-pointer hover:brightness-110 transition-all">
-                <div>
-                  <h3 className="font-bold text-sm md:text-base lg:text-lg">Community</h3>
-                  <p className="text-[10px] md:text-xs text-muted-foreground">Explore trending styles</p>
+              {/* Community - Minimalist Coming Soon */}
+              <div className="col-span-2 md:col-span-1 row-span-1 rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-surface-1 border border-white/5 p-4 md:p-5 lg:p-7 flex items-center justify-between group hover:border-white/10 transition-all cursor-default overflow-hidden relative">
+                <div className="relative z-10">
+                  <h3 className="font-bold text-sm md:text-base lg:text-lg flex items-center gap-2.5 mb-1">
+                    Community
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground/70 font-bold uppercase tracking-[0.05em]">Soon</span>
+                  </h3>
+                  <p className="text-[10px] md:text-xs text-muted-foreground/60 font-medium">Coming to SquirrAI very soon.</p>
                 </div>
-                <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-white/10 flex items-center justify-center group-hover:rotate-45 transition-transform">
-                  <Icon icon="mingcute:planet-fill" className="w-5 h-5 md:w-6 md:h-6" />
+                <div className="w-11 h-11 md:w-13 md:h-13 rounded-full bg-white/5 border border-white/10 flex items-center justify-center opacity-30 grayscale group-hover:opacity-40 transition-opacity">
+                  <Icon icon="mingcute:planet-fill" className="w-6 h-6 md:w-7 md:h-7" />
                 </div>
               </div>
 

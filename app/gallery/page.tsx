@@ -72,7 +72,7 @@ export default function GalleryPage() {
     const { showToast } = useToast();
 
     // View & Filter States
-    const [view, setView] = useState<ViewMode>("list");
+    const [view, setView] = useState<ViewMode>("grid");
     const [searchQuery, setSearchQuery] = useState("");
     const [filterType, setFilterType] = useState<FilterType>("all");
 

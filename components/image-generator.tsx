@@ -384,8 +384,8 @@ export function ImageGenerator() {
 
         if (diffDays === 0) return "Today";
         if (diffDays === 1) return "Yesterday";
-        if (diffDays < 7) return date.toLocaleDateString("id-ID", { weekday: "long" });
-        return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+        if (diffDays < 7) return date.toLocaleDateString("en-US", { weekday: "long" });
+        return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
     };
 
     const handleGenerate = useCallback(async () => {
