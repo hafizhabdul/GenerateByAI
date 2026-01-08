@@ -8,7 +8,8 @@ import { useAuth } from "@/lib/auth-context";
 
 const navItems = [
     { href: "/?view=create", icon: "mingcute:sparkles-2-fill", label: "Create" },
-    { href: "/studio", icon: "mingcute:brush-3-fill", label: "Studio" },
+    // Studio feature is hidden for now - not ready yet
+    // { href: "/studio", icon: "mingcute:brush-3-fill", label: "Studio" },
     { href: "/gallery", icon: "mingcute:pic-fill", label: "Gallery" },
     { href: "/videos", icon: "mingcute:movie-fill", label: "Videos" },
 ];

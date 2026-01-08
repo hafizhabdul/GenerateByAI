@@ -1561,11 +1561,18 @@ const VideoFeedCard = memo(function VideoFeedCard({
 
                             {/* Action Bar - Always visible for better UX */}
                             <div className="flex items-center gap-2 mt-3">
-                                <Button variant="ghost" size="sm" onClick={handleDownload} disabled={isDownloading}>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleDownload}
+                                    disabled={isDownloading}
+                                    className="bg-surface-2 hover:bg-surface-3"
+                                >
                                     <Icon icon={isDownloading ? "mingcute:loading-fill" : "mingcute:download-2-fill"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
                                     {isDownloading ? "Downloading..." : "Download"}
                                 </Button>
-                                {/* Extend only available for standard (Kling) videos */}
+                                {/* Extend button hidden - requires special model that is not available yet */}
+                                {/* TODO: Re-enable when extend model is ready
                                 {item.canExtend && item.tier !== "premium" && (
                                     <Button
                                         variant="ghost"
@@ -1577,6 +1584,7 @@ const VideoFeedCard = memo(function VideoFeedCard({
                                         {isExtending ? "Extending..." : "Extend +5s"}
                                     </Button>
                                 )}
+                                */}
                                 {/* Show premium badge */}
                                 {item.tier === "premium" && (
                                     <span className="flex items-center gap-1 text-xs text-foreground px-2 py-1 bg-surface-2 rounded-md">
