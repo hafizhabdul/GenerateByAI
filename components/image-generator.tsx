@@ -476,30 +476,52 @@ export function ImageGenerator() {
         setIsHero(true);
         setPrompt("");
         setCurrentSessionId(null); // Reset current session
-        if (user) clearSession(user.id); // Clear localStorage for this user
+        setMode("image"); // Reset to default mode
+        if (user) {
+            clearSession(user.id); // Clear localStorage for this user
+            clearDraft(user.id); // Explicitly clear draft to prevent autosave race condition
+        }
         showToast("Started a new creative session", "info");
     }, [user, showToast]);
 
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
-            {/* Sticky Header - Always visible */}
-            <div className="sticky top-0 z-50 w-full px-4 py-3 md:py-4 bg-background/80 backdrop-blur-xl border-b border-border/50">
-                <div className="max-w-3xl mx-auto flex items-center justify-between md:pl-24">
-                    <span className="font-semibold text-foreground">Image Studio</span>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setShowHistory(true)}
-                            className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-all text-sm"
-                        >
-                            History
-                        </button>
-                        <Button
-                            variant="glass"
-                            size="sm"
-                            onClick={handleNewSession}
-                        >
-                            + New
-                        </Button>
+            {/* Sticky Header - Unified with Back to Dashboard */}
+            <div className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-xl border-b border-border/50">
+                <div className="w-full px-4 md:px-6 py-3">
+                    <div className="max-w-5xl mx-auto flex items-center justify-between md:pl-24">
+                        {/* Left: Back + Title */}
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => router.push("/")}
+                                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <Icon icon="mingcute:arrow-left-line" className="w-4 h-4" />
+                                <span className="hidden sm:inline">Dashboard</span>
+                            </button>
+                            <div className="w-px h-4 bg-border hidden sm:block" />
+                            <span className="font-semibold text-foreground">Image Studio</span>
+                        </div>
+
+                        {/* Right: Actions */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setShowHistory(true)}
+                                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-all text-sm flex items-center gap-1.5"
+                            >
+                                <Icon icon="mingcute:history-line" className="w-4 h-4" />
+                                <span className="hidden sm:inline">History</span>
+                            </button>
+                            <Button
+                                variant="glass"
+                                size="sm"
+                                onClick={handleNewSession}
+                                className="gap-1.5"
+                            >
+                                <Icon icon="mingcute:add-line" className="w-4 h-4" />
+                                <span>New</span>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>

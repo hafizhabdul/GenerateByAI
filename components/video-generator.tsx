@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useRouter } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -61,6 +62,20 @@ type VideoSettings = {
 };
 
 type GenerationMode = "image2video" | "text2video";
+
+// Session type from API (database-backed) - same as image-generator
+type HistorySession = {
+    id: string;
+    title: string;
+    type: 'image' | 'video';
+    created_at: string;
+    updated_at: string;
+    is_archived: boolean;
+    is_pinned: boolean;
+    preview_image: string | null;
+    generation_count: number;
+    first_prompt: string | null;
+};
 
 // LocalStorage keys - will be suffixed with user ID for isolation
 const getSessionKey = (userId: string) => `videoGeneratorSession_${userId}`;
@@ -177,9 +192,10 @@ export function VideoGenerator() {
     const [isHero, setIsHero] = useState(true);
     const [showSettings, setShowSettings] = useState(false);
     const [showHistory, setShowHistory] = useState(false);
-    const [videoHistory, setVideoHistory] = useState<VideoFeedItem[]>([]);
+    const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
     const [generationMode, setGenerationMode] = useState<GenerationMode>("text2video");
     const [sessionLoaded, setSessionLoaded] = useState(false);
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [settings, setSettings] = useState<VideoSettings>({
         duration: "5",
         mode: "pro",
@@ -190,6 +206,7 @@ export function VideoGenerator() {
 
     const { showToast } = useToast();
     const { user, refreshProfile } = useAuth();
+    const router = useRouter();
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
@@ -811,48 +828,90 @@ export function VideoGenerator() {
             clearInterval(pollingRef.current);
             pollingRef.current = null;
         }
-        // Clear state
+        // Clear all state
         setFeed([]);
         setIsHero(true);
         setPrompt("");
         setImagePreview(null);
         setImageFile(null);
+        setCurrentSessionId(null); // Clear current session ID
+        setGenerationMode("text2video"); // Reset to default mode
+        // Reset settings to defaults (but keep user's tier preference)
+        setSettings(prev => ({
+            ...prev,
+            duration: "5",
+            mode: "pro",
+            aspectRatio: "16:9",
+            sound: false,
+        }));
         // Clear localStorage for this user
-        if (user) clearSession(user.id);
+        if (user) {
+            clearSession(user.id);
+            // Also explicitly clear draft to prevent autosave race condition
+            clearDraft(user.id);
+        }
         showToast("Started a new video session", "info");
     }, [user, showToast]);
 
-    // Fetch video history when history panel opens
+    // Helper to format session date like ChatGPT
+    const formatSessionDate = (dateStr: string): string => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return "Today";
+        if (diffDays === 1) return "Yesterday";
+        if (diffDays < 7) return date.toLocaleDateString("id-ID", { weekday: "long" });
+        return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+    };
+
+    // Fetch video sessions when history panel opens
     const fetchVideoHistory = useCallback(async () => {
         if (!user) return;
         try {
-            const res = await fetch("/api/generations?type=video&limit=30");
+            // Use session API instead of generations API
+            const res = await fetch("/api/sessions?type=video&limit=50");
             if (res.ok) {
                 const data = await res.json();
-                const historyItems: VideoFeedItem[] = (data.generations || []).map((gen: any) => ({
-                    id: gen.id,
-                    prompt: gen.prompt,
-                    imageUrl: gen.metadata?.sourceImage || undefined,
-                    videoUrl: gen.file_url,
-                    status: gen.status as "completed" | "failed",
-                    duration: gen.metadata?.duration || "5",
-                    mode: gen.metadata?.mode || "std",
-                    created_at: gen.created_at,
-                    canExtend: !!gen.metadata?.klingVideoId,
-                }));
-                setVideoHistory(historyItems);
+                setHistorySessions(data.sessions || []);
             }
         } catch (error) {
             console.error("Failed to fetch video history:", error);
         }
     }, [user]);
 
-    // Handle selecting from history - REPLACE feed, don't append
-    const handleSelectFromHistory = useCallback((item: VideoFeedItem) => {
-        setFeed([item]); // Replace feed with just this item
-        setIsHero(false);
-        setShowHistory(false);
-        showToast("Viewing historical video", "info");
+    // Handle selecting from history - fetch session data and load
+    const handleSelectFromHistory = useCallback(async (session: HistorySession) => {
+        try {
+            const res = await fetch(`/api/sessions/${session.id}`);
+            if (res.ok) {
+                const data = await res.json();
+                const generations = data.generations || [];
+
+                const feedItems: VideoFeedItem[] = generations.map((gen: any) => ({
+                    id: gen.id,
+                    prompt: gen.prompt,
+                    imageUrl: gen.metadata?.sourceImage || undefined,
+                    videoUrl: gen.file_url,
+                    status: gen.status as "completed" | "failed" | "pending" | "processing",
+                    duration: gen.metadata?.duration || "5",
+                    mode: gen.metadata?.mode || "std",
+                    created_at: gen.created_at,
+                    canExtend: !!gen.metadata?.klingVideoId,
+                    tier: gen.metadata?.tier || "standard",
+                    provider: gen.metadata?.provider,
+                }));
+
+                setFeed(feedItems);
+                setCurrentSessionId(session.id);
+                setIsHero(false);
+                setShowHistory(false);
+                showToast(`Loaded session with ${session.generation_count} video${session.generation_count > 1 ? 's' : ''}`, "info");
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Failed to load session", "error");
+        }
     }, [showToast]);
 
     // Fetch video history when panel opens
@@ -867,24 +926,42 @@ export function VideoGenerator() {
             {/* Background Ambient Glow */}
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-foreground/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
 
-            {/* Sticky Header - Always visible */}
-            <div className="sticky top-0 z-50 w-full px-4 py-3 md:py-4 bg-background/80 backdrop-blur-xl border-b border-border/50">
-                <div className="max-w-3xl mx-auto flex items-center justify-between md:pl-24">
-                    <span className="font-semibold text-foreground">Video Studio</span>
-                    <div className="flex items-center gap-2">
-                        <button
-                            onClick={() => setShowHistory(true)}
-                            className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-all text-sm"
-                        >
-                            History
-                        </button>
-                        <Button
-                            variant="glass"
-                            size="sm"
-                            onClick={handleNewSession}
-                        >
-                            + New
-                        </Button>
+            {/* Sticky Header - Unified with Back to Dashboard (matching Image Studio) */}
+            <div className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-xl border-b border-border/50">
+                <div className="w-full px-4 md:px-6 py-3">
+                    <div className="max-w-5xl mx-auto flex items-center justify-between md:pl-24">
+                        {/* Left: Back + Title */}
+                        <div className="flex items-center gap-3">
+                            <button
+                                onClick={() => router.push("/")}
+                                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <Icon icon="mingcute:arrow-left-line" className="w-4 h-4" />
+                                <span className="hidden sm:inline">Dashboard</span>
+                            </button>
+                            <div className="w-px h-4 bg-border hidden sm:block" />
+                            <span className="font-semibold text-foreground">Video Studio</span>
+                        </div>
+
+                        {/* Right: Actions */}
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setShowHistory(true)}
+                                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-all text-sm flex items-center gap-1.5"
+                            >
+                                <Icon icon="mingcute:history-line" className="w-4 h-4" />
+                                <span className="hidden sm:inline">History</span>
+                            </button>
+                            <Button
+                                variant="glass"
+                                size="sm"
+                                onClick={handleNewSession}
+                                className="gap-1.5"
+                            >
+                                <Icon icon="mingcute:add-line" className="w-4 h-4" />
+                                <span>New</span>
+                            </Button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -909,46 +986,34 @@ export function VideoGenerator() {
                                 ✕
                             </button>
                         </div>
-                        {/* History List */}
+                        {/* History List - Sessions like ChatGPT */}
                         <div className="flex-1 overflow-y-auto">
-                            {videoHistory.length > 0 ? (
+                            {historySessions.length > 0 ? (
                                 <div className="divide-y divide-border">
-                                    {videoHistory.map((item) => (
+                                    {historySessions.map((session) => (
                                         <button
-                                            key={item.id}
-                                            onClick={() => handleSelectFromHistory(item)}
+                                            key={session.id}
+                                            onClick={() => handleSelectFromHistory(session)}
                                             className="w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3"
                                         >
-                                            <div className="w-24 h-16 rounded-lg overflow-hidden bg-surface-2 shrink-0 relative">
-                                                {item.videoUrl ? (
-                                                    <video src={getProxiedVideoUrl(item.videoUrl)} className="w-full h-full object-cover" muted loop playsInline onMouseOver={e => e.currentTarget.play()} onMouseOut={e => e.currentTarget.pause()} />
-                                                ) : item.imageUrl ? (
-                                                    <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-2 shrink-0">
+                                                {session.preview_image ? (
+                                                    <img src={session.preview_image} alt="" className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-surface-3">
-                                                        <Icon icon="mingcute:movie-line" className="w-6 h-6 opacity-20" />
-                                                    </div>
-                                                )}
-                                                {item.status === "failed" && (
-                                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                                                        <Icon icon="mingcute:alert-fill" className="w-5 h-5 text-red-500" />
+                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                                        <Icon icon="mingcute:movie-line" className="w-6 h-6 opacity-30" />
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm line-clamp-2 mb-1">{item.prompt}</p>
+                                                <p className="text-sm line-clamp-2 mb-1.5 text-foreground/90">{session.title || session.first_prompt || "Untitled"}</p>
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-muted-foreground">
-                                                        {new Date(item.created_at).toLocaleDateString()}
-                                                    </span>
-                                                    <span className={cn(
-                                                        "text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider",
-                                                        item.status === "completed" ? "bg-sky-500/10 text-sky-500" :
-                                                            item.status === "failed" ? "bg-red-500/10 text-red-500" :
-                                                                "bg-foreground/5 text-foreground"
-                                                    )}>
-                                                        {item.status}
-                                                    </span>
+                                                    <span className="text-xs text-muted-foreground">{formatSessionDate(session.updated_at)}</span>
+                                                    {session.generation_count > 1 && (
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-muted-foreground">
+                                                            {session.generation_count} videos
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </button>
@@ -956,7 +1021,9 @@ export function VideoGenerator() {
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                                    <p className="text-muted-foreground">No history yet</p>
+                                    <Icon icon="mingcute:movie-line" className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                                    <p className="text-muted-foreground">No video history yet</p>
+                                    <p className="text-xs text-muted-foreground/70 mt-1">Your generated videos will appear here</p>
                                 </div>
                             )}
                         </div>

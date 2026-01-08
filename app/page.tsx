@@ -288,15 +288,7 @@ function HomeContent() {
           </div>
         ) : (
           <div className="h-full flex flex-col">
-            <div className="px-4 md:px-6 pt-4">
-              <button
-                onClick={handleBackToDashboard}
-                className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <Icon icon="mingcute:arrow-left-fill" /> Back to Dashboard
-              </button>
-            </div>
-            <div className="flex-1 md:pl-4">
+            <div className="flex-1">
               <ImageGenerator />
             </div>
           </div>
