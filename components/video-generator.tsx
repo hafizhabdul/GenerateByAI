@@ -15,22 +15,22 @@ type VideoTier = "standard" | "premium";
  */
 function getProxiedVideoUrl(url: string | undefined): string | undefined {
     if (!url) return undefined;
-    
+
     // Check if URL is from fal.ai CDN - needs proxy
     const falDomains = ["fal.media", "v3.fal.media", "fal.ai"];
     try {
         const urlObj = new URL(url);
-        const needsProxy = falDomains.some(domain => 
+        const needsProxy = falDomains.some(domain =>
             urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
         );
-        
+
         if (needsProxy) {
             return `/api/video-proxy?url=${encodeURIComponent(url)}`;
         }
     } catch {
         // Invalid URL, return as-is
     }
-    
+
     return url;
 }
 
@@ -487,14 +487,14 @@ export function VideoGenerator() {
             };
             return veoCosts[settings.duration] || 250;
         }
-        
+
         // Standard Kling costs (ANTI-BONCOS updated)
         // Note: Standard tier only supports "5" and "10" durations
         const baseCosts: Record<string, Record<string, number>> = {
             '5': { std: 25, pro: 45 },
             '10': { std: 50, pro: 90 },
         };
-        
+
         // Fallback to "5" if duration is not valid for standard tier (e.g., "8" from premium)
         const duration = settings.duration === "8" ? "5" : settings.duration;
         const videoCost = baseCosts[duration]?.[settings.mode] || 25;
@@ -673,7 +673,7 @@ export function VideoGenerator() {
                 });
 
                 showToast("🎬 Premium video generated with native audio!", "success");
-                
+
                 // Refresh profile to update token balance
                 if (refreshProfile) refreshProfile();
             } else {
@@ -978,35 +978,35 @@ export function VideoGenerator() {
 
                             {/* Quality Mode - Only for Standard tier */}
                             {settings.tier === "standard" && (
-                            <div className="space-y-3">
-                                <label className="text-sm font-medium">Quality</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    <button
-                                        onClick={() => setSettings((s) => ({ ...s, mode: "std" }))}
-                                        className={cn(
-                                            "p-3 rounded-xl border transition-all text-center",
-                                            settings.mode === "std"
-                                                ? "border-primary bg-primary/10 text-primary"
-                                                : "border-border hover:border-border-hover"
-                                        )}
-                                    >
-                                        <div className="font-medium">Standard</div>
-                                        <div className="text-xs text-muted-foreground mt-1">Faster</div>
-                                    </button>
-                                    <button
-                                        onClick={() => setSettings((s) => ({ ...s, mode: "pro" }))}
-                                        className={cn(
-                                            "p-3 rounded-xl border transition-all text-center",
-                                            settings.mode === "pro"
-                                                ? "border-primary bg-primary/10 text-primary"
-                                                : "border-border hover:border-border-hover"
-                                        )}
-                                    >
-                                        <div className="font-medium">Pro</div>
-                                        <div className="text-xs text-muted-foreground mt-1">Better quality</div>
-                                    </button>
+                                <div className="space-y-3">
+                                    <label className="text-sm font-medium">Quality</label>
+                                    <div className="grid grid-cols-2 gap-2">
+                                        <button
+                                            onClick={() => setSettings((s) => ({ ...s, mode: "std" }))}
+                                            className={cn(
+                                                "p-3 rounded-xl border transition-all text-center",
+                                                settings.mode === "std"
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border hover:border-border-hover"
+                                            )}
+                                        >
+                                            <div className="font-medium">Standard</div>
+                                            <div className="text-xs text-muted-foreground mt-1">Faster</div>
+                                        </button>
+                                        <button
+                                            onClick={() => setSettings((s) => ({ ...s, mode: "pro" }))}
+                                            className={cn(
+                                                "p-3 rounded-xl border transition-all text-center",
+                                                settings.mode === "pro"
+                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    : "border-border hover:border-border-hover"
+                                            )}
+                                        >
+                                            <div className="font-medium">Pro</div>
+                                            <div className="text-xs text-muted-foreground mt-1">Better quality</div>
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
                             )}
 
                             {/* Aspect Ratio */}
@@ -1033,76 +1033,77 @@ export function VideoGenerator() {
                                 </p>
                             </div>
 
-                            {/* AI Audio Generation - Only for Standard tier */}
-                            {settings.tier === "standard" && (
-                            <div className="space-y-3">
-                                <label className="text-sm font-medium flex items-center gap-2">
-                                    <Icon icon="mingcute:volume-fill" className="w-4 h-4 text-primary" />
-                                    AI Audio
-                                    <span className="px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-md font-medium">NEW</span>
-                                </label>
-                                <button
-                                    onClick={() => setSettings((s) => ({ ...s, sound: !s.sound }))}
-                                    className={cn(
-                                        "w-full p-4 rounded-xl border transition-all text-left",
-                                        settings.sound
-                                            ? "border-primary bg-primary/10"
-                                            : "border-border hover:border-border-hover"
-                                    )}
-                                >
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <div className={cn("font-medium", settings.sound ? "text-primary" : "text-foreground")}>
-                                                {settings.sound ? "Audio Enabled" : "Audio Disabled"}
+                            {/* AI Audio Generation - HIDDEN: Kling AI doesn't support audio yet */}
+                            {/* TODO: Re-enable when switching to a model that supports audio */}
+                            {false && settings.tier === "standard" && (
+                                <div className="space-y-3">
+                                    <label className="text-sm font-medium flex items-center gap-2">
+                                        <Icon icon="mingcute:volume-fill" className="w-4 h-4 text-primary" />
+                                        AI Audio
+                                        <span className="px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-md font-medium">NEW</span>
+                                    </label>
+                                    <button
+                                        onClick={() => setSettings((s) => ({ ...s, sound: !s.sound }))}
+                                        className={cn(
+                                            "w-full p-4 rounded-xl border transition-all text-left",
+                                            settings.sound
+                                                ? "border-primary bg-primary/10"
+                                                : "border-border hover:border-border-hover"
+                                        )}
+                                    >
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <div className={cn("font-medium", settings.sound ? "text-primary" : "text-foreground")}>
+                                                    {settings.sound ? "Audio Enabled" : "Audio Disabled"}
+                                                </div>
+                                                <div className="text-xs text-muted-foreground mt-1">
+                                                    {settings.sound
+                                                        ? "AI akan generate audio: efek suara, ambient, musik"
+                                                        : "Video tanpa audio (silent)"}
+                                                </div>
                                             </div>
-                                            <div className="text-xs text-muted-foreground mt-1">
-                                                {settings.sound
-                                                    ? "AI akan generate audio: efek suara, ambient, musik"
-                                                    : "Video tanpa audio (silent)"}
-                                            </div>
-                                        </div>
-                                        <div className={cn(
-                                            "w-12 h-7 rounded-full transition-all relative",
-                                            settings.sound ? "bg-primary" : "bg-surface-3"
-                                        )}>
                                             <div className={cn(
-                                                "absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-all",
-                                                settings.sound ? "left-6" : "left-1"
-                                            )} />
+                                                "w-12 h-7 rounded-full transition-all relative",
+                                                settings.sound ? "bg-primary" : "bg-surface-3"
+                                            )}>
+                                                <div className={cn(
+                                                    "absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-all",
+                                                    settings.sound ? "left-6" : "left-1"
+                                                )} />
+                                            </div>
                                         </div>
-                                    </div>
-                                </button>
-                                {settings.sound && (
-                                    <p className="text-xs text-primary/80 flex items-center gap-1">
-                                        <Icon icon="mingcute:information-fill" className="w-3 h-3" />
-                                        Audio menambah +20 token
-                                    </p>
-                                )}
-                            </div>
+                                    </button>
+                                    {settings.sound && (
+                                        <p className="text-xs text-primary/80 flex items-center gap-1">
+                                            <Icon icon="mingcute:information-fill" className="w-3 h-3" />
+                                            Audio menambah +20 token
+                                        </p>
+                                    )}
+                                </div>
                             )}
 
                             {/* Premium Tier Info */}
                             {settings.tier === "premium" && (
-                            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
-                                <div className="flex items-center gap-2 text-sm font-medium text-primary mb-2">
-                                    <Icon icon="mingcute:sparkles-fill" className="w-4 h-4" />
-                                    Veo 3.1 Premium Features
+                                <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+                                    <div className="flex items-center gap-2 text-sm font-medium text-primary mb-2">
+                                        <Icon icon="mingcute:sparkles-fill" className="w-4 h-4" />
+                                        Veo 3.1 Premium Features
+                                    </div>
+                                    <ul className="text-xs text-muted-foreground space-y-1">
+                                        <li className="flex items-center gap-2">
+                                            <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
+                                            Native audio (voice, SFX, ambient) included
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
+                                            40-60% better frame consistency
+                                        </li>
+                                        <li className="flex items-center gap-2">
+                                            <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
+                                            Cinematic quality from Google DeepMind
+                                        </li>
+                                    </ul>
                                 </div>
-                                <ul className="text-xs text-muted-foreground space-y-1">
-                                    <li className="flex items-center gap-2">
-                                        <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
-                                        Native audio (voice, SFX, ambient) included
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
-                                        40-60% better frame consistency
-                                    </li>
-                                    <li className="flex items-center gap-2">
-                                        <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
-                                        Cinematic quality from Google DeepMind
-                                    </li>
-                                </ul>
-                            </div>
                             )}
 
                             {/* Cost Estimate */}
@@ -1255,14 +1256,14 @@ export function VideoGenerator() {
                                 onClick={() => setShowSettings(true)}
                                 className={cn(
                                     "flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-all",
-                                    settings.tier === "premium" 
-                                        ? "text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20" 
+                                    settings.tier === "premium"
+                                        ? "text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20"
                                         : "text-muted-foreground hover:text-foreground hover:bg-surface-2/50"
                                 )}
                             >
                                 <Icon icon="mingcute:settings-3-line" className="w-3.5 h-3.5" />
                                 <span className="font-medium">
-                                    {settings.tier === "premium" 
+                                    {settings.tier === "premium"
                                         ? `🎬 Premium · ${settings.duration}s`
                                         : `${settings.duration}s · ${settings.mode === "pro" ? "Pro" : "Std"}`
                                     }

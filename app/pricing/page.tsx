@@ -163,12 +163,12 @@ export default function PricingPage() {
             {/* Token Usage Info */}
             <div className="relative z-10 mt-12 md:mt-16 max-w-4xl w-full px-4 mx-auto">
                 <h3 className="text-base md:text-lg font-medium text-foreground text-center mb-4 md:mb-6">Estimasi penggunaan token</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 md:gap-4">
-                    <UsageInfo icon="mingcute:pic-fill" label="Gambar" cost="20 token" />
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-4">
+                    <UsageInfo icon="mingcute:pic-fill" label="Gambar" cost="40 token" />
                     <UsageInfo icon="mingcute:movie-fill" label="Video Standard" cost="25 token" />
                     <UsageInfo icon="mingcute:star-fill" label="Video Pro" cost="45 token" />
                     <UsageInfo icon="mingcute:magic-2-fill" label="Video Premium" cost="250 token" />
-                    <UsageInfo icon="mingcute:volume-fill" label="+ AI Audio" cost="+10 token" />
+                    {/* AI Audio - Hidden: Kling AI doesn't support audio yet */}
                 </div>
             </div>
 
