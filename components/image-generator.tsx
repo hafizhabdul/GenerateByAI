@@ -160,6 +160,8 @@ export function ImageGenerator() {
     const { user, refreshProfile } = useAuth();
     const scrollRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
+    const historyListRef = useRef<HTMLDivElement>(null);
+    const prevUserIdRef = useRef<string | null>(null);
 
     // Load session from localStorage on mount + check for pending generations
     // Only load when user is available to ensure user-specific data
@@ -231,6 +233,31 @@ export function ImageGenerator() {
             window.removeEventListener("focus", handleStorageChange);
         };
     }, []);
+
+    // Detect user change (logout/login different user) - clear old session
+    useEffect(() => {
+        if (user && prevUserIdRef.current && prevUserIdRef.current !== user.id) {
+            // User changed - clear previous user's session data
+            clearSession(prevUserIdRef.current);
+            // Reset to new session state
+            setFeed([]);
+            setIsHero(true);
+            setPrompt("");
+            setCurrentSessionId(null);
+        }
+        prevUserIdRef.current = user?.id || null;
+    }, [user]);
+
+    // Scroll history to bottom when opened
+    useEffect(() => {
+        if (showHistory && historyListRef.current && historySessions.length > 0) {
+            setTimeout(() => {
+                if (historyListRef.current) {
+                    historyListRef.current.scrollTop = historyListRef.current.scrollHeight;
+                }
+            }, 100);
+        }
+    }, [showHistory, historySessions]);
 
     // Save draft whenever prompt or mode changes
     useEffect(() => {
@@ -547,7 +574,7 @@ export function ImageGenerator() {
                             </button>
                         </div>
                         {/* History List - Sessions like ChatGPT */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div ref={historyListRef} className="flex-1 overflow-y-auto">
                             {loadingHistory ? (
                                 <div className="flex items-center justify-center py-12">
                                     <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
@@ -654,9 +681,41 @@ export function ImageGenerator() {
                         />
                         <div className="flex items-center justify-between px-3 md:px-4 pb-2 gap-2">
                             <div className="flex items-center gap-2">
-                                {/* Quality indicator - shows current setting from localStorage */}
-                                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 rounded-lg text-xs text-muted-foreground">
-                                    <span className="capitalize">{qualitySetting}</span>
+                                {/* Quality Selector - Minimalist Inline Pills */}
+                                <div className="hidden sm:flex items-center gap-2 p-1 bg-surface-2/50 rounded-xl border border-border/50">
+                                    {([
+                                        { key: "low", label: "Fast", tokens: "10", desc: "Fastest generation" },
+                                        { key: "medium", label: "Balanced", tokens: "20", desc: "Recommended" },
+                                        { key: "high", label: "Quality", tokens: "40", desc: "Best detailed results" }
+                                    ] as const).map((q) => (
+                                        <div key={q.key} className="relative group/tooltip">
+                                            <button
+                                                onClick={() => {
+                                                    setQualitySetting(q.key);
+                                                    localStorage.setItem("generation_quality", q.key);
+                                                }}
+                                                className={cn(
+                                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                                                    qualitySetting === q.key
+                                                        ? "bg-foreground text-background shadow-sm"
+                                                        : "text-muted-foreground hover:text-foreground hover:bg-surface-3"
+                                                )}
+                                            >
+                                                <span>{q.label}</span>
+                                                <span className={cn(
+                                                    "text-[10px] px-1 rounded",
+                                                    qualitySetting === q.key ? "bg-background/20" : "bg-black/5 dark:bg-white/10"
+                                                )}>
+                                                    {q.tokens}
+                                                </span>
+                                            </button>
+
+                                            {/* Tooltip */}
+                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                                                {q.desc} - {q.tokens} tokens
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                             <Button

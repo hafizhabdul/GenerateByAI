@@ -12,14 +12,10 @@ export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [notifications, setNotifications] = useState(true);
-    const [quality, setQuality] = useState<"low" | "medium" | "high">("high");
 
     useEffect(() => {
         setMounted(true);
         // Load saved settings
-        const savedQuality = localStorage.getItem("generation_quality");
-        if (savedQuality) setQuality(savedQuality as "low" | "medium" | "high");
-
         const savedNotifications = localStorage.getItem("notifications_enabled");
         if (savedNotifications !== null) {
             setNotifications(savedNotifications === "true");
@@ -32,12 +28,6 @@ export default function SettingsPage() {
         setNotifications(newValue);
         localStorage.setItem("notifications_enabled", String(newValue));
         showToast(newValue ? "Notifications enabled" : "Notifications disabled", "success");
-    };
-
-    const handleQualityChange = (newQuality: "low" | "medium" | "high") => {
-        setQuality(newQuality);
-        localStorage.setItem("generation_quality", newQuality);
-        showToast(`Quality set to ${newQuality}`, "success");
     };
 
     return (
@@ -87,37 +77,7 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Generation Quality */}
-                    <Card variant="glass">
-                        <CardHeader>
-                            <CardTitle>Image Quality</CardTitle>
-                            <CardDescription>Balance between speed and quality</CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-4 space-y-4">
-                            {[
-                                { value: "low", label: "Low", desc: "Fast generation, good quality", tokens: "10 tokens" },
-                                { value: "medium", label: "Medium", desc: "Balanced speed and quality", tokens: "20 tokens" },
-                                { value: "high", label: "High", desc: "Best quality, slower", tokens: "40 tokens" },
-                            ].map((option) => (
-                                <button
-                                    key={option.value}
-                                    onClick={() => handleQualityChange(option.value as typeof quality)}
-                                    className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${quality === option.value
-                                        ? "border-primary bg-primary/5"
-                                        : "border-border hover:border-border-hover"
-                                        }`}
-                                >
-                                    <div className="text-left">
-                                        <p className="font-medium">{option.label}</p>
-                                        <p className="text-sm text-muted-foreground">{option.desc}</p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xs text-muted-foreground bg-surface-2 px-2 py-1 rounded-lg">{option.tokens}</span>
-                                    </div>
-                                </button>
-                            ))}
-                        </CardContent>
-                    </Card>
+
 
                     {/* Notifications */}
                     <Card variant="glass">

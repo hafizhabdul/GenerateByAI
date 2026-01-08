@@ -210,8 +210,10 @@ export function VideoGenerator() {
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
+    const historyListRef = useRef<HTMLDivElement>(null);
+    const prevUserIdRef = useRef<string | null>(null);
 
-    // Load session from localStorage on mount - user-specific
+    // Load ONLY pending videos on mount - start fresh otherwise (fixes Bug 5)
     useEffect(() => {
         if (!user) {
             // Reset state when no user (logged out)
@@ -221,52 +223,62 @@ export function VideoGenerator() {
             setImagePreview(null);
             setImageFile(null);
             setSessionLoaded(false);
+            setLoadingHistory(false);
             return;
         }
 
-        const { feed: savedFeed, isHero: savedHero } = loadSession(user.id);
-        if (savedFeed.length > 0) {
-            setFeed(savedFeed);
-            setIsHero(savedHero);
-        }
-        // Also load pending videos that might need polling
+        // Only load pending videos that need polling - don't load old session
         const pending = loadPendingVideos(user.id);
         if (pending.length > 0) {
-            setFeed(prev => {
-                const existingIds = new Set(prev.map(p => p.id));
-                const newPending = pending.filter(p => !existingIds.has(p.id));
-                if (newPending.length > 0) {
-                    return [...prev, ...newPending];
-                }
-                return prev;
-            });
-            setIsHero(false);
-        }
-
-        // Load draft state (image preview, prompt, settings)
-        const draft = loadDraft(user.id);
-        if (draft) {
-            if (draft.prompt) setPrompt(draft.prompt);
-            if (draft.imagePreview) setImagePreview(draft.imagePreview);
-            if (draft.generationMode) setGenerationMode(draft.generationMode);
-            if (draft.settings) setSettings(draft.settings);
-            // If there's a draft with content, exit hero state
-            if (draft.prompt || draft.imagePreview) {
+            // Only show pending/processing videos
+            const activePending = pending.filter(p =>
+                p.status === "pending" || p.status === "processing"
+            );
+            if (activePending.length > 0) {
+                setFeed(activePending);
                 setIsHero(false);
+            } else {
+                // All pending videos completed/failed - start fresh
+                clearSession(user.id);
+                setFeed([]);
+                setIsHero(true);
             }
+        } else {
+            // No pending videos - start fresh
+            setFeed([]);
+            setIsHero(true);
         }
 
         setSessionLoaded(true);
+        setLoadingHistory(false);
     }, [user]);
 
-    // Load video history on mount
+    // Detect user change (logout/login different user) - clear old session
     useEffect(() => {
-        if (user) {
-            loadHistory();
-        } else {
-            setLoadingHistory(false);
+        if (user && prevUserIdRef.current && prevUserIdRef.current !== user.id) {
+            // User changed - clear previous user's session data
+            clearSession(prevUserIdRef.current);
+            // Reset to new session state
+            setFeed([]);
+            setIsHero(true);
+            setPrompt("");
+            setImagePreview(null);
+            setImageFile(null);
+            setCurrentSessionId(null);
         }
+        prevUserIdRef.current = user?.id || null;
     }, [user]);
+
+    // Scroll history to bottom when opened
+    useEffect(() => {
+        if (showHistory && historyListRef.current && historySessions.length > 0) {
+            setTimeout(() => {
+                if (historyListRef.current) {
+                    historyListRef.current.scrollTop = historyListRef.current.scrollHeight;
+                }
+            }, 100);
+        }
+    }, [showHistory, historySessions]);
 
     // Save session whenever feed changes (after initial load)
     useEffect(() => {
@@ -987,7 +999,7 @@ export function VideoGenerator() {
                             </button>
                         </div>
                         {/* History List - Sessions like ChatGPT */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div ref={historyListRef} className="flex-1 overflow-y-auto">
                             {historySessions.length > 0 ? (
                                 <div className="divide-y divide-border">
                                     {historySessions.map((session) => (
@@ -1207,7 +1219,7 @@ export function VideoGenerator() {
                 <div
                     className={cn(
                         "text-center space-y-4 md:space-y-6 transition-all duration-700 max-w-2xl mx-auto",
-                        isHero ? "opacity-100 translate-y-[-120px] md:translate-y-[-140px]" : "hidden"
+                        isHero ? "opacity-100 translate-y-[-60px] md:translate-y-[-80px]" : "hidden"
                     )}
                 >
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-2 border border-border/50 text-xs font-medium text-foreground/80 tracking-wider uppercase animate-fade-in shadow-sm">
