@@ -351,10 +351,13 @@ export function ImageGenerator() {
                 return;
             }
 
+            // Get quality setting from localStorage
+            const quality = localStorage.getItem("generation_quality") || "high";
+
             const res = await fetch("/api/generate-image", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: currentPrompt }),
+                body: JSON.stringify({ prompt: currentPrompt, quality }),
             });
 
             const data = await res.json();

@@ -36,10 +36,10 @@ export async function generateVeoVideo(
     request: VeoGenerateRequest
 ): Promise<VeoGenerateResult> {
     const { prompt, imageUrl, duration = 5, aspectRatio = "16:9", enableAudio = true } = request;
-    
+
     // Choose endpoint based on whether we have an image
     const endpoint = imageUrl ? VEO_ENDPOINTS.imageToVideo : VEO_ENDPOINTS.textToVideo;
-    
+
     console.log(`[fal.ai Veo 3.1] Starting generation:`, {
         endpoint,
         prompt: prompt.substring(0, 100) + '...',
@@ -48,7 +48,7 @@ export async function generateVeoVideo(
         aspectRatio,
         enableAudio,
     });
-    
+
     try {
         // Build input based on endpoint type
         // veo3.1/fast uses different parameter format
@@ -57,13 +57,13 @@ export async function generateVeoVideo(
             duration_seconds: duration, // number, not string
             aspect_ratio: aspectRatio,
         };
-        
-        const input = imageUrl 
+
+        const input = imageUrl
             ? { ...baseInput, image_url: imageUrl }
             : baseInput;
-        
+
         console.log(`[fal.ai Veo 3.1] Input:`, JSON.stringify(input, null, 2));
-        
+
         const result = await fal.subscribe(endpoint, {
             input: input as Parameters<typeof fal.subscribe>[1]["input"],
             logs: true,
@@ -73,20 +73,20 @@ export async function generateVeoVideo(
                 }
             },
         });
-        
+
         console.log(`[fal.ai Veo 3.1] Generation complete - Full response:`, JSON.stringify(result.data, null, 2));
-        
+
         // Extract video URL from result - fal.ai veo3.1 returns video.url
         const data = result.data as { video?: { url: string }; url?: string };
         const videoUrl = data?.video?.url || data?.url;
-        
+
         if (!videoUrl) {
             console.error(`[fal.ai Veo 3.1] No video URL found in response:`, result.data);
             throw new Error("No video URL in response");
         }
-        
+
         console.log(`[fal.ai Veo 3.1] Video URL:`, videoUrl);
-        
+
         return {
             videoUrl,
             duration,
@@ -120,7 +120,7 @@ export function getVeoCost(duration: 5 | 8 | 10): number {
         8: 400,   // Premium 8s with audio
         10: 500,  // Premium 10s (if available)
     };
-    
+
     return costs[duration] || 250;
 }
 
@@ -129,6 +129,100 @@ export function getVeoCost(duration: 5 | 8 | 10): number {
  */
 export function isFalConfigured(): boolean {
     return !!process.env.FAL_KEY;
+}
+
+// ============================================
+// GPT-Image-1.5 - Image Generation
+// Ref: https://fal.ai/models/fal-ai/gpt-image-1.5/api
+// ============================================
+
+const IMAGE_ENDPOINT = "fal-ai/gpt-image-1.5" as const;
+
+export interface ImageGenerateRequest {
+    prompt: string;
+    size?: "1024x1024" | "512x512" | "1024x1536" | "1536x1024";
+    quality?: "low" | "medium" | "high";
+    outputFormat?: "png" | "jpeg" | "webp";
+}
+
+export interface ImageGenerateResult {
+    imageUrl: string;
+    requestId: string;
+}
+
+/**
+ * Generate image using GPT-Image-1 via fal.ai
+ * Model: fal-ai/gpt-image-1
+ */
+export async function generateImage(
+    request: ImageGenerateRequest
+): Promise<ImageGenerateResult> {
+    const {
+        prompt,
+        size = "1024x1024",
+        quality = "high",
+        outputFormat = "png"
+    } = request;
+
+    console.log(`[fal.ai GPT-Image-1.5] Starting generation:`, {
+        endpoint: IMAGE_ENDPOINT,
+        prompt: prompt.substring(0, 100) + (prompt.length > 100 ? '...' : ''),
+        size,
+        quality,
+        outputFormat,
+    });
+
+    try {
+        const input = {
+            prompt,
+            image_size: size,
+            quality,
+            output_format: outputFormat,
+        };
+
+        console.log(`[fal.ai GPT-Image-1.5] Input:`, JSON.stringify(input, null, 2));
+
+        const result = await fal.subscribe(IMAGE_ENDPOINT, {
+            input: input as Parameters<typeof fal.subscribe>[1]["input"],
+            logs: true,
+            onQueueUpdate: (update) => {
+                if (update.status === "IN_PROGRESS") {
+                    console.log(`[fal.ai GPT-Image-1.5] Progress:`, update.logs?.map(l => l.message).join(", "));
+                }
+            },
+        });
+
+        console.log(`[fal.ai GPT-Image-1.5] Generation complete - Full response:`, JSON.stringify(result.data, null, 2));
+
+        // Extract image URL from result
+        // fal.ai gpt-image-1.5 returns { images: [{ url: string, ... }] }
+        const data = result.data as {
+            images?: Array<{ url: string }>;
+            image?: { url: string };
+            url?: string;
+        };
+
+        const imageUrl = data?.images?.[0]?.url || data?.image?.url || data?.url;
+
+        if (!imageUrl) {
+            console.error(`[fal.ai GPT-Image-1.5] No image URL found in response:`, result.data);
+            throw new Error("No image URL in response");
+        }
+
+        console.log(`[fal.ai GPT-Image-1.5] Image URL:`, imageUrl);
+
+        return {
+            imageUrl,
+            requestId: result.requestId,
+        };
+    } catch (error: unknown) {
+        // Log full error details for debugging
+        if (error && typeof error === 'object' && 'body' in error) {
+            console.error(`[fal.ai GPT-Image-1.5] Error body:`, JSON.stringify((error as { body: unknown }).body, null, 2));
+        }
+        console.error(`[fal.ai GPT-Image-1.5] Error:`, error);
+        throw error;
+    }
 }
 
 export { fal };
