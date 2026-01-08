@@ -129,8 +129,8 @@ export default function PricingPage() {
             </div>
 
             {/* Free Trial Banner */}
-            <div className="relative z-10 w-full max-w-4xl mb-6 md:mb-8 p-3 md:p-4 rounded-xl md:rounded-2xl bg-green-500/10 border border-green-500/30 mx-4 text-center">
-                <span className="text-green-700 dark:text-green-400 font-medium text-xs md:text-sm lg:text-base">
+            <div className="relative z-10 w-full max-w-4xl mb-6 md:mb-8 p-3 md:p-4 rounded-xl md:rounded-2xl bg-primary/10 border border-primary/30 mx-4 text-center">
+                <span className="text-primary font-medium text-xs md:text-sm lg:text-base">
                     🎉 User baru dapat 100 token GRATIS untuk mencoba!
                 </span>
             </div>

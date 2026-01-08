@@ -943,7 +943,7 @@ export function VideoGenerator() {
                                                     </span>
                                                     <span className={cn(
                                                         "text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider",
-                                                        item.status === "completed" ? "bg-green-500/10 text-green-500" :
+                                                        item.status === "completed" ? "bg-sky-500/10 text-sky-500" :
                                                             item.status === "failed" ? "bg-red-500/10 text-red-500" :
                                                                 "bg-foreground/5 text-foreground"
                                                     )}>
@@ -1656,7 +1656,7 @@ function VideoProgressIndicator({ status, duration }: { status: string; duration
                         className={cn(
                             "flex items-center gap-3 transition-all duration-300",
                             index < currentStep
-                                ? "text-green-400"
+                                ? "text-sky-400"
                                 : index === currentStep
                                     ? "text-foreground"
                                     : "text-muted-foreground/50"
@@ -1666,7 +1666,7 @@ function VideoProgressIndicator({ status, duration }: { status: string; duration
                             className={cn(
                                 "w-8 h-8 rounded-full flex items-center justify-center transition-all",
                                 index < currentStep
-                                    ? "bg-green-500/20"
+                                    ? "bg-sky-500/20"
                                     : index === currentStep
                                         ? "bg-foreground/10"
                                         : "bg-white/5"

@@ -83,7 +83,7 @@ export default function DashboardPage() {
                             <p className="text-muted-foreground text-base md:text-lg max-w-md mx-auto">
                                 Platform AI untuk generate gambar dan video berkualitas tinggi. Login untuk mulai berkreasi!
                             </p>
-                            
+
                             {/* CTA Buttons */}
                             <div className="flex flex-col sm:flex-row gap-3 justify-center pt-4">
                                 <Link href="/login">
@@ -101,8 +101,8 @@ export default function DashboardPage() {
                             </div>
 
                             {/* Free Credits Banner */}
-                            <div className="mt-8 p-4 rounded-2xl bg-green-500/10 border border-green-500/20">
-                                <div className="flex items-center justify-center gap-2 text-green-600 dark:text-green-400">
+                            <div className="mt-8 p-4 rounded-2xl bg-primary/10 border border-primary/20">
+                                <div className="flex items-center justify-center gap-2 text-primary">
                                     <Icon icon="mingcute:gift-fill" className="w-5 h-5" />
                                     <span className="font-medium">Daftar sekarang & dapatkan 100 token GRATIS!</span>
                                 </div>

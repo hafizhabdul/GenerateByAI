@@ -78,7 +78,7 @@ function HomeContent() {
               <p className="text-muted-foreground text-lg md:text-xl max-w-xl mx-auto">
                 Platform AI untuk generate gambar dan video berkualitas tinggi. Login untuk mulai berkreasi!
               </p>
-              
+
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
                 <Link href="/login">
@@ -96,8 +96,8 @@ function HomeContent() {
               </div>
 
               {/* Free Credits Banner */}
-              <div className="mt-10 p-5 rounded-2xl bg-green-500/10 border border-green-500/20 max-w-md mx-auto">
-                <div className="flex items-center justify-center gap-3 text-green-600 dark:text-green-400">
+              <div className="mt-10 p-5 rounded-2xl bg-primary/10 border border-primary/20 max-w-md mx-auto">
+                <div className="flex items-center justify-center gap-3 text-primary">
                   <Icon icon="mingcute:gift-fill" className="w-6 h-6" />
                   <span className="font-bold text-lg">Daftar & dapatkan 100 token GRATIS!</span>
                 </div>

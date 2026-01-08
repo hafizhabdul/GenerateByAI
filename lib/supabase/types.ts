@@ -47,10 +47,43 @@ export interface Database {
                     updated_at?: string;
                 };
             };
+            sessions: {
+                Row: {
+                    id: string;
+                    user_id: string;
+                    title: string | null;
+                    type: 'image' | 'video';
+                    created_at: string;
+                    updated_at: string;
+                    is_archived: boolean;
+                    is_pinned: boolean;
+                };
+                Insert: {
+                    id?: string;
+                    user_id: string;
+                    title?: string | null;
+                    type?: 'image' | 'video';
+                    created_at?: string;
+                    updated_at?: string;
+                    is_archived?: boolean;
+                    is_pinned?: boolean;
+                };
+                Update: {
+                    id?: string;
+                    user_id?: string;
+                    title?: string | null;
+                    type?: 'image' | 'video';
+                    created_at?: string;
+                    updated_at?: string;
+                    is_archived?: boolean;
+                    is_pinned?: boolean;
+                };
+            };
             generations: {
                 Row: {
                     id: string;
                     user_id: string;
+                    session_id: string | null;
                     type: 'image' | 'video';
                     prompt: string;
                     file_url: string | null;
@@ -81,6 +114,7 @@ export interface Database {
                 Insert: {
                     id?: string;
                     user_id: string;
+                    session_id?: string | null;
                     type: 'image' | 'video';
                     prompt: string;
                     file_url?: string | null;
@@ -98,6 +132,7 @@ export interface Database {
                 Update: {
                     id?: string;
                     user_id?: string;
+                    session_id?: string | null;
                     type?: 'image' | 'video';
                     prompt?: string;
                     file_url?: string | null;
@@ -122,5 +157,8 @@ export interface Database {
 
 // Helper types
 export type Profile = Database['public']['Tables']['profiles']['Row'];
+export type Session = Database['public']['Tables']['sessions']['Row'];
 export type Generation = Database['public']['Tables']['generations']['Row'];
 export type NewGeneration = Database['public']['Tables']['generations']['Insert'];
+export type NewSession = Database['public']['Tables']['sessions']['Insert'];
+

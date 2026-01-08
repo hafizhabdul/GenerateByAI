@@ -19,6 +19,20 @@ type FeedItem = {
     created_at: string;
 };
 
+// Session type from API (database-backed)
+type HistorySession = {
+    id: string;
+    title: string;
+    type: 'image' | 'video';
+    created_at: string;
+    updated_at: string;
+    is_archived: boolean;
+    is_pinned: boolean;
+    preview_image: string | null;
+    generation_count: number;
+    first_prompt: string | null;
+};
+
 // LocalStorage keys - will be suffixed with user ID for isolation
 const getSessionKey = (userId: string) => `imageGeneratorSession_${userId}`;
 const getHeroKey = (userId: string) => `imageGeneratorHero_${userId}`;
@@ -135,11 +149,12 @@ export function ImageGenerator() {
     const [mode, setMode] = useState<"image" | "video">("image");
     const [isHero, setIsHero] = useState(true);
     const [showHistory, setShowHistory] = useState(false);
-    const [history, setHistory] = useState<Generation[]>([]);
+    const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [sessionLoaded, setSessionLoaded] = useState(false);
     const [pendingGenerationId, setPendingGenerationId] = useState<string | null>(null);
     const [qualitySetting, setQualitySetting] = useState<"low" | "medium" | "high">("high");
+    const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
     const { showToast } = useToast();
     const { user, refreshProfile } = useAuth();
@@ -321,16 +336,29 @@ export function ImageGenerator() {
     const fetchHistory = async () => {
         setLoadingHistory(true);
         try {
-            const res = await fetch("/api/generations?limit=20");
+            // Fetch sessions from database API
+            const res = await fetch("/api/sessions?type=image&limit=50");
             if (res.ok) {
                 const data = await res.json();
-                setHistory(data.generations || []);
+                setHistorySessions(data.sessions || []);
             }
         } catch (error) {
             console.error(error);
         } finally {
             setLoadingHistory(false);
         }
+    };
+
+    // Helper to format session date like ChatGPT
+    const formatSessionDate = (dateStr: string): string => {
+        const date = new Date(dateStr);
+        const now = new Date();
+        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays === 0) return "Today";
+        if (diffDays === 1) return "Yesterday";
+        if (diffDays < 7) return date.toLocaleDateString("id-ID", { weekday: "long" });
+        return date.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
     };
 
     const handleGenerate = useCallback(async () => {
@@ -414,27 +442,40 @@ export function ImageGenerator() {
         }
     }, [prompt, mode, user, showToast, refreshProfile]);
 
-    const handleSelectFromHistory = useCallback((item: Generation) => {
-        // When selecting from history, we REPLACE the feed with just this item
-        // This shows the historical session separately instead of mixing with current
-        const historyItem: FeedItem = {
-            id: item.id,
-            type: item.type,
-            prompt: item.prompt,
-            file_url: item.file_url || undefined,
-            status: item.status,
-            created_at: item.created_at
-        };
-        setFeed([historyItem]); // Replace, don't append
-        setIsHero(false);
-        setShowHistory(false);
-        showToast("Viewing historical generation", "info");
+    const handleSelectFromHistory = useCallback(async (session: HistorySession) => {
+        // Fetch generations for this session from API
+        try {
+            const res = await fetch(`/api/sessions/${session.id}`);
+            if (res.ok) {
+                const data = await res.json();
+                const generations = data.generations || [];
+
+                const feedItems: FeedItem[] = generations.map((item: any) => ({
+                    id: item.id,
+                    type: item.type,
+                    prompt: item.prompt,
+                    file_url: item.file_url || undefined,
+                    status: item.status,
+                    created_at: item.created_at
+                }));
+
+                setFeed(feedItems);
+                setCurrentSessionId(session.id);
+                setIsHero(false);
+                setShowHistory(false);
+                showToast(`Loaded session with ${session.generation_count} generation${session.generation_count > 1 ? 's' : ''}`, "info");
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("Failed to load session", "error");
+        }
     }, [showToast]);
 
     const handleNewSession = useCallback(() => {
         setFeed([]);
         setIsHero(true);
         setPrompt("");
+        setCurrentSessionId(null); // Reset current session
         if (user) clearSession(user.id); // Clear localStorage for this user
         showToast("Started a new creative session", "info");
     }, [user, showToast]);
@@ -483,37 +524,48 @@ export function ImageGenerator() {
                                 ✕
                             </button>
                         </div>
-                        {/* History List */}
+                        {/* History List - Sessions like ChatGPT */}
                         <div className="flex-1 overflow-y-auto">
-                            {history.length > 0 ? (
+                            {loadingHistory ? (
+                                <div className="flex items-center justify-center py-12">
+                                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                                </div>
+                            ) : historySessions.length > 0 ? (
                                 <div className="divide-y divide-border">
-                                    {history.map((item) => (
+                                    {historySessions.map((session) => (
                                         <button
-                                            key={item.id}
-                                            onClick={() => handleSelectFromHistory(item)}
+                                            key={session.id}
+                                            onClick={() => handleSelectFromHistory(session)}
                                             className="w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3"
                                         >
-                                            <div className="w-16 h-16 rounded-xl overflow-hidden bg-surface-2 shrink-0">
-                                                {item.file_url ? (
-                                                    <img src={item.file_url} alt="" className="w-full h-full object-cover" />
+                                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-2 shrink-0">
+                                                {session.preview_image ? (
+                                                    <img src={session.preview_image} alt="" className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
-                                                        No image
+                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                                        <Icon icon="mingcute:pic-line" className="w-6 h-6 opacity-30" />
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
-                                                <p className="text-sm line-clamp-2 mb-1">{item.prompt}</p>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {new Date(item.created_at).toLocaleDateString()}
-                                                </span>
+                                                <p className="text-sm line-clamp-2 mb-1.5 text-foreground/90">{session.title || session.first_prompt || "Untitled"}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-muted-foreground">{formatSessionDate(session.updated_at)}</span>
+                                                    {session.generation_count > 1 && (
+                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-muted-foreground">
+                                                            {session.generation_count} images
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                         </button>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                                    <p className="text-muted-foreground">No history yet</p>
+                                    <Icon icon="mingcute:pic-line" className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                                    <p className="text-muted-foreground">No image history yet</p>
+                                    <p className="text-xs text-muted-foreground/70 mt-1">Your generated images will appear here</p>
                                 </div>
                             )}
                         </div>
