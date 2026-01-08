@@ -4,3 +4,4 @@ dan apakah sudah dipikirkan untuk concurency nya?jadi tidak akan ada bentrok dan
 dan coba pikirkan error handlingnya ketika image/video gagal di generate, apakah sudah ada tombol regenerate atau semacamnya thanks
 saya ingin nambahin fitur image-to-image menggunakan model di fal.ai fal-ai/gpt-image-1.5/edit, jadi di image generator ada fitur tersebut karna mungkin misal orang punya produk dia ingin ditambahkan background atau something like that jadi bisa menggunakan itu
 dan untuk extend video mungkin bisa menggunakan fal-ai/veo3.1/fast/extend-video tetapi untuk fitur extend hanya ada khusus untuk model veo3.1 saja yah
+kenapa tombol download di video yang telah di generate di endpoint /videos tidak bisa di pencet tetapi di gallery bisa download videonya

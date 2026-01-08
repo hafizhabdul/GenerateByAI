@@ -149,7 +149,12 @@ export function ImageGenerator() {
     const [loading, setLoading] = useState(false);
     const [mode, setMode] = useState<"image" | "video">("image");
     const [isHero, setIsHero] = useState(true);
-    const [showHistory, setShowHistory] = useState(false);
+    const [showHistory, setShowHistory] = useState(() => {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem("imageGeneratorShowHistory") === "true";
+        }
+        return false;
+    });
     const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -260,6 +265,11 @@ export function ImageGenerator() {
             router.replace(newSearch ? `/?${newSearch}` : "/", { scroll: false });
         }
     }, [searchParams, sessionLoaded, feed.length, handleNewSession, router]);
+
+    // Persist History Panel state
+    useEffect(() => {
+        localStorage.setItem("imageGeneratorShowHistory", showHistory.toString());
+    }, [showHistory]);
 
     // Detect user change (logout/login different user) - clear old session
     useEffect(() => {

@@ -191,7 +191,12 @@ export function VideoGenerator() {
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [isHero, setIsHero] = useState(true);
     const [showSettings, setShowSettings] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
+    const [showHistory, setShowHistory] = useState(() => {
+        if (typeof window !== "undefined") {
+            return localStorage.getItem("videoGeneratorShowHistory") === "true";
+        }
+        return false;
+    });
     const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
     const [generationMode, setGenerationMode] = useState<GenerationMode>("text2video");
     const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -245,7 +250,7 @@ export function VideoGenerator() {
         showToast("Started a new video session", "info");
     }, [user, showToast]);
 
-    // Load ONLY pending videos on mount - start fresh otherwise (fixes Bug 5)
+    // Load last session from localStorage on mount
     useEffect(() => {
         if (!user) {
             // Reset state when no user (logged out)
@@ -259,24 +264,18 @@ export function VideoGenerator() {
             return;
         }
 
-        // Only load pending videos that need polling - don't load old session
-        const pending = loadPendingVideos(user.id);
-        if (pending.length > 0) {
-            // Only show pending/processing videos
-            const activePending = pending.filter(p =>
-                p.status === "pending" || p.status === "processing"
-            );
-            if (activePending.length > 0) {
-                setFeed(activePending);
-                setIsHero(false);
-            } else {
-                // All pending videos completed/failed - start fresh
-                clearSession(user.id);
-                setFeed([]);
-                setIsHero(true);
+        const { feed: savedFeed, isHero: savedHero } = loadSession(user.id);
+
+        if (savedFeed.length > 0) {
+            setFeed(savedFeed);
+            setIsHero(savedHero);
+
+            // Resume polling if there are pending videos
+            const hasPending = savedFeed.some(item => item.status === "pending" || item.status === "processing");
+            if (hasPending) {
+                // Polling logic is handled by another useEffect that watches feed
             }
         } else {
-            // No pending videos - start fresh
             setFeed([]);
             setIsHero(true);
         }
@@ -313,6 +312,11 @@ export function VideoGenerator() {
         }
         prevUserIdRef.current = user?.id || null;
     }, [user]);
+
+    // Persist History Panel state
+    useEffect(() => {
+        localStorage.setItem("videoGeneratorShowHistory", showHistory.toString());
+    }, [showHistory]);
 
     // Scroll history to bottom when opened
     useEffect(() => {

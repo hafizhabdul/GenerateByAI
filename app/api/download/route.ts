@@ -26,19 +26,23 @@ export async function GET(req: Request) {
             "fal.media",           // fal.ai CDN
             "v3.fal.media",        // fal.ai v3 CDN
             "fal.ai",              // fal.ai direct
+            "kwai.net",            // Kling AI CDN
+            "kwai.com",            // Kling AI CDN
+            "cdn.kwai.net",        // Kling AI Direct CDN
+            "files.kwai.com",      // Kling AI Direct Files
         ];
-        
+
         const urlObj = new URL(fileUrl);
         // Strict check: hostname must exactly match or end with .domain
-        const isAllowed = allowedDomains.some(domain => 
+        const isAllowed = allowedDomains.some(domain =>
             urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
         );
-        
+
         // Additional security: must be HTTPS
         if (urlObj.protocol !== "https:") {
             return NextResponse.json({ error: "Invalid URL protocol" }, { status: 400 });
         }
-        
+
         if (!isAllowed) {
             console.log(`[Download] Blocked domain: ${urlObj.hostname}`);
             return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
@@ -46,7 +50,7 @@ export async function GET(req: Request) {
 
         // Fetch the file from storage
         const response = await fetch(fileUrl);
-        
+
         if (!response.ok) {
             throw new Error(`Failed to fetch file: ${response.status}`);
         }
@@ -58,7 +62,7 @@ export async function GET(req: Request) {
         const contentType = response.headers.get("content-type") || "video/mp4";
         const isVideo = contentType.includes("video");
         const isImage = contentType.includes("image");
-        
+
         // Generate filename
         const timestamp = Date.now();
         let filename = `download-${timestamp}`;
