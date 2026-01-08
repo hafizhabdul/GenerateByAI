@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { persistExternalImage, persistBase64Image } from "@/lib/storage-utils";
-import { getTokenCost, QualityTier } from "@/lib/tokens";
+import { getTokenCost } from "@/lib/tokens";
 import { processTokenCharge } from "@/lib/tokens-server";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 
@@ -13,7 +13,6 @@ import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 const GenerateSchema = z.object({
     prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt too long (max 2000 chars)"),
     size: z.enum(["1024x1024", "512x512"]).optional().default("1024x1024"),
-    quality: z.enum(["standard", "high", "ultra"]).optional().default("high"),
 });
 
 export async function POST(req: Request) {
@@ -28,8 +27,9 @@ export async function POST(req: Request) {
             );
         }
 
-        const { prompt, size, quality } = validation.data;
-        const cost = getTokenCost('image', quality as QualityTier);
+        const { prompt, size } = validation.data;
+        // Always use Ultra quality (40 tokens)
+        const cost = getTokenCost('image');
 
         // --- Auth Check ---
         const supabase = await createClient();
@@ -63,13 +63,8 @@ export async function POST(req: Request) {
 
         const openai = new OpenAI({ apiKey, baseURL });
 
-        // --- 3. Enhance Prompt ---
-        let enhancedPrompt = prompt;
-        if (quality === "high") {
-            enhancedPrompt = `${prompt}, high resolution, professional photography, cinematic lighting, 8k, sharp focus, vibrant colors, detailed textures`;
-        } else if (quality === "ultra") {
-            enhancedPrompt = `${prompt}, hyper-realistic masterpiece, award-winning photography, ultra-detailed 8k, ray tracing, soft global illumination, professional color grading, shot on Nikon Z9`;
-        }
+        // --- 3. Enhance Prompt (Always Ultra Quality) ---
+        const enhancedPrompt = `${prompt}, hyper-realistic masterpiece, award-winning photography, ultra-detailed 8k, ray tracing, soft global illumination, professional color grading, shot on Nikon Z9`;
 
         // --- 4. Generate Image ---
         const response = await openai.images.generate({
@@ -124,7 +119,7 @@ export async function POST(req: Request) {
 
         await commitCharge();
 
-        return NextResponse.json({ 
+        return NextResponse.json({
             url: permanentUrl,
             generationId: generation?.id,
         });

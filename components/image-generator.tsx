@@ -198,8 +198,7 @@ export function ImageGenerator() {
     // Save draft whenever prompt or mode changes
     useEffect(() => {
         if (sessionLoaded && user) {
-            const quality = localStorage.getItem("generation_quality") || "high";
-            saveDraft(user.id, { prompt, mode, quality });
+            saveDraft(user.id, { prompt, mode, quality: 'ultra' });
         }
     }, [prompt, mode, sessionLoaded, user]);
 
@@ -352,13 +351,10 @@ export function ImageGenerator() {
                 return;
             }
 
-            // Get quality setting
-            const quality = localStorage.getItem("generation_quality") || "high";
-
             const res = await fetch("/api/generate-image", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: currentPrompt, quality }),
+                body: JSON.stringify({ prompt: currentPrompt }),
             });
 
             const data = await res.json();

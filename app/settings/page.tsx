@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+
 import { useToast } from "@/components/ui/toast";
 import { Icon } from "@iconify/react";
 
@@ -14,14 +14,10 @@ export default function SettingsPage() {
     const { theme, setTheme } = useTheme();
     const [mounted, setMounted] = useState(false);
     const [notifications, setNotifications] = useState(true);
-    const [quality, setQuality] = useState<"standard" | "high" | "ultra">("high");
 
     useEffect(() => {
         setMounted(true);
         // Load saved settings
-        const savedQuality = localStorage.getItem("generation_quality");
-        if (savedQuality) setQuality(savedQuality as any);
-
         const savedNotifications = localStorage.getItem("notifications_enabled");
         if (savedNotifications !== null) {
             setNotifications(savedNotifications === "true");
@@ -36,10 +32,7 @@ export default function SettingsPage() {
         showToast(newValue ? "Notifications enabled" : "Notifications disabled", "success");
     };
 
-    const handleSave = () => {
-        localStorage.setItem("generation_quality", quality);
-        showToast("Settings saved successfully!", "success");
-    };
+
 
     return (
         <div className="flex min-h-screen min-h-[100dvh] w-full bg-background text-foreground">
@@ -99,45 +92,7 @@ export default function SettingsPage() {
                         </CardContent>
                     </Card>
 
-                    {/* Generation Quality */}
-                    <Card variant="glass">
-                        <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                    <Icon icon="mingcute:flash-fill" className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <CardTitle>Generation Quality</CardTitle>
-                                    <CardDescription>Balance between speed and quality</CardDescription>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="pt-4 space-y-4">
-                            {[
-                                { value: "standard", label: "Standard", desc: "Faster generation, good quality", tokens: "10 tokens" },
-                                { value: "high", label: "High", desc: "Balanced speed and quality", tokens: "20 tokens" },
-                                { value: "ultra", label: "Ultra", desc: "Best quality, slower", tokens: "40 tokens" },
-                            ].map((option) => (
-                                <button
-                                    key={option.value}
-                                    onClick={() => setQuality(option.value as typeof quality)}
-                                    className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${quality === option.value
-                                        ? "border-primary bg-primary/5"
-                                        : "border-border hover:border-border-hover"
-                                        }`}
-                                >
-                                    <div className="text-left">
-                                        <p className="font-medium">{option.label}</p>
-                                        <p className="text-sm text-muted-foreground">{option.desc}</p>
-                                    </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="text-xs text-muted-foreground bg-surface-2 px-2 py-1 rounded-lg">{option.tokens}</span>
-                                        {quality === option.value && <Icon icon="mingcute:check-fill" className="w-5 h-5 text-primary" />}
-                                    </div>
-                                </button>
-                            ))}
-                        </CardContent>
-                    </Card>
+
 
                     {/* Notifications */}
                     <Card variant="glass">
@@ -162,12 +117,7 @@ export default function SettingsPage() {
                         </CardHeader>
                     </Card>
 
-                    {/* Save Button */}
-                    <div className="flex justify-end pt-4">
-                        <Button onClick={handleSave} variant="primary" size="lg">
-                            Save Changes
-                        </Button>
-                    </div>
+
                 </div>
             </main>
         </div>
