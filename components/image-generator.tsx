@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, memo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -143,6 +143,7 @@ const clearSession = (userId: string) => {
 
 export function ImageGenerator() {
     const router = useRouter();
+    const searchParams = useSearchParams();
     const [prompt, setPrompt] = useState("");
     const [feed, setFeed] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(false);
@@ -162,6 +163,19 @@ export function ImageGenerator() {
     const abortControllerRef = useRef<AbortController | null>(null);
     const historyListRef = useRef<HTMLDivElement>(null);
     const prevUserIdRef = useRef<string | null>(null);
+
+    const handleNewSession = useCallback(() => {
+        setFeed([]);
+        setIsHero(true);
+        setPrompt("");
+        setCurrentSessionId(null); // Reset current session
+        setMode("image"); // Reset to default mode
+        if (user) {
+            clearSession(user.id); // Clear localStorage for this user
+            clearDraft(user.id); // Explicitly clear draft to prevent autosave race condition
+        }
+        showToast("Started a new creative session", "info");
+    }, [user, showToast]);
 
     // Load session from localStorage on mount + check for pending generations
     // Only load when user is available to ensure user-specific data
@@ -233,6 +247,19 @@ export function ImageGenerator() {
             window.removeEventListener("focus", handleStorageChange);
         };
     }, []);
+
+    // Detect new session request from URL
+    useEffect(() => {
+        const isNew = searchParams.get("new") === "true";
+        if (isNew && sessionLoaded && feed.length === 0) {
+            handleNewSession();
+            // Clean up URL
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("new");
+            const newSearch = params.toString();
+            router.replace(newSearch ? `/?${newSearch}` : "/", { scroll: false });
+        }
+    }, [searchParams, sessionLoaded, feed.length, handleNewSession, router]);
 
     // Detect user change (logout/login different user) - clear old session
     useEffect(() => {
@@ -498,18 +525,7 @@ export function ImageGenerator() {
         }
     }, [showToast]);
 
-    const handleNewSession = useCallback(() => {
-        setFeed([]);
-        setIsHero(true);
-        setPrompt("");
-        setCurrentSessionId(null); // Reset current session
-        setMode("image"); // Reset to default mode
-        if (user) {
-            clearSession(user.id); // Clear localStorage for this user
-            clearDraft(user.id); // Explicitly clear draft to prevent autosave race condition
-        }
-        showToast("Started a new creative session", "info");
-    }, [user, showToast]);
+
 
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">

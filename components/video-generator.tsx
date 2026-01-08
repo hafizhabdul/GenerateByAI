@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback, memo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
@@ -207,11 +207,43 @@ export function VideoGenerator() {
     const { showToast } = useToast();
     const { user, refreshProfile } = useAuth();
     const router = useRouter();
+    const searchParams = useSearchParams();
     const scrollRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const pollingRef = useRef<NodeJS.Timeout | null>(null);
     const historyListRef = useRef<HTMLDivElement>(null);
     const prevUserIdRef = useRef<string | null>(null);
+
+    const handleNewSession = useCallback(() => {
+        // Stop any polling
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
+        }
+        // Clear all state
+        setFeed([]);
+        setIsHero(true);
+        setPrompt("");
+        setImagePreview(null);
+        setImageFile(null);
+        setCurrentSessionId(null); // Clear current session ID
+        setGenerationMode("text2video"); // Reset to default mode
+        // Reset settings to defaults (but keep user's tier preference)
+        setSettings(prev => ({
+            ...prev,
+            duration: "5",
+            mode: "pro",
+            aspectRatio: "16:9",
+            sound: false,
+        }));
+        // Clear localStorage for this user
+        if (user) {
+            clearSession(user.id);
+            // Also explicitly clear draft to prevent autosave race condition
+            clearDraft(user.id);
+        }
+        showToast("Started a new video session", "info");
+    }, [user, showToast]);
 
     // Load ONLY pending videos on mount - start fresh otherwise (fixes Bug 5)
     useEffect(() => {
@@ -252,6 +284,19 @@ export function VideoGenerator() {
         setSessionLoaded(true);
         setLoadingHistory(false);
     }, [user]);
+
+    // Detect new session request from URL
+    useEffect(() => {
+        const isNew = searchParams.get("new") === "true";
+        if (isNew && sessionLoaded && feed.length === 0) {
+            handleNewSession();
+            // Clean up URL
+            const params = new URLSearchParams(searchParams.toString());
+            params.delete("new");
+            const newSearch = params.toString();
+            router.replace(newSearch ? `/videos?${newSearch}` : "/videos", { scroll: false });
+        }
+    }, [searchParams, sessionLoaded, feed.length, handleNewSession, router]);
 
     // Detect user change (logout/login different user) - clear old session
     useEffect(() => {
@@ -834,36 +879,7 @@ export function VideoGenerator() {
         }
     };
 
-    const handleNewSession = useCallback(() => {
-        // Stop any polling
-        if (pollingRef.current) {
-            clearInterval(pollingRef.current);
-            pollingRef.current = null;
-        }
-        // Clear all state
-        setFeed([]);
-        setIsHero(true);
-        setPrompt("");
-        setImagePreview(null);
-        setImageFile(null);
-        setCurrentSessionId(null); // Clear current session ID
-        setGenerationMode("text2video"); // Reset to default mode
-        // Reset settings to defaults (but keep user's tier preference)
-        setSettings(prev => ({
-            ...prev,
-            duration: "5",
-            mode: "pro",
-            aspectRatio: "16:9",
-            sound: false,
-        }));
-        // Clear localStorage for this user
-        if (user) {
-            clearSession(user.id);
-            // Also explicitly clear draft to prevent autosave race condition
-            clearDraft(user.id);
-        }
-        showToast("Started a new video session", "info");
-    }, [user, showToast]);
+
 
     // Helper to format session date like ChatGPT
     const formatSessionDate = (dateStr: string): string => {

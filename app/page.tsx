@@ -166,7 +166,7 @@ function HomeContent() {
 
               {/* Main Action: Create Image */}
               <Link
-                href="/?view=create"
+                href="/?view=create&new=true"
                 className="group col-span-2 row-span-2 relative overflow-hidden rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-primary text-primary-foreground p-4 md:p-6 lg:p-8 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-xl"
               >
                 <div className="absolute -right-4 md:-right-8 -bottom-8 md:-bottom-16 w-40 md:w-56 lg:w-64 h-48 md:h-64 lg:h-72 opacity-90 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
@@ -187,7 +187,7 @@ function HomeContent() {
               </Link>
 
               {/* Secondary Action: Video */}
-              <Link href="/videos" className="group col-span-1 row-span-2 relative overflow-hidden rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-surface-2 border border-border p-4 md:p-6 transition-all hover:scale-[1.02] hover:border-primary/50">
+              <Link href="/videos?new=true" className="group col-span-1 row-span-2 relative overflow-hidden rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-surface-2 border border-border p-4 md:p-6 transition-all hover:scale-[1.02] hover:border-primary/50">
                 <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
                   <Icon icon="mingcute:movie-fill" className="w-28 md:w-40 h-28 md:h-40 -rotate-12" />
                 </div>
