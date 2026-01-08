@@ -26,11 +26,24 @@ export default function ProfilePage() {
     const [syncing, setSyncing] = useState(false);
 
     useEffect(() => {
+        let mounted = true;
+        // Safety timeout to prevent infinite loading
+        const safetyTimer = setTimeout(() => {
+            if (mounted && loading) setLoading(false);
+        }, 4000);
+
         if (user) {
-            fetchStats();
+            fetchStats().finally(() => {
+                if (mounted) setLoading(false);
+            });
         } else if (!authLoading) {
             setLoading(false);
         }
+
+        return () => {
+            mounted = false;
+            clearTimeout(safetyTimer);
+        };
     }, [user, authLoading]);
 
     const fetchStats = async () => {
@@ -52,7 +65,7 @@ export default function ProfilePage() {
         try {
             const res = await fetch("/api/payments/sync", { method: "POST" });
             const data = await res.json();
-            
+
             if (data.success) {
                 if (data.synced > 0 || data.updates?.tokens || data.updates?.plan) {
                     showToast("✅ Profile synced! Tokens and plan updated.", "success");
@@ -82,7 +95,7 @@ export default function ProfilePage() {
     if (loading || authLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background">
-                <Icon icon="mingcute:loading-fill" className="w-8 h-8 animate-spin text-primary" />
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
         );
     }
@@ -105,28 +118,26 @@ export default function ProfilePage() {
 
                     {/* Profile Card */}
                     <Card variant="glass" className="overflow-hidden">
-                        <div className="h-24 bg-primary" />
+                        <div className="h-20 bg-primary/80" />
                         <CardContent className="pt-0 pb-6 px-6">
-                            <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-12">
+                            <div className="flex flex-col sm:flex-row sm:items-end gap-4 -mt-10">
                                 {/* Avatar */}
-                                <div className="w-24 h-24 rounded-2xl bg-surface-2 border-4 border-card flex items-center justify-center overflow-hidden">
+                                <div className="w-20 h-20 rounded-2xl bg-surface-2 border-4 border-card flex items-center justify-center overflow-hidden text-2xl font-bold text-muted-foreground">
                                     {profile?.avatar_url ? (
                                         <img src={profile.avatar_url} alt={profile.name || ""} className="w-full h-full object-cover" />
                                     ) : (
-                                        <Icon icon="mingcute:user-3-fill" className="w-10 h-10 text-muted-foreground" />
+                                        profile?.name?.[0]?.toUpperCase() || "U"
                                     )}
                                 </div>
 
                                 <div className="flex-1 space-y-1">
                                     <div className="flex items-center gap-2">
                                         <h2 className="text-xl font-bold">{profile?.name || "User"}</h2>
-                                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center gap-1">
-                                            <Icon icon="mingcute:vip-2-fill" className="w-3 h-3" />
+                                        <span className="px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium capitalize">
                                             {profile?.plan || "Free"}
                                         </span>
                                     </div>
-                                    <p className="text-muted-foreground text-sm flex items-center gap-2">
-                                        <Icon icon="mingcute:mail-fill" className="w-4 h-4" />
+                                    <p className="text-muted-foreground text-sm">
                                         {user?.email}
                                     </p>
                                 </div>
@@ -134,43 +145,31 @@ export default function ProfilePage() {
                         </CardContent>
                     </Card>
 
-                    {/* Stats */}
+                    {/* Stats - Simplified */}
                     {stats && (
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-4 gap-3">
                             <Card variant="default" padding="sm">
-                                <CardContent className="flex flex-col items-center text-center p-4">
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-3">
-                                        <Icon icon="mingcute:image-fill" className="w-5 h-5" />
-                                    </div>
-                                    <p className="text-2xl font-bold">{stats.imagesGenerated.toLocaleString()}</p>
+                                <CardContent className="text-center p-4">
+                                    <p className="text-2xl font-bold">{stats.imagesGenerated}</p>
                                     <p className="text-xs text-muted-foreground">Images</p>
                                 </CardContent>
                             </Card>
                             <Card variant="default" padding="sm">
-                                <CardContent className="flex flex-col items-center text-center p-4">
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-3">
-                                        <Icon icon="mingcute:video-fill" className="w-5 h-5" />
-                                    </div>
+                                <CardContent className="text-center p-4">
                                     <p className="text-2xl font-bold">{stats.videosCreated}</p>
                                     <p className="text-xs text-muted-foreground">Videos</p>
                                 </CardContent>
                             </Card>
                             <Card variant="default" padding="sm">
-                                <CardContent className="flex flex-col items-center text-center p-4">
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-3">
-                                        <Icon icon="mingcute:flash-fill" className="w-5 h-5" />
-                                    </div>
-                                    <p className="text-2xl font-bold">{(stats.tokensUsed / 1000).toFixed(1)}K</p>
-                                    <p className="text-xs text-muted-foreground">Tokens Used</p>
+                                <CardContent className="text-center p-4">
+                                    <p className="text-2xl font-bold">{stats.tokensUsed >= 1000 ? `${(stats.tokensUsed / 1000).toFixed(1)}K` : stats.tokensUsed}</p>
+                                    <p className="text-xs text-muted-foreground">Used</p>
                                 </CardContent>
                             </Card>
                             <Card variant="default" padding="sm">
-                                <CardContent className="flex flex-col items-center text-center p-4">
-                                    <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-3">
-                                        <Icon icon="mingcute:flash-fill" className="w-5 h-5" />
-                                    </div>
-                                    <p className="text-2xl font-bold">{(stats.tokensRemaining / 1000).toFixed(1)}K</p>
-                                    <p className="text-xs text-muted-foreground">Remaining</p>
+                                <CardContent className="text-center p-4">
+                                    <p className="text-2xl font-bold">{stats.tokensRemaining >= 1000 ? `${(stats.tokensRemaining / 1000).toFixed(1)}K` : stats.tokensRemaining}</p>
+                                    <p className="text-xs text-muted-foreground">Left</p>
                                 </CardContent>
                             </Card>
                         </div>
@@ -207,14 +206,11 @@ export default function ProfilePage() {
                     {/* Account Info */}
                     <Card variant="glass">
                         <CardHeader>
-                            <CardTitle className="text-base">Account Information</CardTitle>
+                            <CardTitle className="text-base">Account</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div className="flex items-center justify-between py-3 border-b border-border">
-                                <div className="flex items-center gap-3">
-                                    <Icon icon="mingcute:calendar-fill" className="w-5 h-5 text-muted-foreground" />
-                                    <span className="text-muted-foreground">Member since</span>
-                                </div>
+                                <span className="text-muted-foreground">Member since</span>
                                 <span>
                                     {profile?.created_at
                                         ? new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
@@ -223,39 +219,23 @@ export default function ProfilePage() {
                                 </span>
                             </div>
                             <div className="flex items-center justify-between py-3 border-b border-border">
-                                <div className="flex items-center gap-3">
-                                    <Icon icon="mingcute:vip-2-fill" className="w-5 h-5 text-muted-foreground" />
-                                    <span className="text-muted-foreground">Current plan</span>
-                                </div>
+                                <span className="text-muted-foreground">Current plan</span>
                                 <div className="flex items-center gap-2">
                                     <span className="capitalize">{profile?.plan || "Free"}</span>
                                     <Button variant="ghost" size="sm" onClick={() => router.push("/pricing")}>
-                                        Upgrade <Icon icon="mingcute:external-link-fill" className="w-3 h-3 ml-1" />
+                                        Upgrade →
                                     </Button>
                                 </div>
                             </div>
                             <div className="flex items-center justify-between py-3">
-                                <div className="flex items-center gap-3">
-                                    <Icon icon="mingcute:refresh-2-fill" className="w-5 h-5 text-muted-foreground" />
-                                    <span className="text-muted-foreground">Payment sync</span>
-                                </div>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
+                                <span className="text-muted-foreground">Payment sync</span>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
                                     onClick={handleSyncPayments}
                                     disabled={syncing}
                                 >
-                                    {syncing ? (
-                                        <>
-                                            <Icon icon="mingcute:loading-fill" className="w-4 h-4 animate-spin mr-1" />
-                                            Syncing...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <Icon icon="mingcute:refresh-2-fill" className="w-4 h-4 mr-1" />
-                                            Sync Payments
-                                        </>
-                                    )}
+                                    {syncing ? "Syncing..." : "Sync Payments"}
                                 </Button>
                             </div>
                         </CardContent>
@@ -264,7 +244,6 @@ export default function ProfilePage() {
                     {/* Logout */}
                     <div className="flex justify-end">
                         <Button onClick={handleLogout} variant="ghost" className="text-destructive hover:text-destructive hover:bg-destructive/10">
-                            <Icon icon="mingcute:exit-fill" className="w-4 h-4" />
                             Sign Out
                         </Button>
                     </div>

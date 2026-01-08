@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { Icon } from "@iconify/react";
@@ -16,14 +15,12 @@ const navItems = [
 
 export function Sidebar() {
     const pathname = usePathname();
-    const [mobileOpen, setMobileOpen] = useState(false);
     const { profile, loading } = useAuth();
 
-    // Calculate credits
+    // Calculate credits - simplified
     const tokensTotal = profile?.tokens_total || 0;
     const tokensUsed = profile?.tokens_used || 0;
     const creditsLeft = Math.max(0, tokensTotal - tokensUsed);
-    const progress = Math.min(100, (tokensUsed / tokensTotal) * 100);
 
     return (
         <>
@@ -50,58 +47,35 @@ export function Sidebar() {
                     ))}
                 </nav>
 
-                {/* Bottom Actions - Grouped Minimalist */}
+                {/* Bottom Actions - Simplified */}
                 <div className="w-full flex flex-col items-center gap-4 pb-1">
 
-                    {/* Minimalist Credit Ring - Show only when logged in */}
+                    {/* Credit Display - Simplified text */}
                     {!loading && profile && (
-                        <div className="group relative w-11 h-11 flex items-center justify-center cursor-pointer hover:scale-105 transition-transform">
-                            {/* Ring */}
-                            <svg className="absolute inset-0 w-full h-full -rotate-90 pointer-events-none" viewBox="0 0 36 36">
-                                <path
-                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    strokeOpacity="0.1"
-                                    strokeWidth="3"
-                                    strokeLinecap="round"
-                                />
-                                <path
-                                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-                                    fill="none"
-                                    stroke={creditsLeft < 10 ? "#ef4444" : "#fb923c"}
-                                    strokeWidth="3"
-                                    strokeDasharray={`${100 - progress}, 100`}
-                                    className="transition-all duration-500 ease-out"
-                                    strokeLinecap="round"
-                                />
-                            </svg>
+                        <Link
+                            href="/pricing"
+                            className="group relative flex flex-col items-center gap-0.5 p-2 rounded-xl hover:bg-white/5 transition-colors"
+                        >
+                            <span className="text-sm font-bold text-foreground">{creditsLeft}</span>
+                            <span className="text-[10px] text-muted-foreground">tokens</span>
 
-                            {/* Upgrade Icon inside Ring */}
-                            <Link
-                                href="/pricing"
-                                className="w-7 h-7 flex items-center justify-center text-primary hover:text-white transition-colors z-10"
-                            >
-                                <Icon icon="mingcute:vip-2-fill" className="w-4 h-4" />
-                            </Link>
-
-                            {/* Floating Tooltip */}
+                            {/* Tooltip */}
                             <div className="absolute left-full ml-5 px-3 py-2 bg-surface-2 border border-border rounded-xl shadow-xl opacity-0 translate-x-[-10px] invisible group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none w-max z-[400]">
-                                <div className="text-sm font-bold text-foreground mb-0.5">{creditsLeft} Credits</div>
+                                <div className="text-sm font-bold text-foreground mb-0.5">{creditsLeft} tokens left</div>
                                 <div className="text-xs text-primary font-medium">Upgrade Plan</div>
                             </div>
-                        </div>
+                        </Link>
                     )}
 
                     {/* Login Prompt - Show when not logged in */}
                     {!loading && !profile && (
                         <Link
                             href="/login"
-                            className="group relative w-11 h-11 flex items-center justify-center rounded-xl bg-primary/10 hover:bg-primary/20 text-primary hover:scale-105 transition-all"
+                            className="group relative px-3 py-2 rounded-xl bg-primary/10 hover:bg-primary/20 text-primary text-sm font-medium hover:scale-105 transition-all"
                         >
-                            <Icon icon="mingcute:user-add-fill" className="w-5 h-5" />
-                            
-                            {/* Floating Tooltip */}
+                            Login
+
+                            {/* Tooltip */}
                             <div className="absolute left-full ml-5 px-3 py-2 bg-surface-2 border border-border rounded-xl shadow-xl opacity-0 translate-x-[-10px] invisible group-hover:visible group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300 pointer-events-none w-max z-[400]">
                                 <div className="text-sm font-bold text-foreground mb-0.5">Login</div>
                                 <div className="text-xs text-muted-foreground">Sign in to start</div>
@@ -109,7 +83,7 @@ export function Sidebar() {
                         </Link>
                     )}
 
-                    {/* Settings / Profile */}
+                    {/* Settings */}
                     <NavItem
                         href="/settings"
                         icon={<Icon icon="mingcute:settings-3-fill" className="w-6 h-6" />}
@@ -119,12 +93,12 @@ export function Sidebar() {
 
                     <div className="w-8 h-px bg-white/10" />
 
-                    {/* User Avatar - Ultra clean */}
+                    {/* User Avatar - Text initial instead of icon */}
                     <Link
                         href="/profile"
-                        className="w-10 h-10 rounded-full bg-surface-2 border-2 border-transparent hover:border-primary flex items-center justify-center text-muted-foreground hover:text-white transition-all shadow-lg"
+                        className="w-10 h-10 rounded-full bg-surface-2 border-2 border-transparent hover:border-primary flex items-center justify-center text-sm font-bold text-muted-foreground hover:text-foreground transition-all"
                     >
-                        <Icon icon="mingcute:user-3-fill" className="w-5 h-5" />
+                        {profile?.name?.[0]?.toUpperCase() || "U"}
                     </Link>
                 </div>
             </aside>
@@ -147,14 +121,13 @@ export function Sidebar() {
                             </Link>
                         ))}
                         {profile ? (
-                            <Link href="/pricing" className="p-3 rounded-xl text-amber-500 bg-amber-500/10 flex flex-col items-center gap-1">
-                                <Icon icon="mingcute:vip-2-fill" className="w-5 h-5" />
-                                <span className="text-[10px] font-medium">Pro</span>
+                            <Link href="/pricing" className="p-3 rounded-xl text-primary bg-primary/10 flex flex-col items-center gap-1">
+                                <span className="text-sm font-bold">{creditsLeft}</span>
+                                <span className="text-[10px] font-medium">tokens</span>
                             </Link>
                         ) : (
                             <Link href="/login" className="p-3 rounded-xl text-primary bg-primary/10 flex flex-col items-center gap-1">
-                                <Icon icon="mingcute:user-add-fill" className="w-5 h-5" />
-                                <span className="text-[10px] font-medium">Login</span>
+                                <span className="text-sm font-medium">Login</span>
                             </Link>
                         )}
                     </div>

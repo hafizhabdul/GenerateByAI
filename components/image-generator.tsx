@@ -139,6 +139,7 @@ export function ImageGenerator() {
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [sessionLoaded, setSessionLoaded] = useState(false);
     const [pendingGenerationId, setPendingGenerationId] = useState<string | null>(null);
+    const [qualitySetting, setQualitySetting] = useState<"low" | "medium" | "high">("high");
 
     const { showToast } = useToast();
     const { user, refreshProfile } = useAuth();
@@ -192,15 +193,36 @@ export function ImageGenerator() {
             if (draft.mode) setMode(draft.mode);
         }
 
+        // Load quality setting
+        const savedQuality = localStorage.getItem("generation_quality");
+        if (savedQuality) setQualitySetting(savedQuality as "low" | "medium" | "high");
+
         setSessionLoaded(true);
     }, [user]);
+
+    // Listen for quality changes in localStorage (from Settings page)
+    useEffect(() => {
+        const handleStorageChange = () => {
+            const q = localStorage.getItem("generation_quality");
+            if (q) setQualitySetting(q as "low" | "medium" | "high");
+        };
+
+        window.addEventListener("storage", handleStorageChange);
+        // Also check on focus (same-tab changes)
+        window.addEventListener("focus", handleStorageChange);
+
+        return () => {
+            window.removeEventListener("storage", handleStorageChange);
+            window.removeEventListener("focus", handleStorageChange);
+        };
+    }, []);
 
     // Save draft whenever prompt or mode changes
     useEffect(() => {
         if (sessionLoaded && user) {
-            saveDraft(user.id, { prompt, mode, quality: 'ultra' });
+            saveDraft(user.id, { prompt, mode, quality: qualitySetting });
         }
-    }, [prompt, mode, sessionLoaded, user]);
+    }, [prompt, mode, sessionLoaded, user, qualitySetting]);
 
     // Handle page visibility change - resume polling when user returns to tab
     useEffect(() => {
@@ -417,22 +439,26 @@ export function ImageGenerator() {
 
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
-            {/* Background Ambient Glow - Removed */}
-            {/* <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-primary/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" /> */}
-
-            {/* Top Controls */}
-            <div className="absolute top-4 right-4 z-40 flex items-center gap-2">
-                {feed.length > 0 && (
-                    <Button
-                        variant="glass"
-                        size="sm"
-                        onClick={handleNewSession}
-                        className="animate-fade-in group"
-                    >
-                        <Icon icon="mingcute:add-circle-fill" className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
-                        New Session
-                    </Button>
-                )}
+            {/* Sticky Header - Always visible */}
+            <div className="sticky top-0 z-50 w-full px-4 py-3 md:py-4 bg-background/80 backdrop-blur-xl border-b border-border/50">
+                <div className="max-w-3xl mx-auto flex items-center justify-between md:pl-24">
+                    <span className="font-semibold text-foreground">Image Studio</span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowHistory(true)}
+                            className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-all text-sm"
+                        >
+                            History
+                        </button>
+                        <Button
+                            variant="glass"
+                            size="sm"
+                            onClick={handleNewSession}
+                        >
+                            + New
+                        </Button>
+                    </div>
+                </div>
             </div>
 
             {/* History Panel */}
@@ -447,15 +473,12 @@ export function ImageGenerator() {
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-4 border-b border-border">
-                            <div className="flex items-center gap-2">
-                                <Icon icon="mingcute:time-fill" className="w-5 h-5 text-primary" />
-                                <h2 className="font-semibold">Chat History</h2>
-                            </div>
+                            <h2 className="font-semibold">History</h2>
                             <button
                                 onClick={() => setShowHistory(false)}
-                                className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                                className="p-2 rounded-lg hover:bg-white/5 transition-colors text-muted-foreground hover:text-foreground"
                             >
-                                <Icon icon="mingcute:close-fill" className="w-5 h-5" />
+                                ✕
                             </button>
                         </div>
                         {/* History List */}
@@ -472,24 +495,22 @@ export function ImageGenerator() {
                                                 {item.file_url ? (
                                                     <img src={item.file_url} alt="" className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center">
-                                                        <Icon icon="mingcute:pic-fill" className="text-muted-foreground w-6 h-6" />
+                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground text-xs">
+                                                        No image
                                                     </div>
                                                 )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm line-clamp-2 mb-1">{item.prompt}</p>
-                                                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                                                    <Icon icon="mingcute:time-line" className="w-3 h-3" />
+                                                <span className="text-xs text-muted-foreground">
                                                     {new Date(item.created_at).toLocaleDateString()}
-                                                </div>
+                                                </span>
                                             </div>
                                         </button>
                                     ))}
                                 </div>
                             ) : (
                                 <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                                    <Icon icon="mingcute:star-fill" className="w-10 h-10 text-muted-foreground/50 mb-3" />
                                     <p className="text-muted-foreground">No history yet</p>
                                 </div>
                             )}
@@ -557,13 +578,10 @@ export function ImageGenerator() {
                         />
                         <div className="flex items-center justify-between px-3 md:px-4 pb-2 gap-2">
                             <div className="flex items-center gap-2">
-                                <button
-                                    onClick={() => setShowHistory(true)}
-                                    className="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-colors"
-                                >
-                                    <Icon icon="mingcute:time-fill" className="w-5 h-5" />
-                                </button>
-                                {/* Mode Toggles... (Keep simplified for now) */}
+                                {/* Quality indicator - shows current setting from localStorage */}
+                                <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 bg-surface-2 rounded-lg text-xs text-muted-foreground">
+                                    <span className="capitalize">{qualitySetting}</span>
+                                </div>
                             </div>
                             <Button
                                 onClick={handleGenerate}
@@ -572,8 +590,7 @@ export function ImageGenerator() {
                                 size="lg"
                                 className="rounded-xl px-6 md:px-8"
                             >
-                                {!loading && <Icon icon="mingcute:send-fill" className="w-5 h-5" />}
-                                <span className="hidden sm:inline ml-2">Generate</span>
+                                <span>Generate</span>
                             </Button>
                         </div>
                     </div>
@@ -620,58 +637,52 @@ const FeedItemCard = memo(function FeedItemCard({ item }: { item: FeedItem }) {
     };
 
     return (
-        <div className="flex flex-col gap-8 animate-fade-in-up">
-            {/* User Prompt Bubble */}
-            <div className="flex justify-end">
-                <div className="max-w-[80%] bg-surface-2 border border-border rounded-2xl rounded-tr-sm px-6 py-4 shadow-sm">
-                    <p className="text-foreground/90 leading-relaxed">{item.prompt}</p>
+        <div className="animate-fade-in-up">
+            {/* Centered Prompt - Clean, minimal */}
+            <div className="flex justify-center mb-6">
+                <div className="inline-block px-4 py-2 bg-surface-2/80 border border-border/50 rounded-lg max-w-[90%]">
+                    <p className="text-sm text-foreground/80 line-clamp-2 text-center">{item.prompt}</p>
                 </div>
             </div>
 
-            {/* AI Response (Image) */}
-            <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                    <Icon icon="mingcute:sparkles-fill" className="w-4 h-4 text-white" />
-                </div>
+            {/* Image Container - Full width, modern card */}
+            <div className="relative group">
+                {item.status === "pending" ? (
+                    <div className="w-full aspect-square rounded-2xl md:rounded-3xl bg-surface-2 flex flex-col items-center justify-center border border-border/30">
+                        <div className="w-12 h-12 rounded-full border-3 border-primary/30 border-t-primary animate-spin" />
+                        <p className="text-sm text-foreground mt-6">Generating...</p>
+                        <p className="text-xs text-muted-foreground mt-2">~10-30 seconds</p>
+                    </div>
+                ) : item.status === "failed" ? (
+                    <div className="w-full p-8 rounded-2xl md:rounded-3xl bg-red-500/5 border border-red-500/20 flex flex-col items-center justify-center gap-2">
+                        <p className="text-red-400 font-medium">Generation failed</p>
+                        <p className="text-sm text-red-300/70">Try again with a different prompt</p>
+                    </div>
+                ) : item.file_url ? (
+                    <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-surface-2 border border-border/30 shadow-xl transition-all duration-300 hover:shadow-2xl hover:border-border/50">
+                        {/* Image */}
+                        <img
+                            src={item.file_url}
+                            alt="Generated"
+                            className="w-full h-auto object-cover"
+                        />
 
-                <div className="flex-1 space-y-3">
-                    {item.status === "pending" ? (
-                        <div className="w-full aspect-square max-w-md rounded-2xl bg-surface-2 animate-pulse flex flex-col items-center justify-center border border-white/5">
-                            <Icon icon="mingcute:loading-fill" className="w-8 h-8 text-primary animate-spin mb-4" />
-                            <p className="text-sm text-muted-foreground">Creating masterpiece...</p>
-                            <p className="text-xs text-muted-foreground/60 mt-2">You can navigate away, we&apos;ll save your result</p>
-                        </div>
-                    ) : item.status === "failed" ? (
-                        <div className="w-full max-w-md p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-200">
-                            Failed to generate image. Please try again.
-                        </div>
-                    ) : item.file_url ? (
-                        <div className="relative group w-full max-w-md">
-                            <div className="rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black/30">
-                                <img
-                                    src={item.file_url}
-                                    alt="Generated"
-                                    className="w-full h-auto object-cover"
-                                />
-                            </div>
-
-                            {/* Action Bar - Always visible */}
-                            <div className="flex flex-wrap items-center gap-2 mt-3 p-2 bg-surface-2/50 rounded-xl border border-border/50">
+                        {/* Hover Overlay with Actions */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-end">
+                            <div className="w-full p-4 md:p-6 flex flex-wrap items-center justify-center gap-3">
                                 <Button
-                                    variant="outline"
+                                    variant="glass"
                                     size="sm"
                                     onClick={handleDownload}
                                     disabled={isDownloading}
-                                    className="flex-1 min-w-[100px] md:min-w-[120px]"
+                                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
                                 >
-                                    <Icon icon={isDownloading ? "mingcute:loading-fill" : "mingcute:download-2-fill"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
-                                    <span className="hidden sm:inline">{isDownloading ? "Downloading..." : "Download"}</span>
-                                    <span className="sm:hidden">{isDownloading ? "..." : "Save"}</span>
+                                    {isDownloading ? "Saving..." : "Download"}
                                 </Button>
                                 <Button
-                                    variant="outline"
+                                    variant="glass"
                                     size="sm"
-                                    className="flex-1 min-w-[120px]"
+                                    className="bg-white/10 hover:bg-white/20 text-white border-white/20"
                                     onClick={() => {
                                         if (item.file_url) {
                                             sessionStorage.setItem("videoSourceImage", item.file_url);
@@ -680,17 +691,44 @@ const FeedItemCard = memo(function FeedItemCard({ item }: { item: FeedItem }) {
                                         }
                                     }}
                                 >
-                                    <Icon icon="mingcute:video-fill" className="w-4 h-4 mr-2" />
                                     Create Video
                                 </Button>
                             </div>
                         </div>
-                    ) : (
-                        <div className="w-full max-w-md p-6 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 text-yellow-200">
-                            Image generated but URL not available. Check gallery.
+
+                        {/* Always visible action bar on mobile */}
+                        <div className="md:hidden flex items-center justify-center gap-3 p-4 border-t border-border/30 bg-surface-1">
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleDownload}
+                                disabled={isDownloading}
+                                className="flex-1"
+                            >
+                                {isDownloading ? "..." : "Download"}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="flex-1"
+                                onClick={() => {
+                                    if (item.file_url) {
+                                        sessionStorage.setItem("videoSourceImage", item.file_url);
+                                        sessionStorage.setItem("videoSourcePrompt", item.prompt);
+                                        router.push("/videos");
+                                    }
+                                }}
+                            >
+                                Video
+                            </Button>
                         </div>
-                    )}
-                </div>
+                    </div>
+                ) : (
+                    <div className="w-full p-8 rounded-2xl md:rounded-3xl bg-yellow-500/5 border border-yellow-500/20 flex flex-col items-center justify-center gap-2">
+                        <p className="text-yellow-400 font-medium">Image unavailable</p>
+                        <p className="text-sm text-yellow-300/70">Check your gallery</p>
+                    </div>
+                )}
             </div>
         </div>
     );

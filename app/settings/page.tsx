@@ -59,24 +59,17 @@ export default function SettingsPage() {
                     {/* Appearance */}
                     <Card variant="glass">
                         <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                    <Icon icon="mingcute:palette-fill" className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <CardTitle>Appearance</CardTitle>
-                                    <CardDescription>Customize how the app looks</CardDescription>
-                                </div>
-                            </div>
+                            <CardTitle>Appearance</CardTitle>
+                            <CardDescription>Customize how the app looks</CardDescription>
                         </CardHeader>
                         <CardContent className="pt-4">
                             <div className="space-y-4">
                                 <label className="text-sm font-medium">Theme</label>
                                 <div className="grid grid-cols-3 gap-3">
                                     {[
-                                        { value: "dark", label: "Dark", icon: "mingcute:moon-fill" },
-                                        { value: "light", label: "Light", icon: "mingcute:sun-fill" },
-                                        { value: "system", label: "System", icon: "mingcute:computer-fill" },
+                                        { value: "dark", label: "Dark" },
+                                        { value: "light", label: "Light" },
+                                        { value: "system", label: "System" },
                                     ].map((option) => (
                                         <button
                                             key={option.value}
@@ -86,11 +79,7 @@ export default function SettingsPage() {
                                                 : "border-border bg-surface-2 hover:border-border-hover"
                                                 }`}
                                         >
-                                            <Icon icon={option.icon} className="w-5 h-5" />
                                             <span className="text-sm">{option.label}</span>
-                                            {theme === option.value && (
-                                                <Icon icon="mingcute:check-fill" className="w-4 h-4 absolute top-2 right-2" />
-                                            )}
                                         </button>
                                     ))}
                                 </div>
@@ -101,21 +90,14 @@ export default function SettingsPage() {
                     {/* Generation Quality */}
                     <Card variant="glass">
                         <CardHeader>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                                    <Icon icon="mingcute:flash-fill" className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <CardTitle>Image Quality</CardTitle>
-                                    <CardDescription>Balance between speed and quality</CardDescription>
-                                </div>
-                            </div>
+                            <CardTitle>Image Quality</CardTitle>
+                            <CardDescription>Balance between speed and quality</CardDescription>
                         </CardHeader>
                         <CardContent className="pt-4 space-y-4">
                             {[
-                                { value: "low", label: "Low", desc: "Fast generation, good quality", tokens: "10 tokens", icon: "mingcute:lightning-fill" },
-                                { value: "medium", label: "Medium", desc: "Balanced speed and quality", tokens: "20 tokens", icon: "mingcute:balance-fill" },
-                                { value: "high", label: "High", desc: "Best quality, slower", tokens: "40 tokens", icon: "mingcute:diamond-fill" },
+                                { value: "low", label: "Low", desc: "Fast generation, good quality", tokens: "10 tokens" },
+                                { value: "medium", label: "Medium", desc: "Balanced speed and quality", tokens: "20 tokens" },
+                                { value: "high", label: "High", desc: "Best quality, slower", tokens: "40 tokens" },
                             ].map((option) => (
                                 <button
                                     key={option.value}
@@ -125,18 +107,12 @@ export default function SettingsPage() {
                                         : "border-border hover:border-border-hover"
                                         }`}
                                 >
-                                    <div className="flex items-center gap-3">
-                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${quality === option.value ? "bg-primary/20 text-primary" : "bg-surface-2 text-muted-foreground"}`}>
-                                            <Icon icon={option.icon} className="w-5 h-5" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="font-medium">{option.label}</p>
-                                            <p className="text-sm text-muted-foreground">{option.desc}</p>
-                                        </div>
+                                    <div className="text-left">
+                                        <p className="font-medium">{option.label}</p>
+                                        <p className="text-sm text-muted-foreground">{option.desc}</p>
                                     </div>
                                     <div className="flex items-center gap-3">
                                         <span className="text-xs text-muted-foreground bg-surface-2 px-2 py-1 rounded-lg">{option.tokens}</span>
-                                        {quality === option.value && <Icon icon="mingcute:check-fill" className="w-5 h-5 text-primary" />}
                                     </div>
                                 </button>
                             ))}

@@ -19,22 +19,22 @@ type FilterType = "all" | "image" | "video";
  */
 function getProxiedVideoUrl(url: string | undefined | null): string | undefined {
     if (!url) return undefined;
-    
+
     // Check if URL is from fal.ai CDN - needs proxy
     const falDomains = ["fal.media", "v3.fal.media", "fal.ai"];
     try {
         const urlObj = new URL(url);
-        const needsProxy = falDomains.some(domain => 
+        const needsProxy = falDomains.some(domain =>
             urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
         );
-        
+
         if (needsProxy) {
             return `/api/video-proxy?url=${encodeURIComponent(url)}`;
         }
     } catch {
         // Invalid URL, return as-is
     }
-    
+
     return url;
 }
 
@@ -226,23 +226,23 @@ export default function GalleryPage() {
                             <button
                                 onClick={handleRefresh}
                                 disabled={loading}
-                                className="p-2 rounded-xl bg-surface-2 hover:bg-surface-3 transition-colors disabled:opacity-50"
+                                className="px-3 py-2 rounded-xl bg-surface-2 hover:bg-surface-3 transition-colors disabled:opacity-50 text-xs font-medium text-foreground"
                                 title="Refresh"
                             >
-                                <Icon icon="mingcute:refresh-2-fill" className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+                                {loading ? "Syncing..." : "Refresh"}
                             </button>
                             <div className="flex items-center p-1 bg-surface-2 rounded-xl">
                                 <button
                                     onClick={() => setView("grid")}
-                                    className={`p-2 rounded-lg transition-colors ${view === "grid" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
+                                    className={`px-3 py-2 rounded-lg transition-colors text-xs font-medium ${view === "grid" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
                                 >
-                                    <Icon icon="mingcute:grid-fill" className="w-4 h-4" />
+                                    Grid
                                 </button>
                                 <button
                                     onClick={() => setView("list")}
-                                    className={`p-2 rounded-lg transition-colors ${view === "list" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
+                                    className={`px-3 py-2 rounded-lg transition-colors text-xs font-medium ${view === "list" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
                                 >
-                                    <Icon icon="mingcute:list-check-fill" className="w-4 h-4" />
+                                    List
                                 </button>
                             </div>
                         </div>
@@ -251,34 +251,31 @@ export default function GalleryPage() {
                     {/* Search & Filter Bar */}
                     <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
                         <div className="relative flex-1">
-                            <Icon icon="mingcute:search-2-fill" className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                             <input
                                 type="text"
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 placeholder="Search by prompt..."
-                                className="w-full h-10 md:h-11 pl-9 md:pl-11 pr-4 bg-surface-2 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
+                                className="w-full h-10 md:h-11 px-4 bg-surface-2 border border-border rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all"
                             />
                         </div>
                         <div className="flex items-center p-1 bg-surface-2 rounded-xl">
                             <button
                                 onClick={() => setFilterType("all")}
-                                className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm transition-colors ${filterType === "all" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
+                                className={`px-4 py-2 rounded-lg text-sm transition-colors ${filterType === "all" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
                             >
                                 All
                             </button>
                             <button
                                 onClick={() => setFilterType("image")}
-                                className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm transition-colors flex items-center gap-1 md:gap-1.5 ${filterType === "image" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
+                                className={`px-4 py-2 rounded-lg text-sm transition-colors ${filterType === "image" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
                             >
-                                <Icon icon="mingcute:pic-fill" className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                 Images
                             </button>
                             <button
                                 onClick={() => setFilterType("video")}
-                                className={`px-2 md:px-3 py-1.5 md:py-2 rounded-lg text-xs md:text-sm transition-colors flex items-center gap-1 md:gap-1.5 ${filterType === "video" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
+                                className={`px-4 py-2 rounded-lg text-sm transition-colors ${filterType === "video" ? "bg-white/10 text-white" : "text-muted-foreground hover:text-white"}`}
                             >
-                                <Icon icon="mingcute:movie-fill" className="w-3.5 h-3.5 md:w-4 md:h-4" />
                                 Videos
                             </button>
                         </div>
@@ -290,10 +287,6 @@ export default function GalleryPage() {
                             {[...Array(8)].map((_, i) => (
                                 <div key={i} className="rounded-xl md:rounded-2xl overflow-hidden bg-surface-2 border border-border animate-pulse">
                                     <div className="aspect-square bg-white/5" />
-                                    <div className="p-2 md:p-3 space-y-2">
-                                        <div className="h-3 bg-white/10 rounded w-3/4" />
-                                        <div className="h-2 bg-white/5 rounded w-1/2" />
-                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -314,13 +307,12 @@ export default function GalleryPage() {
                                     <div className="relative aspect-square">
                                         {item.status === "processing" ? (
                                             <div className="w-full h-full flex flex-col items-center justify-center bg-surface-2 animate-pulse">
-                                                <Icon icon="mingcute:loading-fill" className="w-8 h-8 text-primary animate-spin mb-2" />
+                                                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin mb-2" />
                                                 <span className="text-xs text-muted-foreground">Generating...</span>
                                             </div>
                                         ) : item.status === "failed" ? (
-                                            <div className="w-full h-full flex flex-col items-center justify-center bg-red-500/10 dark:bg-red-500/5">
-                                                <Icon icon="mingcute:alert-fill" className="w-8 h-8 text-red-500 mb-2" />
-                                                <span className="text-xs text-red-500">Failed</span>
+                                            <div className="w-full h-full flex flex-col items-center justify-center bg-red-500/10">
+                                                <span className="text-xs text-red-500 font-medium">Failed</span>
                                             </div>
                                         ) : (
                                             <>
@@ -341,44 +333,33 @@ export default function GalleryPage() {
                                                         className="w-full h-full object-cover"
                                                     />
                                                 ) : (
-                                                    <div className="w-full h-full flex items-center justify-center bg-surface-2">
-                                                        <Icon icon="mingcute:file-unknown-fill" className="w-8 h-8 text-muted-foreground" />
+                                                    <div className="w-full h-full flex items-center justify-center bg-surface-2 text-muted-foreground text-xs">
+                                                        No media
                                                     </div>
                                                 )}
                                             </>
                                         )}
 
-                                        {/* Type Badge */}
+                                        {/* Type Badge - Minimal */}
                                         {item.type === "video" && (
-                                            <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-lg flex items-center gap-1">
-                                                <Icon icon="mingcute:movie-fill" className="w-3 h-3 text-violet-400" />
-                                                <span className="text-[10px] md:text-xs text-white">{item.metadata?.duration || "5"}s</span>
+                                            <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/60 backdrop-blur-sm rounded text-[10px] text-white font-medium">
+                                                {item.metadata?.duration || "5"}s
                                             </div>
                                         )}
 
                                         {/* Hover Overlay */}
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-3 md:p-4">
-                                            <p className="text-white text-xs md:text-sm line-clamp-2 mb-2">{item.prompt}</p>
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
+                                            <p className="text-white text-xs line-clamp-2 mb-2">{item.prompt}</p>
                                             <div className="flex items-center justify-between">
-                                                <span className="text-white/60 text-[10px] md:text-xs">
+                                                <span className="text-white/60 text-[10px]">
                                                     {new Date(item.created_at).toLocaleDateString()}
                                                 </span>
-                                                <div className="flex items-center gap-1">
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleDownload(item); }}
-                                                        className="p-1 md:p-1.5 rounded-lg hover:bg-white/20 transition-colors text-white/60 hover:text-white"
-                                                        title="Download"
-                                                    >
-                                                        <Icon icon="mingcute:download-2-fill" className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => { e.stopPropagation(); handleToggleFavorite(item.id, item.is_favorite); }}
-                                                        className={`p-1 md:p-1.5 rounded-lg hover:bg-white/20 transition-colors ${item.is_favorite ? "text-red-400" : "text-white/60"}`}
-                                                        title={item.is_favorite ? "Remove from favorites" : "Add to favorites"}
-                                                    >
-                                                        <Icon icon={item.is_favorite ? "mingcute:heart-fill" : "mingcute:heart-line"} className="w-3.5 h-3.5 md:w-4 md:h-4" />
-                                                    </button>
-                                                </div>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleDownload(item); }}
+                                                    className="text-xs text-white hover:text-primary transition-colors hover:underline"
+                                                >
+                                                    Download
+                                                </button>
                                             </div>
                                         </div>
                                     </div>
@@ -387,42 +368,25 @@ export default function GalleryPage() {
                         </div>
                     )}
 
-                    {/* Empty State */}
+                    {/* Empty State - Minimal */}
                     {!loading && filteredItems.length === 0 && (
                         <div className="flex flex-col items-center justify-center py-20 text-center">
                             {searchQuery || filterType !== "all" ? (
                                 <>
-                                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-surface-2 flex items-center justify-center mb-4 md:mb-6">
-                                        <Icon icon="mingcute:search-2-fill" className="w-8 h-8 md:w-10 md:h-10 text-muted-foreground" />
-                                    </div>
-                                    <h3 className="font-semibold text-lg md:text-xl mb-2">No items found</h3>
-                                    <p className="text-muted-foreground text-xs md:text-sm mb-4 md:mb-6 max-w-sm">
-                                        Try adjusting your search query or filter to find what you&apos;re looking for
-                                    </p>
-                                    <Button variant="secondary" onClick={() => { setSearchQuery(""); setFilterType("all"); }}>
-                                        <Icon icon="mingcute:close-fill" className="w-4 h-4 mr-2" />
+                                    <h3 className="font-semibold text-lg mb-2">No items found</h3>
+                                    <Button variant="ghost" onClick={() => { setSearchQuery(""); setFilterType("all"); }}>
                                         Clear Filters
                                     </Button>
                                 </>
                             ) : (
                                 <>
-                                    <div className="mb-6 md:mb-8">
-                                        <div className="w-24 h-24 md:w-32 md:h-32 rounded-2xl md:rounded-3xl bg-surface-1 flex items-center justify-center border border-border">
-                                            <Icon icon="mingcute:image-fill" className="w-12 h-12 md:w-16 md:h-16 text-primary/60" />
-                                        </div>
-                                    </div>
-                                    <h3 className="font-semibold text-lg md:text-xl mb-2">Your gallery is empty</h3>
-                                    <p className="text-muted-foreground text-xs md:text-sm mb-6 md:mb-8 max-w-sm">
-                                        Start creating amazing AI-generated images and videos. They&apos;ll appear here automatically.
+                                    <h3 className="font-semibold text-lg mb-2">Gallery is empty</h3>
+                                    <p className="text-muted-foreground text-sm mb-6">
+                                        Your generated creations will appear here.
                                     </p>
-                                    <div className="flex flex-wrap justify-center gap-2 md:gap-3">
+                                    <div className="flex justify-center gap-3">
                                         <Button variant="primary" onClick={() => router.push("/?view=create")}>
-                                            <Icon icon="mingcute:pic-fill" className="w-4 h-4 mr-2" />
                                             Generate Image
-                                        </Button>
-                                        <Button variant="secondary" onClick={() => router.push("/videos")}>
-                                            <Icon icon="mingcute:movie-fill" className="w-4 h-4 mr-2" />
-                                            Create Video
                                         </Button>
                                     </div>
                                 </>
@@ -444,22 +408,21 @@ export default function GalleryPage() {
                     >
                         <button
                             onClick={() => setSelectedItem(null)}
-                            className="absolute top-3 right-3 md:top-4 md:right-4 z-10 p-2 rounded-xl bg-black/50 hover:bg-black/70 transition-colors"
+                            className="absolute top-3 right-3 md:top-4 md:right-4 z-10 w-8 h-8 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 transition-colors text-white text-lg font-medium"
                         >
-                            <Icon icon="mingcute:close-fill" className="w-5 h-5" />
+                            ✕
                         </button>
 
                         <div className="flex flex-col md:flex-row">
                             <div className="flex-1 bg-black">
                                 {selectedItem.status === "processing" ? (
                                     <div className="w-full h-64 md:h-[500px] flex flex-col items-center justify-center text-white">
-                                        <Icon icon="mingcute:loading-fill" className="w-12 h-12 animate-spin mb-4" />
+                                        <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
                                         <p className="text-lg font-medium">Video is being generated...</p>
                                         <p className="text-sm text-white/60">This may take a few minutes</p>
                                     </div>
                                 ) : selectedItem.status === "failed" ? (
                                     <div className="w-full h-64 md:h-[500px] flex flex-col items-center justify-center text-red-400">
-                                        <Icon icon="mingcute:alert-fill" className="w-12 h-12 mb-4" />
                                         <p className="text-lg font-medium">Generation Failed</p>
                                     </div>
                                 ) : (
@@ -488,11 +451,9 @@ export default function GalleryPage() {
                             </div>
                             <div className="w-full md:w-80 p-4 md:p-6 space-y-3 md:space-y-4">
                                 <div className="flex items-center gap-2">
-                                    <Icon
-                                        icon={selectedItem.type === "video" ? "mingcute:movie-fill" : "mingcute:pic-fill"}
-                                        className="w-5 h-5 text-primary"
-                                    />
-                                    <h3 className="font-semibold capitalize">{selectedItem.type}</h3>
+                                    <span className="text-xs font-bold text-primary px-2 py-0.5 bg-primary/10 rounded uppercase tracking-wider">
+                                        {selectedItem.type}
+                                    </span>
                                 </div>
 
                                 <div>
@@ -521,17 +482,13 @@ export default function GalleryPage() {
                                         onClick={() => handleDownload(selectedItem)}
                                         disabled={isDownloading}
                                     >
-                                        <Icon
-                                            icon={isDownloading ? "mingcute:loading-fill" : "mingcute:download-2-fill"}
-                                            className={`w-4 h-4 ${isDownloading ? "animate-spin" : ""}`}
-                                        />
-                                        <span className="ml-1.5">{isDownloading ? "..." : "Download"}</span>
+                                        {isDownloading ? "..." : "Download"}
                                     </Button>
                                     <Button
                                         variant="ghost"
                                         onClick={() => handleDelete(selectedItem.id)}
                                     >
-                                        <Icon icon="mingcute:delete-2-fill" className="w-4 h-4" />
+                                        Delete
                                     </Button>
                                 </div>
                             </div>

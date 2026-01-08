@@ -102,16 +102,15 @@ export default function PricingPage() {
             <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50">
                 <Link
                     href="/"
-                    className="inline-flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                    className="inline-flex items-center justify-center w-10 h-10 md:w-11 md:h-11 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-colors text-lg font-medium text-muted-foreground hover:text-foreground"
                 >
-                    <Icon icon="mingcute:close-fill" className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground hover:text-foreground" />
+                    ✕
                 </Link>
             </div>
 
             {/* Header */}
             <div className="relative z-10 text-center space-y-3 md:space-y-4 mb-12 md:mb-16 lg:mb-24 animate-fade-in-down px-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary tracking-wider uppercase backdrop-blur-md">
-                    <Icon icon="mingcute:coin-fill" className="w-3 h-3" />
+                <div className="inline-block px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary tracking-wider uppercase backdrop-blur-md">
                     Beli Token
                 </div>
                 <h1 className="text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-foreground">
@@ -120,30 +119,20 @@ export default function PricingPage() {
                 <p className="text-muted-foreground max-w-lg mx-auto text-sm md:text-base lg:text-lg">
                     Beli token sekali, pakai kapan saja. Tanpa langganan bulanan.
                 </p>
-                <div className="flex flex-wrap items-center justify-center gap-3 md:gap-4 text-xs md:text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1">
-                        <Icon icon="mingcute:check-circle-fill" className="w-4 h-4 text-green-500" />
-                        Bayar via QRIS
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Icon icon="mingcute:check-circle-fill" className="w-4 h-4 text-green-500" />
-                        Virtual Account
-                    </span>
-                    <span className="flex items-center gap-1">
-                        <Icon icon="mingcute:check-circle-fill" className="w-4 h-4 text-green-500" />
-                        Token tidak expired
-                    </span>
+                <div className="flex flex-wrap items-center justify-center gap-4 text-xs md:text-sm text-muted-foreground">
+                    <span>Bayar via QRIS</span>
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                    <span>Virtual Account</span>
+                    <span className="w-1 h-1 rounded-full bg-muted-foreground/30" />
+                    <span>Token tidak expired</span>
                 </div>
             </div>
 
             {/* Free Trial Banner */}
-            <div className="relative z-10 w-full max-w-4xl mb-6 md:mb-8 p-3 md:p-4 rounded-xl md:rounded-2xl bg-green-500/10 border border-green-500/30 mx-4">
-                <div className="flex items-center justify-center gap-2 md:gap-3">
-                    <Icon icon="mingcute:gift-fill" className="w-5 h-5 md:w-6 md:h-6 text-green-600 dark:text-green-400" />
-                    <span className="text-green-700 dark:text-green-400 font-medium text-xs md:text-sm lg:text-base">
-                        🎉 User baru dapat 100 token GRATIS untuk mencoba!
-                    </span>
-                </div>
+            <div className="relative z-10 w-full max-w-4xl mb-6 md:mb-8 p-3 md:p-4 rounded-xl md:rounded-2xl bg-green-500/10 border border-green-500/30 mx-4 text-center">
+                <span className="text-green-700 dark:text-green-400 font-medium text-xs md:text-sm lg:text-base">
+                    🎉 User baru dapat 100 token GRATIS untuk mencoba!
+                </span>
             </div>
 
             {/* Pricing Grid - 3 cards centered */}
@@ -163,27 +152,20 @@ export default function PricingPage() {
             {/* Token Usage Info */}
             <div className="relative z-10 mt-12 md:mt-16 max-w-4xl w-full px-4 mx-auto">
                 <h3 className="text-base md:text-lg font-medium text-foreground text-center mb-4 md:mb-6">Estimasi penggunaan token</h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 md:gap-4">
-                    <UsageInfo icon="mingcute:pic-fill" label="Gambar" cost="10-40 token" />
-                    <UsageInfo icon="mingcute:movie-fill" label="Video Standard" cost="25 token" />
-                    <UsageInfo icon="mingcute:star-fill" label="Video Pro" cost="45 token" />
-                    <UsageInfo icon="mingcute:magic-2-fill" label="Video Premium" cost="250 token" />
-                    {/* AI Audio - Hidden: Kling AI doesn't support audio yet */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4">
+                    <UsageInfo label="Gambar" cost="10-40 token" />
+                    <UsageInfo label="Video Standard" cost="25 token" />
+                    <UsageInfo label="Video Pro" cost="45 token" />
+                    <UsageInfo label="Video Premium" cost="250 token" />
                 </div>
             </div>
 
             {/* Payment Methods */}
             <div className="relative z-10 mt-10 md:mt-12 text-center px-4 pb-8">
                 <p className="text-xs md:text-sm text-muted-foreground mb-3 md:mb-4">Metode pembayaran</p>
-                <div className="flex items-center justify-center gap-4 md:gap-6">
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <Icon icon="mingcute:qrcode-fill" className="w-6 h-6 md:w-8 md:h-8" />
-                        <span className="text-xs">QRIS</span>
-                    </div>
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                        <Icon icon="mingcute:bank-fill" className="w-5 h-5 md:w-6 md:h-6" />
-                        <span className="text-xs">Virtual Account</span>
-                    </div>
+                <div className="flex items-center justify-center gap-6 text-sm text-muted-foreground font-medium">
+                    <span>QRIS</span>
+                    <span>Virtual Account</span>
                 </div>
                 <p className="text-xs text-muted-foreground mt-4">
                     Pembayaran diproses dengan aman oleh{" "}
@@ -232,8 +214,7 @@ function TokenPackageCard({
             style={{ animationDelay: `${delay}ms` }}
         >
             {popular && (
-                <div className="absolute -top-3 md:-top-4 left-1/2 -translate-x-1/2 px-3 md:px-4 py-1 bg-primary rounded-full text-[10px] md:text-xs font-bold text-white shadow-lg shadow-primary/20 flex items-center gap-1">
-                    <Icon icon="mingcute:fire-fill" className="w-3 h-3" />
+                <div className="absolute -top-3 md:-top-4 left-1/2 -translate-x-1/2 px-3 md:px-4 py-1 bg-primary rounded-full text-[10px] md:text-xs font-bold text-white shadow-lg shadow-primary/20">
                     TERPOPULER
                 </div>
             )}
@@ -247,9 +228,8 @@ function TokenPackageCard({
                 <div className="flex items-baseline gap-1 mb-1">
                     <span className="text-2xl md:text-3xl font-bold text-foreground">{priceFormatted}</span>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-primary font-medium">
-                    <Icon icon="mingcute:coin-fill" className="w-4 h-4" />
-                    <span>{tokens.toLocaleString("id-ID")} token</span>
+                <div className="text-sm text-primary font-medium">
+                    {tokens.toLocaleString("id-ID")} token
                 </div>
             </div>
 
@@ -257,11 +237,9 @@ function TokenPackageCard({
                 {features.map((feature, i) => (
                     <div key={i} className="flex items-start gap-2 md:gap-3 text-xs md:text-sm text-foreground/80">
                         <div className={cn(
-                            "mt-0.5 p-0.5 rounded-full flex items-center justify-center shrink-0",
-                            popular ? "bg-primary/20 text-primary" : "bg-primary/10 text-primary"
-                        )}>
-                            <Icon icon="mingcute:check-fill" className="w-3 h-3" />
-                        </div>
+                            "mt-1.5 w-1.5 h-1.5 rounded-full shrink-0",
+                            popular ? "bg-primary" : "bg-primary/50"
+                        )} />
                         {feature}
                     </div>
                 ))}
@@ -277,25 +255,17 @@ function TokenPackageCard({
                         : "bg-primary/10 hover:bg-primary/20 text-primary border border-primary/20"
                 )}
             >
-                {isLoading ? (
-                    <Icon icon="mingcute:loading-fill" className="w-5 h-5 animate-spin" />
-                ) : (
-                    <>
-                        <Icon icon="mingcute:shopping-cart-2-fill" className="w-4 h-4 mr-2" />
-                        Beli Sekarang
-                    </>
-                )}
+                {isLoading ? "Processing..." : "Beli Sekarang"}
             </Button>
         </div>
     );
 }
 
-function UsageInfo({ icon, label, cost }: { icon: string; label: string; cost: string }) {
+function UsageInfo({ label, cost }: { label: string; cost: string }) {
     return (
-        <div className="flex flex-col items-center gap-1 md:gap-2 p-2 md:p-4 rounded-lg md:rounded-xl bg-card border border-border">
-            <Icon icon={icon} className="w-5 h-5 md:w-6 md:h-6 text-primary" />
-            <span className="text-[10px] md:text-xs text-muted-foreground text-center">{label}</span>
-            <span className="text-xs md:text-sm font-medium text-foreground">{cost}</span>
+        <div className="flex flex-col items-center gap-1 p-3 md:p-4 rounded-xl bg-card border border-border">
+            <span className="text-xs text-muted-foreground text-center">{label}</span>
+            <span className="text-sm font-bold text-foreground">{cost}</span>
         </div>
     );
 }
