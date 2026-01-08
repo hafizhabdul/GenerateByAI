@@ -260,17 +260,48 @@ function HomeContent() {
                   ))
                 ) : recentGenerations.length > 0 ? (
                   // Show actual recent generations
-                  recentGenerations.map((gen) => (
-                    <Link
-                      key={gen.id}
-                      href="/gallery"
-                      className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-xl md:rounded-2xl bg-surface-2 shrink-0 border border-white/5 hover:border-primary/50 transition-colors cursor-pointer overflow-hidden"
-                    >
-                      {gen.file_url && (
-                        <img src={gen.file_url} alt="" className="w-full h-full object-cover" />
-                      )}
-                    </Link>
-                  ))
+                  recentGenerations.map((gen) => {
+                    const isVideo = gen.type === "video";
+                    const thumbnail = gen.thumbnail_url || (isVideo ? null : gen.file_url);
+
+                    return (
+                      <Link
+                        key={gen.id}
+                        href={isVideo ? "/videos" : "/gallery"}
+                        className="w-12 h-12 md:w-14 md:h-14 lg:w-16 lg:h-16 rounded-full bg-surface-2 shrink-0 border border-white/5 hover:border-primary/50 transition-all cursor-pointer overflow-hidden relative group"
+                      >
+                        {thumbnail ? (
+                          <img
+                            src={thumbnail}
+                            alt=""
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).classList.add('hidden');
+                              (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                            }}
+                          />
+                        ) : null}
+
+                        {/* Fallback Icon */}
+                        <div className={cn(
+                          "absolute inset-0 flex items-center justify-center bg-surface-3",
+                          thumbnail ? "hidden" : ""
+                        )}>
+                          <Icon
+                            icon={isVideo ? "mingcute:movie-line" : "mingcute:pic-line"}
+                            className="w-5 h-5 md:w-6 md:h-6 text-muted-foreground/30"
+                          />
+                        </div>
+
+                        {/* Play Indicator for Video */}
+                        {isVideo && (
+                          <div className="absolute inset-0 bg-black/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Icon icon="mingcute:play-fill" className="w-5 h-5 md:w-6 md:h-6 text-white/80" />
+                          </div>
+                        )}
+                      </Link>
+                    );
+                  })
                 ) : (
                   // Empty state
                   <div className="text-xs md:text-sm text-muted-foreground/50 italic">No creations yet. Start creating!</div>

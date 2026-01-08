@@ -1008,14 +1008,27 @@ export function VideoGenerator() {
                                             onClick={() => handleSelectFromHistory(session)}
                                             className="w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3"
                                         >
-                                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-2 shrink-0">
+                                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-2 shrink-0 relative group">
                                                 {session.preview_image ? (
-                                                    <img src={session.preview_image} alt="" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                                        <Icon icon="mingcute:movie-line" className="w-6 h-6 opacity-30" />
-                                                    </div>
-                                                )}
+                                                    <img
+                                                        src={session.preview_image}
+                                                        alt=""
+                                                        className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).style.display = 'none';
+                                                            (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                                        }}
+                                                    />
+                                                ) : null}
+                                                <div className={cn(
+                                                    "absolute inset-0 flex items-center justify-center bg-surface-3",
+                                                    session.preview_image ? "hidden" : ""
+                                                )}>
+                                                    <Icon icon="mingcute:movie-line" className="w-6 h-6 text-muted-foreground/40" />
+                                                </div>
+                                                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <Icon icon="mingcute:play-fill" className="w-4 h-4 text-white" />
+                                                </div>
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <p className="text-sm line-clamp-2 mb-1.5 text-foreground/90">{session.title || session.first_prompt || "Untitled"}</p>
@@ -1219,7 +1232,7 @@ export function VideoGenerator() {
                 <div
                     className={cn(
                         "text-center space-y-4 md:space-y-6 transition-all duration-700 max-w-2xl mx-auto",
-                        isHero ? "opacity-100 translate-y-[-120px] md:translate-y-[-140px]" : "hidden"
+                        isHero ? "opacity-100 translate-y-[-160px] md:translate-y-[-180px]" : "hidden"
                     )}
                 >
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
@@ -1266,7 +1279,7 @@ export function VideoGenerator() {
                 className={cn(
                     "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
                     isHero
-                        ? "bottom-1/2 translate-y-[calc(50%+60px)] md:translate-y-[calc(50%+80px)]"
+                        ? "bottom-1/2 translate-y-[calc(50%+110px)] md:translate-y-[calc(50%+130px)]"
                         : "bottom-20 md:bottom-8"
                 )}
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}

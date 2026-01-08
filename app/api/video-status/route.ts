@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
         // Create Kling client and check status
         const kling = createKlingClient();
         let result;
-        
+
         try {
             if (type === "text2video") {
                 result = await kling.getTextToVideoResult(taskId);
@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
                 const adminClient = createAdminClient();
                 await adminClient
                     .from("generations")
-                    .update({ 
+                    .update({
                         status: "failed",
                         metadata: {
                             error: result.data.task_status_msg || "Generation failed",
@@ -231,6 +231,7 @@ export async function GET(req: NextRequest) {
                     .update({
                         status: "completed",
                         file_url: permanentUrl,
+                        thumbnail_url: existingGen?.metadata?.sourceImage || null,
                         metadata: {
                             ...existingGen?.metadata,
                             klingVideoId: videoData.id,

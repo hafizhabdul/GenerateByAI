@@ -63,7 +63,7 @@ export async function GET(req: Request) {
                 updated_at: session.updated_at,
                 is_archived: session.is_archived,
                 is_pinned: session.is_pinned,
-                preview_image: completedGen?.file_url || null,
+                preview_image: completedGen?.thumbnail_url || completedGen?.file_url || null,
                 generation_count: generations.length,
                 first_prompt: generations.length > 0
                     ? generations[generations.length - 1]?.prompt
