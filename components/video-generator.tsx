@@ -865,7 +865,7 @@ export function VideoGenerator() {
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative">
             {/* Background Ambient Glow */}
-            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-primary/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-foreground/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
 
             {/* Sticky Header - Always visible */}
             <div className="sticky top-0 z-50 w-full px-4 py-3 md:py-4 bg-background/80 backdrop-blur-xl border-b border-border/50">
@@ -945,7 +945,7 @@ export function VideoGenerator() {
                                                         "text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider",
                                                         item.status === "completed" ? "bg-green-500/10 text-green-500" :
                                                             item.status === "failed" ? "bg-red-500/10 text-red-500" :
-                                                                "bg-primary/10 text-primary"
+                                                                "bg-foreground/5 text-foreground"
                                                     )}>
                                                         {item.status}
                                                     </span>
@@ -964,173 +964,164 @@ export function VideoGenerator() {
                 </div>
             )}
 
-            {/* Settings Panel */}
+            {/* Settings Panel - Premium Minimalist Modal */}
             {showSettings && (
                 <div
-                    className="fixed inset-0 z-50 bg-black/80 animate-fade-in"
+                    className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm animate-fade-in flex items-center justify-center p-4"
                     onClick={() => setShowSettings(false)}
                 >
                     <div
-                        className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-card border-l border-border animate-slide-in-right overflow-hidden flex flex-col"
+                        className="w-full max-w-md bg-card border border-border shadow-2xl rounded-3xl overflow-hidden flex flex-col animate-scale-in"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between p-4 border-b border-border">
-                            <h2 className="font-semibold">Settings</h2>
+                        <div className="flex items-center justify-between px-6 py-5 border-b border-border/50 bg-card/50">
+                            <h2 className="font-semibold text-lg tracking-tight">Studio Settings</h2>
                             <button
                                 onClick={() => setShowSettings(false)}
-                                className="p-2 rounded-lg hover:bg-white/5 transition-colors text-muted-foreground hover:text-foreground"
+                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-foreground/5 transition-colors text-muted-foreground hover:text-foreground"
                             >
                                 ✕
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-8">
-                            {/* Video Tier Selection */}
-                            <div className="space-y-3">
-                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Model</label>
-                                <div className="grid grid-cols-1 gap-2">
+                        <div className="p-6 space-y-8 bg-card/50">
+                            {/* Model Selection - Two Big Cards */}
+                            <div className="space-y-4">
+                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Generation Model</label>
+                                <div className="grid grid-cols-2 gap-4">
                                     <button
                                         onClick={() => setSettings((s) => ({ ...s, tier: "standard", duration: "5", sound: false }))}
                                         className={cn(
-                                            "p-4 rounded-xl border text-left transition-all",
+                                            "relative p-4 rounded-2xl border-2 text-left transition-all duration-200 flex flex-col gap-3 hover:scale-[1.02]",
                                             settings.tier === "standard"
-                                                ? "border-primary/50 bg-primary/10"
-                                                : "border-border hover:border-border-hover bg-background"
+                                                ? "border-foreground bg-foreground/5 shadow-sm"
+                                                : "border-transparent bg-surface-2 hover:bg-surface-3 text-muted-foreground"
                                         )}
                                     >
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-medium">Standard</span>
-                                            {settings.tier === "standard" && <div className="w-2 h-2 rounded-full bg-primary" />}
+                                        <div className="flex justify-between items-start">
+                                            <span className={cn("font-semibold text-lg", settings.tier === "standard" ? "text-foreground" : "text-muted-foreground")}>Standard</span>
+                                            {settings.tier === "standard" && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
                                         </div>
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                            Kling • Fast • No audio
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-medium opacity-70">Kling Model</p>
+                                            <p className="text-[10px] opacity-50">Fast generation • Silent</p>
                                         </div>
                                     </button>
+
                                     <button
                                         onClick={() => setSettings((s) => ({ ...s, tier: "premium", duration: "5", sound: true }))}
                                         className={cn(
-                                            "p-4 rounded-xl border text-left transition-all",
+                                            "relative p-4 rounded-2xl border-2 text-left transition-all duration-200 flex flex-col gap-3 hover:scale-[1.02]",
                                             settings.tier === "premium"
-                                                ? "border-primary/50 bg-primary/10"
-                                                : "border-border hover:border-border-hover bg-background"
+                                                ? "border-foreground bg-foreground/5 shadow-sm"
+                                                : "border-transparent bg-surface-2 hover:bg-surface-3 text-muted-foreground"
                                         )}
                                     >
-                                        <div className="flex items-center justify-between">
-                                            <span className="font-medium">Premium</span>
-                                            {settings.tier === "premium" && <div className="w-2 h-2 rounded-full bg-primary" />}
+                                        <div className="flex justify-between items-start">
+                                            <span className={cn("font-semibold text-lg", settings.tier === "premium" ? "text-foreground" : "text-muted-foreground")}>Premium</span>
+                                            {settings.tier === "premium" && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
                                         </div>
-                                        <div className="text-xs text-muted-foreground mt-1">
-                                            Veo 3.1 • Cinematic • With Audio
+                                        <div className="space-y-1">
+                                            <p className="text-xs font-medium opacity-70">Veo 3.1 Model</p>
+                                            <p className="text-[10px] opacity-50">Cinematic • With Audio</p>
                                         </div>
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Duration */}
-                            <div className="space-y-3">
-                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Duration</label>
-                                <div className="grid grid-cols-2 gap-2">
-                                    {settings.tier === "premium" ? (
+                            {/* Configuration Grid */}
+                            <div className="grid grid-cols-2 gap-8">
+                                {/* Duration */}
+                                <div className="space-y-4">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Duration</label>
+                                    <div className="flex bg-surface-2 p-1 rounded-xl">
+                                        {(settings.tier === "premium" ? ["5", "8"] : ["5", "10"]).map((d) => (
+                                            <button
+                                                key={d}
+                                                onClick={() => setSettings((s) => ({ ...s, duration: d as "5" | "10" }))}
+                                                className={cn(
+                                                    "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
+                                                    settings.duration === d
+                                                        ? "bg-foreground text-background shadow-sm"
+                                                        : "text-muted-foreground hover:text-foreground"
+                                                )}
+                                            >
+                                                {d}s
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Quality / Aspect Ratio (depending on availability) */}
+                                <div className="space-y-4">
+                                    {settings.tier === "standard" ? (
                                         <>
-                                            {(["5", "8"] as const).map((d) => (
+                                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Quality</label>
+                                            <div className="flex bg-surface-2 p-1 rounded-xl">
                                                 <button
-                                                    key={d}
-                                                    onClick={() => setSettings((s) => ({ ...s, duration: d as "5" | "10" }))}
+                                                    onClick={() => setSettings((s) => ({ ...s, mode: "std" }))}
                                                     className={cn(
-                                                        "p-2.5 rounded-lg border text-sm transition-all",
-                                                        settings.duration === d
-                                                            ? "border-primary/50 bg-primary/10 text-primary font-medium"
-                                                            : "border-border hover:border-border-hover"
+                                                        "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
+                                                        settings.mode === "std"
+                                                            ? "bg-foreground text-background shadow-sm"
+                                                            : "text-muted-foreground hover:text-foreground"
                                                     )}
                                                 >
-                                                    {d}s
+                                                    Std
                                                 </button>
-                                            ))}
+                                                <button
+                                                    onClick={() => setSettings((s) => ({ ...s, mode: "pro" }))}
+                                                    className={cn(
+                                                        "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
+                                                        settings.mode === "pro"
+                                                            ? "bg-foreground text-background shadow-sm"
+                                                            : "text-muted-foreground hover:text-foreground"
+                                                    )}
+                                                >
+                                                    Pro
+                                                </button>
+                                            </div>
                                         </>
                                     ) : (
                                         <>
-                                            {(["5", "10"] as const).map((d) => (
-                                                <button
-                                                    key={d}
-                                                    onClick={() => setSettings((s) => ({ ...s, duration: d }))}
-                                                    className={cn(
-                                                        "p-2.5 rounded-lg border text-sm transition-all",
-                                                        settings.duration === d
-                                                            ? "border-primary/50 bg-primary/10 text-primary font-medium"
-                                                            : "border-border hover:border-border-hover"
-                                                    )}
-                                                >
-                                                    {d}s
-                                                </button>
-                                            ))}
+                                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Aspect Ratio</label>
+                                            <div className="flex bg-surface-2 p-1 rounded-xl">
+                                                <div className="w-full flex items-center justify-center text-xs text-muted-foreground py-2">
+                                                    Fixed 16:9
+                                                </div>
+                                            </div>
                                         </>
                                     )}
                                 </div>
                             </div>
 
-                            {/* Quality Mode - Only for Standard tier */}
+                            {/* Aspect Ratio for Standard */}
                             {settings.tier === "standard" && (
-                                <div className="space-y-3">
-                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quality</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            onClick={() => setSettings((s) => ({ ...s, mode: "std" }))}
-                                            className={cn(
-                                                "p-2.5 rounded-lg border text-sm transition-all",
-                                                settings.mode === "std"
-                                                    ? "border-primary/50 bg-primary/10 text-primary font-medium"
-                                                    : "border-border hover:border-border-hover"
-                                            )}
-                                        >
-                                            Standard
-                                        </button>
-                                        <button
-                                            onClick={() => setSettings((s) => ({ ...s, mode: "pro" }))}
-                                            className={cn(
-                                                "p-2.5 rounded-lg border text-sm transition-all",
-                                                settings.mode === "pro"
-                                                    ? "border-primary/50 bg-primary/10 text-primary font-medium"
-                                                    : "border-border hover:border-border-hover"
-                                            )}
-                                        >
-                                            Pro
-                                        </button>
+                                <div className="space-y-4">
+                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Aspect Ratio</label>
+                                    <div className="grid grid-cols-3 gap-3">
+                                        {(["16:9", "9:16", "1:1"] as const).map((ratio) => (
+                                            <button
+                                                key={ratio}
+                                                onClick={() => setSettings((s) => ({ ...s, aspectRatio: ratio }))}
+                                                className={cn(
+                                                    "py-2.5 rounded-xl border text-sm font-medium transition-all",
+                                                    settings.aspectRatio === ratio
+                                                        ? "border-foreground bg-foreground/5 text-foreground"
+                                                        : "border-border hover:border-foreground/30 text-muted-foreground"
+                                                )}
+                                            >
+                                                {ratio}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
                             )}
 
-                            {/* Aspect Ratio */}
-                            <div className="space-y-3">
-                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Aspect Ratio</label>
-                                <div className="grid grid-cols-3 gap-2">
-                                    {(["16:9", "9:16", "1:1"] as const).map((ratio) => (
-                                        <button
-                                            key={ratio}
-                                            onClick={() => setSettings((s) => ({ ...s, aspectRatio: ratio }))}
-                                            className={cn(
-                                                "p-2.5 rounded-lg border text-sm transition-all",
-                                                settings.aspectRatio === ratio
-                                                    ? "border-primary/50 bg-primary/10 text-primary font-medium"
-                                                    : "border-border hover:border-border-hover"
-                                            )}
-                                        >
-                                            {ratio}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Cost Estimate & Info */}
-                            <div className="pt-4 border-t border-border">
-                                {settings.tier === "premium" && (
-                                    <div className="mb-4 text-xs text-muted-foreground">
-                                        <p>✨ Includes native audio & cinematic quality</p>
-                                    </div>
-                                )}
-                                <div className="flex items-center justify-between text-sm">
-                                    <span className="text-muted-foreground">Estimated Cost</span>
-                                    <span className="font-semibold text-primary">{getEstimatedCost()} tokens</span>
-                                </div>
+                            {/* Footer Info */}
+                            <div className="pt-6 border-t border-border/50 flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">Estimated Cost</span>
+                                <span className="font-bold text-foreground text-lg">{getEstimatedCost()} <span className="text-sm font-normal text-muted-foreground">tokens</span></span>
                             </div>
                         </div>
                     </div>
@@ -1152,9 +1143,9 @@ export function VideoGenerator() {
                         isHero ? "opacity-100 translate-y-[-120px] md:translate-y-[-140px]" : "hidden"
                     )}
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
-                        <Icon icon="mingcute:movie-fill" className="w-4 h-4" />
-                        AI Video Generation
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-2 border border-border/50 text-xs font-medium text-foreground/80 tracking-wider uppercase animate-fade-in shadow-sm">
+                        <Icon icon="mingcute:movie-line" className="w-4 h-4" />
+                        AI Video Studio
                     </div>
                     <h1
                         className="text-4xl md:text-5xl font-bold tracking-tight text-foreground"
@@ -1173,25 +1164,25 @@ export function VideoGenerator() {
                             <button
                                 onClick={() => setGenerationMode("text2video")}
                                 className={cn(
-                                    "px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2",
+                                    "px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
                                     generationMode === "text2video"
-                                        ? "bg-primary text-white shadow-sm"
+                                        ? "bg-foreground text-background shadow-md"
                                         : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
-                                <Icon icon="mingcute:text-fill" className="w-4 h-4" />
+                                <Icon icon="mingcute:text-line" className="w-4 h-4" />
                                 Text to Video
                             </button>
                             <button
                                 onClick={() => setGenerationMode("image2video")}
                                 className={cn(
-                                    "px-4 py-2.5 rounded-xl text-sm font-medium transition-all flex items-center gap-2",
+                                    "px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
                                     generationMode === "image2video"
-                                        ? "bg-primary text-white shadow-sm"
+                                        ? "bg-foreground text-background shadow-md"
                                         : "text-muted-foreground hover:text-foreground"
                                 )}
                             >
-                                <Icon icon="mingcute:image-fill" className="w-4 h-4" />
+                                <Icon icon="mingcute:image-line" className="w-4 h-4" />
                                 Image to Video
                             </button>
                         </div>
@@ -1201,7 +1192,7 @@ export function VideoGenerator() {
                 {/* Loading History */}
                 {loadingHistory && (
                     <div className="flex items-center justify-center py-20">
-                        <Icon icon="mingcute:loading-fill" className="w-8 h-8 animate-spin text-primary" />
+                        <Icon icon="mingcute:loading-line" className="w-8 h-8 animate-spin text-muted-foreground" />
                     </div>
                 )}
 
@@ -1232,7 +1223,7 @@ export function VideoGenerator() {
             >
                 <div className="w-full max-w-2xl mx-auto md:pl-24">
                     {/* Main Container - Clean & Minimal */}
-                    <div className="relative rounded-2xl md:rounded-3xl bg-card/95 backdrop-blur-xl border border-border/50 shadow-[0_4px_24px_rgba(0,0,0,0.12)] overflow-hidden transition-shadow duration-300 hover:shadow-[0_8px_40px_rgba(0,0,0,0.16)]">
+                    <div className="relative rounded-2xl md:rounded-3xl bg-card/95 backdrop-blur-xl border border-border/50 shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden hover:shadow-[0_12px_48px_rgba(0,0,0,0.12)] transition-all">
 
                         {/* Top Bar - Mode & Settings */}
                         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border/30">
@@ -1274,17 +1265,17 @@ export function VideoGenerator() {
                             <button
                                 onClick={() => setShowSettings(true)}
                                 className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-all",
+                                    "flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-all border",
                                     settings.tier === "premium"
-                                        ? "text-primary hover:text-primary/80 bg-primary/10 hover:bg-primary/20"
-                                        : "text-muted-foreground hover:text-foreground hover:bg-surface-2/50"
+                                        ? "text-foreground bg-foreground/5 border-foreground/10 hover:bg-foreground/10"
+                                        : "text-muted-foreground border-transparent hover:text-foreground hover:bg-surface-2/50"
                                 )}
                             >
                                 <Icon icon="mingcute:settings-3-line" className="w-3.5 h-3.5" />
                                 <span className="font-medium">
                                     {settings.tier === "premium"
-                                        ? `🎬 Premium · ${settings.duration}s`
-                                        : `${settings.duration}s · ${settings.mode === "pro" ? "Pro" : "Std"}`
+                                        ? `Video Settings`
+                                        : `Video Settings`
                                     }
                                 </span>
                             </button>
@@ -1350,7 +1341,7 @@ export function VideoGenerator() {
                                         className={cn(
                                             "flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-all",
                                             imagePreview
-                                                ? "text-primary border-primary/30 bg-primary/5"
+                                                ? "text-foreground border-foreground/20 bg-foreground/5"
                                                 : "text-muted-foreground border-border/50 hover:border-border hover:text-foreground"
                                         )}
                                     >
@@ -1500,7 +1491,7 @@ const VideoFeedCard = memo(function VideoFeedCard({
                         <Icon icon="mingcute:time-fill" className="w-3 h-3" />
                         {item.duration}s {item.tier !== "premium" && item.mode}
                         {item.tier === "premium" && (
-                            <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-md">
+                            <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-foreground/5 text-foreground rounded-md">
                                 🎬 Veo 3.1
                             </span>
                         )}
@@ -1515,8 +1506,8 @@ const VideoFeedCard = memo(function VideoFeedCard({
 
             {/* AI Response (Video) */}
             <div className="flex gap-4">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center shrink-0">
-                    <Icon icon="mingcute:movie-fill" className="w-4 h-4 text-white" />
+                <div className="w-8 h-8 rounded-full bg-foreground flex items-center justify-center shrink-0">
+                    <Icon icon="mingcute:movie-fill" className="w-4 h-4 text-background" />
                 </div>
 
                 <div className="flex-1 space-y-3">
@@ -1588,7 +1579,7 @@ const VideoFeedCard = memo(function VideoFeedCard({
                                 )}
                                 {/* Show premium badge */}
                                 {item.tier === "premium" && (
-                                    <span className="flex items-center gap-1 text-xs text-primary px-2 py-1">
+                                    <span className="flex items-center gap-1 text-xs text-foreground px-2 py-1 bg-surface-2 rounded-md">
                                         <Icon icon="mingcute:volume-fill" className="w-3 h-3" />
                                         Audio included
                                     </span>
@@ -1659,7 +1650,7 @@ function VideoProgressIndicator({ status, duration }: { status: string; duration
                             index < currentStep
                                 ? "text-green-400"
                                 : index === currentStep
-                                    ? "text-primary"
+                                    ? "text-foreground"
                                     : "text-muted-foreground/50"
                         )}
                     >
@@ -1669,7 +1660,7 @@ function VideoProgressIndicator({ status, duration }: { status: string; duration
                                 index < currentStep
                                     ? "bg-green-500/20"
                                     : index === currentStep
-                                        ? "bg-primary/20"
+                                        ? "bg-foreground/10"
                                         : "bg-white/5"
                             )}
                         >
@@ -1690,7 +1681,7 @@ function VideoProgressIndicator({ status, duration }: { status: string; duration
             <div className="space-y-2">
                 <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                     <div
-                        className="h-full bg-primary rounded-full transition-all duration-1000 ease-out"
+                        className="h-full bg-foreground rounded-full transition-all duration-1000 ease-out"
                         style={{ width: `${progress}%` }}
                     />
                 </div>
