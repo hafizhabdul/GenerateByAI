@@ -1219,10 +1219,10 @@ export function VideoGenerator() {
                 <div
                     className={cn(
                         "text-center space-y-4 md:space-y-6 transition-all duration-700 max-w-2xl mx-auto",
-                        isHero ? "opacity-100 translate-y-[-60px] md:translate-y-[-80px]" : "hidden"
+                        isHero ? "opacity-100 translate-y-[-120px] md:translate-y-[-140px]" : "hidden"
                     )}
                 >
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-surface-2 border border-border/50 text-xs font-medium text-foreground/80 tracking-wider uppercase animate-fade-in shadow-sm">
+                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
                         <Icon icon="mingcute:movie-line" className="w-4 h-4" />
                         AI Video Studio
                     </div>
@@ -1237,35 +1237,6 @@ export function VideoGenerator() {
                             : "Upload your product image and describe the marketing video you want."}
                     </p>
 
-                    {/* Mode Toggle */}
-                    <div className="flex items-center justify-center gap-2 pt-2">
-                        <div className="inline-flex p-1 bg-surface-2 rounded-xl border border-border">
-                            <button
-                                onClick={() => setGenerationMode("text2video")}
-                                className={cn(
-                                    "px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
-                                    generationMode === "text2video"
-                                        ? "bg-foreground text-background shadow-md"
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                <Icon icon="mingcute:text-line" className="w-4 h-4" />
-                                Text to Video
-                            </button>
-                            <button
-                                onClick={() => setGenerationMode("image2video")}
-                                className={cn(
-                                    "px-4 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
-                                    generationMode === "image2video"
-                                        ? "bg-foreground text-background shadow-md"
-                                        : "text-muted-foreground hover:text-foreground"
-                                )}
-                            >
-                                <Icon icon="mingcute:image-line" className="w-4 h-4" />
-                                Image to Video
-                            </button>
-                        </div>
-                    </div>
                 </div>
 
                 {/* Loading History */}
@@ -1295,14 +1266,14 @@ export function VideoGenerator() {
                 className={cn(
                     "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
                     isHero
-                        ? "bottom-1/2 translate-y-[calc(50%+140px)] md:translate-y-[calc(50%+160px)]"
+                        ? "bottom-1/2 translate-y-[calc(50%+60px)] md:translate-y-[calc(50%+80px)]"
                         : "bottom-20 md:bottom-8"
                 )}
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
                 <div className="w-full max-w-2xl mx-auto md:pl-24">
                     {/* Main Container - Clean & Minimal */}
-                    <div className="relative rounded-2xl md:rounded-3xl bg-card/95 backdrop-blur-xl border border-border/50 shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden hover:shadow-[0_12px_48px_rgba(0,0,0,0.12)] transition-all">
+                    <div className="relative rounded-[1.5rem] md:rounded-[2rem] bg-card/95 backdrop-blur-xl border border-border/50 shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden hover:shadow-[0_12px_48px_rgba(0,0,0,0.12)] transition-all">
 
                         {/* Top Bar - Mode & Settings */}
                         <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border/30">
