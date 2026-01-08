@@ -176,6 +176,8 @@ export function VideoGenerator() {
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [isHero, setIsHero] = useState(true);
     const [showSettings, setShowSettings] = useState(false);
+    const [showHistory, setShowHistory] = useState(false);
+    const [videoHistory, setVideoHistory] = useState<VideoFeedItem[]>([]);
     const [generationMode, setGenerationMode] = useState<GenerationMode>("text2video");
     const [sessionLoaded, setSessionLoaded] = useState(false);
     const [settings, setSettings] = useState<VideoSettings>({
@@ -820,30 +822,152 @@ export function VideoGenerator() {
         showToast("Started a new video session", "info");
     }, [user, showToast]);
 
+    // Fetch video history when history panel opens
+    const fetchVideoHistory = useCallback(async () => {
+        if (!user) return;
+        try {
+            const res = await fetch("/api/generations?type=video&limit=30");
+            if (res.ok) {
+                const data = await res.json();
+                const historyItems: VideoFeedItem[] = (data.generations || []).map((gen: any) => ({
+                    id: gen.id,
+                    prompt: gen.prompt,
+                    imageUrl: gen.metadata?.sourceImage || undefined,
+                    videoUrl: gen.file_url,
+                    status: gen.status as "completed" | "failed",
+                    duration: gen.metadata?.duration || "5",
+                    mode: gen.metadata?.mode || "std",
+                    created_at: gen.created_at,
+                    canExtend: !!gen.metadata?.klingVideoId,
+                }));
+                setVideoHistory(historyItems);
+            }
+        } catch (error) {
+            console.error("Failed to fetch video history:", error);
+        }
+    }, [user]);
+
+    // Handle selecting from history - REPLACE feed, don't append
+    const handleSelectFromHistory = useCallback((item: VideoFeedItem) => {
+        setFeed([item]); // Replace feed with just this item
+        setIsHero(false);
+        setShowHistory(false);
+        showToast("Viewing historical video", "info");
+    }, [showToast]);
+
+    // Fetch video history when panel opens
+    useEffect(() => {
+        if (showHistory && user) {
+            fetchVideoHistory();
+        }
+    }, [showHistory, user, fetchVideoHistory]);
+
     return (
         <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative">
             {/* Background Ambient Glow */}
             <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] md:w-[800px] h-[400px] md:h-[800px] bg-primary/5 rounded-full blur-[100px] md:blur-[150px] pointer-events-none" />
 
-            {/* Top Controls - New Session Button */}
-            {feed.length > 0 && (
-                <div className="absolute top-4 right-4 z-40">
-                    <Button
-                        variant="glass"
-                        size="sm"
-                        onClick={handleNewSession}
-                        className="animate-fade-in group"
+            {/* Sticky Header - Always visible */}
+            <div className="sticky top-0 z-50 w-full px-4 py-3 md:py-4 bg-background/80 backdrop-blur-xl border-b border-border/50">
+                <div className="max-w-3xl mx-auto flex items-center justify-between md:pl-24">
+                    <span className="font-semibold text-foreground">Video Studio</span>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowHistory(true)}
+                            className="px-3 py-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-all text-sm"
+                        >
+                            History
+                        </button>
+                        <Button
+                            variant="glass"
+                            size="sm"
+                            onClick={handleNewSession}
+                        >
+                            + New
+                        </Button>
+                    </div>
+                </div>
+            </div>
+
+            {/* History Panel */}
+            {showHistory && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/80 animate-fade-in"
+                    onClick={() => setShowHistory(false)}
+                >
+                    <div
+                        className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-card border-l border-border animate-slide-in-right overflow-hidden flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
                     >
-                        <Icon icon="mingcute:add-circle-fill" className="w-4 h-4 mr-2 group-hover:rotate-12 transition-transform" />
-                        New Session
-                    </Button>
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-border">
+                            <h2 className="font-semibold">History</h2>
+                            <button
+                                onClick={() => setShowHistory(false)}
+                                className="p-2 rounded-lg hover:bg-white/5 transition-colors text-muted-foreground hover:text-foreground"
+                            >
+                                ✕
+                            </button>
+                        </div>
+                        {/* History List */}
+                        <div className="flex-1 overflow-y-auto">
+                            {videoHistory.length > 0 ? (
+                                <div className="divide-y divide-border">
+                                    {videoHistory.map((item) => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => handleSelectFromHistory(item)}
+                                            className="w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3"
+                                        >
+                                            <div className="w-24 h-16 rounded-lg overflow-hidden bg-surface-2 shrink-0 relative">
+                                                {item.videoUrl ? (
+                                                    <video src={getProxiedVideoUrl(item.videoUrl)} className="w-full h-full object-cover" muted loop playsInline onMouseOver={e => e.currentTarget.play()} onMouseOut={e => e.currentTarget.pause()} />
+                                                ) : item.imageUrl ? (
+                                                    <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                                                ) : (
+                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-surface-3">
+                                                        <Icon icon="mingcute:movie-line" className="w-6 h-6 opacity-20" />
+                                                    </div>
+                                                )}
+                                                {item.status === "failed" && (
+                                                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                                                        <Icon icon="mingcute:alert-fill" className="w-5 h-5 text-red-500" />
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="text-sm line-clamp-2 mb-1">{item.prompt}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs text-muted-foreground">
+                                                        {new Date(item.created_at).toLocaleDateString()}
+                                                    </span>
+                                                    <span className={cn(
+                                                        "text-[10px] px-1.5 py-0.5 rounded uppercase tracking-wider",
+                                                        item.status === "completed" ? "bg-green-500/10 text-green-500" :
+                                                            item.status === "failed" ? "bg-red-500/10 text-red-500" :
+                                                                "bg-primary/10 text-primary"
+                                                    )}>
+                                                        {item.status}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                                    <p className="text-muted-foreground">No history yet</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
             )}
 
             {/* Settings Panel */}
             {showSettings && (
                 <div
-                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in"
+                    className="fixed inset-0 z-50 bg-black/80 animate-fade-in"
                     onClick={() => setShowSettings(false)}
                 >
                     <div
@@ -851,82 +975,52 @@ export function VideoGenerator() {
                         onClick={(e) => e.stopPropagation()}
                     >
                         <div className="flex items-center justify-between p-4 border-b border-border">
-                            <div className="flex items-center gap-2">
-                                <Icon icon="mingcute:settings-3-fill" className="w-5 h-5 text-primary" />
-                                <h2 className="font-semibold">Video Settings</h2>
-                            </div>
+                            <h2 className="font-semibold">Settings</h2>
                             <button
                                 onClick={() => setShowSettings(false)}
-                                className="p-2 rounded-xl hover:bg-white/5 transition-colors"
+                                className="p-2 rounded-lg hover:bg-white/5 transition-colors text-muted-foreground hover:text-foreground"
                             >
-                                <Icon icon="mingcute:close-fill" className="w-5 h-5" />
+                                ✕
                             </button>
                         </div>
 
-                        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+                        <div className="flex-1 overflow-y-auto p-4 space-y-8">
                             {/* Video Tier Selection */}
                             <div className="space-y-3">
-                                <label className="text-sm font-medium flex items-center gap-2">
-                                    <Icon icon="mingcute:video-fill" className="w-4 h-4 text-primary" />
-                                    Video Tier
-                                </label>
+                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Model</label>
                                 <div className="grid grid-cols-1 gap-2">
                                     <button
                                         onClick={() => setSettings((s) => ({ ...s, tier: "standard", duration: "5", sound: false }))}
                                         className={cn(
-                                            "p-4 rounded-xl border transition-all text-left",
+                                            "p-4 rounded-xl border text-left transition-all",
                                             settings.tier === "standard"
-                                                ? "border-primary bg-primary/10"
-                                                : "border-border hover:border-border-hover"
+                                                ? "border-primary/50 bg-primary/10"
+                                                : "border-border hover:border-border-hover bg-background"
                                         )}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className={cn("font-medium flex items-center gap-2", settings.tier === "standard" ? "text-primary" : "")}>
-                                                    ⚡ Standard
-                                                    <span className="px-1.5 py-0.5 text-[10px] bg-surface-3 rounded-md">Kling</span>
-                                                </div>
-                                                <div className="text-xs text-muted-foreground mt-1">
-                                                    No audio • Can extend video • 50-140 tokens
-                                                </div>
-                                            </div>
-                                            <div className={cn(
-                                                "w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center",
-                                                settings.tier === "standard" ? "border-primary bg-primary" : "border-muted-foreground"
-                                            )}>
-                                                {settings.tier === "standard" && <Icon icon="mingcute:check-fill" className="w-3 h-3 text-white" />}
-                                            </div>
+                                            <span className="font-medium">Standard</span>
+                                            {settings.tier === "standard" && <div className="w-2 h-2 rounded-full bg-primary" />}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                            Kling • Fast • No audio
                                         </div>
                                     </button>
                                     <button
                                         onClick={() => setSettings((s) => ({ ...s, tier: "premium", duration: "5", sound: true }))}
                                         className={cn(
-                                            "p-4 rounded-xl border transition-all text-left",
+                                            "p-4 rounded-xl border text-left transition-all",
                                             settings.tier === "premium"
-                                                ? "border-primary bg-primary/10"
-                                                : "border-border hover:border-border-hover"
+                                                ? "border-primary/50 bg-primary/10"
+                                                : "border-border hover:border-border-hover bg-background"
                                         )}
                                     >
                                         <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className={cn("font-medium flex items-center gap-2", settings.tier === "premium" ? "text-primary" : "")}>
-                                                    🎬 Premium
-                                                    <span className="px-1.5 py-0.5 text-[10px] bg-primary text-white rounded-md">Veo 3.1</span>
-                                                </div>
-                                                <div className="text-xs text-muted-foreground mt-1">
-                                                    Native audio • Cinematic quality • 100-160 tokens
-                                                </div>
-                                                <div className="text-xs text-green-500 mt-1 flex items-center gap-1">
-                                                    <Icon icon="mingcute:volume-fill" className="w-3 h-3" />
-                                                    Includes voice, SFX, ambient sounds
-                                                </div>
-                                            </div>
-                                            <div className={cn(
-                                                "w-5 h-5 rounded-full border-2 transition-all flex items-center justify-center",
-                                                settings.tier === "premium" ? "border-primary bg-primary" : "border-muted-foreground"
-                                            )}>
-                                                {settings.tier === "premium" && <Icon icon="mingcute:check-fill" className="w-3 h-3 text-white" />}
-                                            </div>
+                                            <span className="font-medium">Premium</span>
+                                            {settings.tier === "premium" && <div className="w-2 h-2 rounded-full bg-primary" />}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground mt-1">
+                                            Veo 3.1 • Cinematic • With Audio
                                         </div>
                                     </button>
                                 </div>
@@ -934,41 +1028,39 @@ export function VideoGenerator() {
 
                             {/* Duration */}
                             <div className="space-y-3">
-                                <label className="text-sm font-medium">Duration</label>
+                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Duration</label>
                                 <div className="grid grid-cols-2 gap-2">
                                     {settings.tier === "premium" ? (
-                                        // Premium (Veo 3.1): 5s or 8s
                                         <>
                                             {(["5", "8"] as const).map((d) => (
                                                 <button
                                                     key={d}
                                                     onClick={() => setSettings((s) => ({ ...s, duration: d as "5" | "10" }))}
                                                     className={cn(
-                                                        "p-3 rounded-xl border transition-all text-center",
+                                                        "p-2.5 rounded-lg border text-sm transition-all",
                                                         settings.duration === d
-                                                            ? "border-primary bg-primary/10 text-primary"
+                                                            ? "border-primary/50 bg-primary/10 text-primary font-medium"
                                                             : "border-border hover:border-border-hover"
                                                     )}
                                                 >
-                                                    {d} seconds
+                                                    {d}s
                                                 </button>
                                             ))}
                                         </>
                                     ) : (
-                                        // Standard (Kling): 5s or 10s
                                         <>
                                             {(["5", "10"] as const).map((d) => (
                                                 <button
                                                     key={d}
                                                     onClick={() => setSettings((s) => ({ ...s, duration: d }))}
                                                     className={cn(
-                                                        "p-3 rounded-xl border transition-all text-center",
+                                                        "p-2.5 rounded-lg border text-sm transition-all",
                                                         settings.duration === d
-                                                            ? "border-primary bg-primary/10 text-primary"
+                                                            ? "border-primary/50 bg-primary/10 text-primary font-medium"
                                                             : "border-border hover:border-border-hover"
                                                     )}
                                                 >
-                                                    {d} seconds
+                                                    {d}s
                                                 </button>
                                             ))}
                                         </>
@@ -979,31 +1071,29 @@ export function VideoGenerator() {
                             {/* Quality Mode - Only for Standard tier */}
                             {settings.tier === "standard" && (
                                 <div className="space-y-3">
-                                    <label className="text-sm font-medium">Quality</label>
+                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Quality</label>
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             onClick={() => setSettings((s) => ({ ...s, mode: "std" }))}
                                             className={cn(
-                                                "p-3 rounded-xl border transition-all text-center",
+                                                "p-2.5 rounded-lg border text-sm transition-all",
                                                 settings.mode === "std"
-                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    ? "border-primary/50 bg-primary/10 text-primary font-medium"
                                                     : "border-border hover:border-border-hover"
                                             )}
                                         >
-                                            <div className="font-medium">Standard</div>
-                                            <div className="text-xs text-muted-foreground mt-1">Faster</div>
+                                            Standard
                                         </button>
                                         <button
                                             onClick={() => setSettings((s) => ({ ...s, mode: "pro" }))}
                                             className={cn(
-                                                "p-3 rounded-xl border transition-all text-center",
+                                                "p-2.5 rounded-lg border text-sm transition-all",
                                                 settings.mode === "pro"
-                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    ? "border-primary/50 bg-primary/10 text-primary font-medium"
                                                     : "border-border hover:border-border-hover"
                                             )}
                                         >
-                                            <div className="font-medium">Pro</div>
-                                            <div className="text-xs text-muted-foreground mt-1">Better quality</div>
+                                            Pro
                                         </button>
                                     </div>
                                 </div>
@@ -1011,16 +1101,16 @@ export function VideoGenerator() {
 
                             {/* Aspect Ratio */}
                             <div className="space-y-3">
-                                <label className="text-sm font-medium">Aspect Ratio</label>
+                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Aspect Ratio</label>
                                 <div className="grid grid-cols-3 gap-2">
                                     {(["16:9", "9:16", "1:1"] as const).map((ratio) => (
                                         <button
                                             key={ratio}
                                             onClick={() => setSettings((s) => ({ ...s, aspectRatio: ratio }))}
                                             className={cn(
-                                                "p-3 rounded-xl border transition-all text-center",
+                                                "p-2.5 rounded-lg border text-sm transition-all",
                                                 settings.aspectRatio === ratio
-                                                    ? "border-primary bg-primary/10 text-primary"
+                                                    ? "border-primary/50 bg-primary/10 text-primary font-medium"
                                                     : "border-border hover:border-border-hover"
                                             )}
                                         >
@@ -1028,89 +1118,18 @@ export function VideoGenerator() {
                                         </button>
                                     ))}
                                 </div>
-                                <p className="text-xs text-muted-foreground">
-                                    16:9 for YouTube, 9:16 for TikTok/Reels, 1:1 for Instagram
-                                </p>
                             </div>
 
-                            {/* AI Audio Generation - HIDDEN: Kling AI doesn't support audio yet */}
-                            {/* TODO: Re-enable when switching to a model that supports audio */}
-                            {false && settings.tier === "standard" && (
-                                <div className="space-y-3">
-                                    <label className="text-sm font-medium flex items-center gap-2">
-                                        <Icon icon="mingcute:volume-fill" className="w-4 h-4 text-primary" />
-                                        AI Audio
-                                        <span className="px-1.5 py-0.5 text-[10px] bg-primary/20 text-primary rounded-md font-medium">NEW</span>
-                                    </label>
-                                    <button
-                                        onClick={() => setSettings((s) => ({ ...s, sound: !s.sound }))}
-                                        className={cn(
-                                            "w-full p-4 rounded-xl border transition-all text-left",
-                                            settings.sound
-                                                ? "border-primary bg-primary/10"
-                                                : "border-border hover:border-border-hover"
-                                        )}
-                                    >
-                                        <div className="flex items-center justify-between">
-                                            <div>
-                                                <div className={cn("font-medium", settings.sound ? "text-primary" : "text-foreground")}>
-                                                    {settings.sound ? "Audio Enabled" : "Audio Disabled"}
-                                                </div>
-                                                <div className="text-xs text-muted-foreground mt-1">
-                                                    {settings.sound
-                                                        ? "AI akan generate audio: efek suara, ambient, musik"
-                                                        : "Video tanpa audio (silent)"}
-                                                </div>
-                                            </div>
-                                            <div className={cn(
-                                                "w-12 h-7 rounded-full transition-all relative",
-                                                settings.sound ? "bg-primary" : "bg-surface-3"
-                                            )}>
-                                                <div className={cn(
-                                                    "absolute top-1 w-5 h-5 rounded-full bg-white shadow-sm transition-all",
-                                                    settings.sound ? "left-6" : "left-1"
-                                                )} />
-                                            </div>
-                                        </div>
-                                    </button>
-                                    {settings.sound && (
-                                        <p className="text-xs text-primary/80 flex items-center gap-1">
-                                            <Icon icon="mingcute:information-fill" className="w-3 h-3" />
-                                            Audio menambah +20 token
-                                        </p>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Premium Tier Info */}
-                            {settings.tier === "premium" && (
-                                <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
-                                    <div className="flex items-center gap-2 text-sm font-medium text-primary mb-2">
-                                        <Icon icon="mingcute:sparkles-fill" className="w-4 h-4" />
-                                        Veo 3.1 Premium Features
+                            {/* Cost Estimate & Info */}
+                            <div className="pt-4 border-t border-border">
+                                {settings.tier === "premium" && (
+                                    <div className="mb-4 text-xs text-muted-foreground">
+                                        <p>✨ Includes native audio & cinematic quality</p>
                                     </div>
-                                    <ul className="text-xs text-muted-foreground space-y-1">
-                                        <li className="flex items-center gap-2">
-                                            <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
-                                            Native audio (voice, SFX, ambient) included
-                                        </li>
-                                        <li className="flex items-center gap-2">
-                                            <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
-                                            40-60% better frame consistency
-                                        </li>
-                                        <li className="flex items-center gap-2">
-                                            <Icon icon="mingcute:check-circle-fill" className="w-3 h-3 text-green-500" />
-                                            Cinematic quality from Google DeepMind
-                                        </li>
-                                    </ul>
-                                </div>
-                            )}
-
-                            {/* Cost Estimate */}
-                            <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm">Estimated Cost</span>
-                                    <span className="font-bold text-primary">{getEstimatedCost()} tokens</span>
+                                )}
+                                <div className="flex items-center justify-between text-sm">
+                                    <span className="text-muted-foreground">Estimated Cost</span>
+                                    <span className="font-semibold text-primary">{getEstimatedCost()} tokens</span>
                                 </div>
                             </div>
                         </div>

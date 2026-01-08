@@ -415,7 +415,8 @@ export function ImageGenerator() {
     }, [prompt, mode, user, showToast, refreshProfile]);
 
     const handleSelectFromHistory = useCallback((item: Generation) => {
-        // When selecting from history, we just add it to the feed
+        // When selecting from history, we REPLACE the feed with just this item
+        // This shows the historical session separately instead of mixing with current
         const historyItem: FeedItem = {
             id: item.id,
             type: item.type,
@@ -424,10 +425,11 @@ export function ImageGenerator() {
             status: item.status,
             created_at: item.created_at
         };
-        setFeed(prev => [...prev, historyItem]);
+        setFeed([historyItem]); // Replace, don't append
         setIsHero(false);
         setShowHistory(false);
-    }, []);
+        showToast("Viewing historical generation", "info");
+    }, [showToast]);
 
     const handleNewSession = useCallback(() => {
         setFeed([]);
