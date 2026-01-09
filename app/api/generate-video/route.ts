@@ -6,6 +6,7 @@ import { persistExternalVideo } from "@/lib/storage-utils";
 import { processTokenCharge } from "@/lib/tokens-server";
 import { createKlingClient, getVideoCost, getAudioCost } from "@/lib/kling";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
+import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
 
 const GenerateVideoSchema = z.object({
     imageUrl: z.string().url().optional(),
@@ -59,6 +60,12 @@ export async function POST(req: Request) {
             return createRateLimitResponse(rateLimit.resetIn);
         }
 
+        // --- Daily Limit Check ---
+        const dailyLimit = await checkDailyLimit(user.id);
+        if (!dailyLimit.allowed) {
+            return NextResponse.json(createDailyLimitResponse(dailyLimit), { status: 429 });
+        }
+
         // --- Token Balance Pre-Check & Reserve ---
         let tokenCharge;
         try {
@@ -72,7 +79,7 @@ export async function POST(req: Request) {
 
         // --- Generate Marketing Prompt Enhancement ---
         const enhancedPrompt = enhanceMarketingPrompt(prompt, type);
-        
+
         // Different negative prompts for image2video vs text2video
         const defaultNegative = type === "image2video"
             ? "different product, wrong product, changed product, morphing, deformation, blurry, low quality, distorted, ugly, shaky camera, amateur, poorly lit, unnatural colors"
@@ -178,6 +185,9 @@ export async function POST(req: Request) {
 
         await tokenCharge.commit();
 
+        // --- Increment Daily Generation Count ---
+        await incrementDailyGeneration(user.id);
+
         return NextResponse.json({
             url: permanentUrl,
             duration,
@@ -207,15 +217,15 @@ function enhanceMarketingPrompt(prompt: string, type: string): string {
             "smooth subtle camera movement around the product",
             "professional lighting",
         ];
-        
+
         // Don't over-enhance if already detailed
         if (prompt.length > 200) {
             return `${prompt}, maintain exact product appearance`;
         }
-        
+
         return `${prompt}, ${imagePreservation.join(", ")}`;
     }
-    
+
     // For text-to-video, use marketing enhancements
     const marketingEnhancements = [
         "professional product showcase",

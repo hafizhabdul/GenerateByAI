@@ -20,3 +20,5 @@ kenapa hasil image yang di generate tidak bisa langsung create video, ![alt text
  tetapi kalo pake veo aman2 aja, itu kenapa yah?
 
  dan coba analisa keseluruhan apakah aplikasi sudah siap untuk go-live atau belum
+
+pastikan text-to-video dan image-to-video yang model wan bisa digunakan dan tidak terjadi error

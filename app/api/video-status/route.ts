@@ -5,6 +5,7 @@ import { z } from "zod";
 import { checkWanVideoStatus, getWanVideoResult } from "@/lib/fal-wan";
 import { persistExternalVideo } from "@/lib/storage-utils";
 import { refundTokens } from "@/lib/tokens-server";
+import { decrementDailyGeneration } from "@/lib/daily-limits";
 
 // UUID validation helper
 const uuidSchema = z.string().uuid();
@@ -110,7 +111,8 @@ export async function GET(req: NextRequest) {
                 if (generation && generation.status !== "failed") {
                     const tokensToRefund = generation.tokens_used || 0;
 
-                    // Refund the tokens
+                    // Refund tokens and daily generation count atomically
+                    // This also updates the generation status to 'failed' in the database
                     if (tokensToRefund > 0) {
                         const refundResult = await refundTokens(
                             user.id,
@@ -118,24 +120,8 @@ export async function GET(req: NextRequest) {
                             generationId,
                             "Video generation failed on provider"
                         );
-                        console.log(`[Video] Refund result for ${generationId}:`, refundResult);
+                        console.log(`[Video] Atomic refund result for ${generationId}:`, refundResult);
                     }
-
-                    // Update generation record with failed status and refund info
-                    await adminClient
-                        .from("generations")
-                        .update({
-                            status: "failed",
-                            metadata: {
-                                ...generation.metadata,
-                                error: "Video generation failed",
-                                refunded: true,
-                                refund_amount: tokensToRefund,
-                                refund_at: new Date().toISOString(),
-                            }
-                        })
-                        .eq("id", generationId)
-                        .eq("user_id", user.id);
                 }
             }
 
@@ -228,7 +214,6 @@ export async function GET(req: NextRequest) {
                             });
                         }
 
-                        // Result is gone and not saved - refund tokens
                         if (existing && existing.status !== "failed") {
                             const tokensToRefund = existing.tokens_used || 0;
                             if (tokensToRefund > 0) {
@@ -239,23 +224,6 @@ export async function GET(req: NextRequest) {
                                     "Video result expired before retrieval"
                                 );
                             }
-
-                            // Update status to failed with refund info
-                            const adminClient = createAdminClient();
-                            await adminClient
-                                .from("generations")
-                                .update({
-                                    status: "failed",
-                                    metadata: {
-                                        ...existing.metadata,
-                                        error: "Video result expired",
-                                        refunded: true,
-                                        refund_amount: tokensToRefund,
-                                        refund_at: new Date().toISOString(),
-                                    }
-                                })
-                                .eq("id", generationId)
-                                .eq("user_id", user.id);
                         }
                     }
 

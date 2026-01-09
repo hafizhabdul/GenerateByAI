@@ -75,6 +75,25 @@ export async function incrementDailyGeneration(userId: string): Promise<boolean>
 }
 
 /**
+ * Decrement daily generation count (useful for refunds when generation fails)
+ */
+export async function decrementDailyGeneration(userId: string): Promise<boolean> {
+    const adminClient = createAdminClient();
+
+    const { data, error } = await adminClient.rpc('decrement_daily_generation', {
+        p_user_id: userId
+    });
+
+    if (error) {
+        console.error("[DailyLimit] Decrement failed:", error);
+        return false;
+    }
+
+    const result = data as { success: boolean; new_count?: number };
+    return result.success;
+}
+
+/**
  * Get user's daily limit info without modifying anything
  * Use this for displaying limit info in UI
  */
