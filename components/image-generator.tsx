@@ -39,6 +39,9 @@ const getHeroKey = (userId: string) => `imageGeneratorHero_${userId}`;
 const getPendingKey = (userId: string) => `imageGeneratorPending_${userId}`;
 const getDraftKey = (userId: string) => `imageGeneratorDraft_${userId}`;
 
+// Maximum items to save in session
+const MAX_FEED_ITEMS = 10;
+
 // Draft state type
 type DraftState = {
     prompt: string;
@@ -46,25 +49,64 @@ type DraftState = {
     quality: string;
 };
 
+// Auto-cleanup old generator data when storage is full
+const cleanupOldStorageData = () => {
+    try {
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (
+                key.includes('GeneratorSession') ||
+                key.includes('GeneratorDraft') ||
+                key.includes('pendingVideos') ||
+                key.includes('GeneratorPending')
+            )) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log(`[Storage] Cleaned up ${keysToRemove.length} old storage entries`);
+        return true;
+    } catch (e) {
+        console.error("[Storage] Cleanup failed:", e);
+        return false;
+    }
+};
+
+// Safe localStorage set with auto-cleanup on quota exceeded
+const safeLocalStorageSet = (key: string, value: string): boolean => {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (e) {
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+            console.log("[Storage] Quota exceeded, cleaning up...");
+            cleanupOldStorageData();
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch (e2) {
+                console.error("[Storage] Still failed after cleanup:", e2);
+                return false;
+            }
+        }
+        return false;
+    }
+};
+
 // Helper to save session to localStorage (user-specific)
 const saveSession = (userId: string, feed: FeedItem[], isHero: boolean) => {
     if (!userId) return;
-    try {
-        localStorage.setItem(getSessionKey(userId), JSON.stringify(feed));
-        localStorage.setItem(getHeroKey(userId), JSON.stringify(isHero));
-    } catch (e) {
-        console.error("Failed to save session:", e);
-    }
+    // Limit feed items to prevent quota issues
+    const limitedFeed = feed.slice(-MAX_FEED_ITEMS);
+    safeLocalStorageSet(getSessionKey(userId), JSON.stringify(limitedFeed));
+    safeLocalStorageSet(getHeroKey(userId), JSON.stringify(isHero));
 };
 
 // Helper to save draft (prompt in progress) - user-specific
 const saveDraft = (userId: string, draft: DraftState) => {
     if (!userId) return;
-    try {
-        localStorage.setItem(getDraftKey(userId), JSON.stringify(draft));
-    } catch (e) {
-        console.error("Failed to save draft:", e);
-    }
+    safeLocalStorageSet(getDraftKey(userId), JSON.stringify(draft));
 };
 
 // Helper to load draft - user-specific
@@ -151,12 +193,7 @@ export function ImageGenerator() {
     const [transformImage, setTransformImage] = useState<string | null>(null);
     const [transformFile, setTransformFile] = useState<File | null>(null);
     const [isHero, setIsHero] = useState(true);
-    const [showHistory, setShowHistory] = useState(() => {
-        if (typeof window !== "undefined") {
-            return localStorage.getItem("imageGeneratorShowHistory") === "true";
-        }
-        return false;
-    });
+    const [showHistory, setShowHistory] = useState(false); // Start false to avoid hydration mismatch
     const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
     const [loadingHistory, setLoadingHistory] = useState(false);
     const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -165,7 +202,7 @@ export function ImageGenerator() {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
 
     const { showToast } = useToast();
-    const { user, refreshProfile } = useAuth();
+    const { user, refreshProfile, loading: authLoading } = useAuth();
     const scrollRef = useRef<HTMLDivElement>(null);
     const abortControllerRef = useRef<AbortController | null>(null);
     const historyListRef = useRef<HTMLDivElement>(null);
@@ -188,10 +225,13 @@ export function ImageGenerator() {
     }, [user, showToast]);
 
     // Load session from localStorage on mount + check for pending generations
-    // Only load when user is available to ensure user-specific data
+    // Only load when auth is done loading and user is available
     useEffect(() => {
+        // Wait for auth to finish loading before doing anything
+        if (authLoading) return;
+
         if (!user) {
-            // Reset state when no user (logged out)
+            // Only reset state when auth is done loading AND user is null (actually logged out)
             setFeed([]);
             setIsHero(true);
             setPrompt("");
@@ -240,8 +280,12 @@ export function ImageGenerator() {
         const savedQuality = localStorage.getItem("generation_quality");
         if (savedQuality) setQualitySetting(savedQuality as "low" | "medium" | "high");
 
+        // Load showHistory preference (after mount to avoid hydration mismatch)
+        const savedShowHistory = localStorage.getItem("imageGeneratorShowHistory");
+        if (savedShowHistory === "true") setShowHistory(true);
+
         setSessionLoaded(true);
-    }, [user]);
+    }, [user, authLoading]);
 
     // Listen for quality changes in localStorage (from Settings page)
     useEffect(() => {

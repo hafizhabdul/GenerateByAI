@@ -33,7 +33,7 @@ function HomeContent() {
   const [loadingRecent, setLoadingRecent] = useState(true);
   const { user, profile, loading: authLoading } = useAuth();
 
-  // Fetch recent generations
+  // Fetch recent generations - MUST BE ABOVE EARLY RETURN
   useEffect(() => {
     const fetchRecent = async () => {
       if (!user) {
@@ -55,13 +55,30 @@ function HomeContent() {
     fetchRecent();
   }, [user]);
 
+  // Show a clean loading state while auth is still processing
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen w-full bg-background items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-16 h-16 relative">
+            <img src="/mascot.png" alt="Loading..." className="w-full h-full animate-pulse" />
+          </div>
+          <p className="text-muted-foreground animate-pulse font-medium">Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
   // Calculate credits
   const creditsLeft = profile ? Math.max(0, (profile.tokens_total || 0) - (profile.tokens_used || 0)) : 0;
   const planName = profile?.plan || "Free";
-  const userName = profile?.name?.split(" ")[0] || "Creator";
+  // Use profile name, fallback to email's first part, then "Creator"
+  const userName = profile?.name?.split(" ")[0]
+    || user?.email?.split("@")[0]?.split(".")[0]?.replace(/^\w/, c => c.toUpperCase())
+    || "Creator";
 
   // Show landing page when not logged in
-  if (!authLoading && !user) {
+  if (!user) {
     return (
       <div className="flex min-h-screen w-full bg-background text-foreground overflow-x-hidden selection:bg-primary/30 font-sans">
         <Sidebar />

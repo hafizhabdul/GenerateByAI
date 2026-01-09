@@ -84,15 +84,73 @@ const getHeroKey = (userId: string) => `videoGeneratorHero_${userId}`;
 const getPendingKey = (userId: string) => `pendingVideos_${userId}`;
 const getDraftKey = (userId: string) => `videoGeneratorDraft_${userId}`;
 
+// Maximum items to save in session
+const MAX_FEED_ITEMS = 5; // Reduced to prevent quota issues
+
+// Helper to clean feed items for storage (remove large base64 data)
+const cleanFeedForStorage = (feed: VideoFeedItem[]): VideoFeedItem[] => {
+    return feed.slice(-MAX_FEED_ITEMS).map(item => ({
+        ...item,
+        // Only keep URL if it's not a base64 data URL (which can be very large)
+        imageUrl: item.imageUrl?.startsWith('data:') ? undefined : item.imageUrl,
+    }));
+};
+
+// Auto-cleanup old generator data when storage is full
+const cleanupOldStorageData = () => {
+    try {
+        // Get all keys and find generator-related ones
+        const keysToRemove: string[] = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (
+                key.includes('GeneratorSession') ||
+                key.includes('GeneratorDraft') ||
+                key.includes('pendingVideos') ||
+                key.includes('GeneratorPending')
+            )) {
+                keysToRemove.push(key);
+            }
+        }
+
+        // Remove all old generator data
+        keysToRemove.forEach(key => localStorage.removeItem(key));
+        console.log(`[Storage] Cleaned up ${keysToRemove.length} old storage entries`);
+        return true;
+    } catch (e) {
+        console.error("[Storage] Cleanup failed:", e);
+        return false;
+    }
+};
+
+// Safe localStorage set with auto-cleanup on quota exceeded
+const safeLocalStorageSet = (key: string, value: string): boolean => {
+    try {
+        localStorage.setItem(key, value);
+        return true;
+    } catch (e) {
+        if (e instanceof DOMException && e.name === 'QuotaExceededError') {
+            console.log("[Storage] Quota exceeded, cleaning up...");
+            cleanupOldStorageData();
+            try {
+                localStorage.setItem(key, value);
+                return true;
+            } catch (e2) {
+                console.error("[Storage] Still failed after cleanup:", e2);
+                return false;
+            }
+        }
+        return false;
+    }
+};
+
 // Helper to save full session to localStorage (user-specific)
 const saveSession = (userId: string, feed: VideoFeedItem[], isHero: boolean) => {
     if (!userId) return;
-    try {
-        localStorage.setItem(getSessionKey(userId), JSON.stringify(feed));
-        localStorage.setItem(getHeroKey(userId), JSON.stringify(isHero));
-    } catch (e) {
-        console.error("Failed to save session:", e);
-    }
+    // Clean and limit feed before saving
+    const cleanedFeed = cleanFeedForStorage(feed);
+    safeLocalStorageSet(getSessionKey(userId), JSON.stringify(cleanedFeed));
+    safeLocalStorageSet(getHeroKey(userId), JSON.stringify(isHero));
 };
 
 // Helper to load session from localStorage (user-specific)
@@ -193,12 +251,7 @@ export function VideoGenerator() {
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [isHero, setIsHero] = useState(true);
     const [showSettings, setShowSettings] = useState(false);
-    const [showHistory, setShowHistory] = useState(() => {
-        if (typeof window !== "undefined") {
-            return localStorage.getItem("videoGeneratorShowHistory") === "true";
-        }
-        return false;
-    });
+    const [showHistory, setShowHistory] = useState(false); // Start false to avoid hydration mismatch
     const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
     const [generationMode, setGenerationMode] = useState<GenerationMode>("text2video");
     const [sessionLoaded, setSessionLoaded] = useState(false);
@@ -211,7 +264,7 @@ export function VideoGenerator() {
     });
 
     const { showToast } = useToast();
-    const { user, refreshProfile } = useAuth();
+    const { user, refreshProfile, loading: authLoading } = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -252,8 +305,11 @@ export function VideoGenerator() {
 
     // Load last session from localStorage on mount
     useEffect(() => {
+        // Wait for auth to finish loading before doing anything
+        if (authLoading) return;
+
         if (!user) {
-            // Reset state when no user (logged out)
+            // Only reset state when auth is done loading AND user is null (actually logged out)
             setFeed([]);
             setIsHero(true);
             setPrompt("");
@@ -280,9 +336,39 @@ export function VideoGenerator() {
             setIsHero(true);
         }
 
+        // Load showHistory preference (after mount to avoid hydration mismatch)
+        const savedShowHistory = localStorage.getItem("videoGeneratorShowHistory");
+        if (savedShowHistory === "true") setShowHistory(true);
+
         setSessionLoaded(true);
         setLoadingHistory(false);
-    }, [user]);
+    }, [user, authLoading]);
+
+    // Check for source image from Image Generator (Image-to-Video workflow)
+    useEffect(() => {
+        if (!sessionLoaded) return;
+
+        const sourceImage = sessionStorage.getItem("videoSourceImage");
+        const sourcePrompt = sessionStorage.getItem("videoSourcePrompt");
+
+        if (sourceImage) {
+            // Set up Image-to-Video mode with the source image
+            setGenerationMode("image2video");
+            setImagePreview(sourceImage);
+            setIsHero(false);
+
+            // Pre-fill prompt if available
+            if (sourcePrompt) {
+                setPrompt(sourcePrompt);
+            }
+
+            // Clear sessionStorage to prevent re-loading
+            sessionStorage.removeItem("videoSourceImage");
+            sessionStorage.removeItem("videoSourcePrompt");
+
+            showToast("Ready to create video from your image!", "success");
+        }
+    }, [sessionLoaded, showToast]);
 
     // Detect new session request from URL
     useEffect(() => {
@@ -1611,9 +1697,7 @@ const VideoFeedCard = memo(function VideoFeedCard({
 }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(true);
-    const [isDownloading, setIsDownloading] = useState(false);
     const videoRef = useRef<HTMLVideoElement>(null);
-    const { showToast } = useToast();
 
     const togglePlay = () => {
         if (videoRef.current) {
@@ -1630,50 +1714,6 @@ const VideoFeedCard = memo(function VideoFeedCard({
         if (videoRef.current) {
             videoRef.current.muted = !isMuted;
             setIsMuted(!isMuted);
-        }
-    };
-
-    const handleDownload = async () => {
-        if (isDownloading) return;
-
-        // Check if video URL is available
-        if (!item.videoUrl) {
-            showToast("Video is not ready for download yet. Please wait for generation to complete.", "warning");
-            return;
-        }
-
-        setIsDownloading(true);
-        try {
-            // Determine the best URL to use for download
-            let downloadSourceUrl = item.videoUrl;
-
-            // Check if URL is from Supabase (already persisted) - can download directly
-            const isSupabaseUrl = downloadSourceUrl.includes('supabase');
-
-            // For all URLs, use our download proxy to handle CORS and validate domains
-            const downloadUrl = `/api/download?url=${encodeURIComponent(downloadSourceUrl)}`;
-
-            const response = await fetch(downloadUrl);
-            if (!response.ok) {
-                const error = await response.json().catch(() => ({ error: "Download failed" }));
-                throw new Error(error.error || "Failed to download video");
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `product-video-${Date.now()}.mp4`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-            showToast("Video downloaded successfully!", "success");
-        } catch (error) {
-            console.error("Download error:", error);
-            showToast(error instanceof Error ? error.message : "Failed to download video", "error");
-        } finally {
-            setIsDownloading(false);
         }
     };
 
@@ -1775,24 +1815,14 @@ const VideoFeedCard = memo(function VideoFeedCard({
 
                             {/* Action Bar - Always visible for better UX */}
                             <div className="flex items-center gap-2 mt-3">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={handleDownload}
-                                    disabled={isDownloading || !item.videoUrl}
-                                    className="bg-surface-2 hover:bg-surface-3"
-                                    title={!item.videoUrl ? "Video not ready" : "Download video"}
-                                >
-                                    <Icon icon={isDownloading ? "mingcute:loading-fill" : "mingcute:download-2-fill"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
-                                    {isDownloading ? "Downloading..." : "Download"}
-                                </Button>
                                 {/* Extend button - only for premium (Veo 3.1) videos */}
                                 {item.tier === "premium" && item.status === "completed" && (
                                     <Button
-                                        variant="ghost"
+                                        variant="outline"
                                         size="sm"
                                         onClick={onExtend}
                                         disabled={isExtending}
+                                        className="bg-surface-2 hover:bg-surface-3"
                                     >
                                         <Icon icon={isExtending ? "mingcute:loading-fill" : "mingcute:refresh-2-fill"} className={cn("w-4 h-4 mr-2", isExtending && "animate-spin")} />
                                         {isExtending ? "Extending..." : "Extend +4s"}

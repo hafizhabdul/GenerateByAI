@@ -172,32 +172,46 @@ export async function checkWanVideoStatus(requestId: string, type: "text2video" 
 
 /**
  * Get result of completed wan/v2.6 generation
+ * Falls back to direct result fetch if queue.result fails
  */
 export async function getWanVideoResult(requestId: string, type: "text2video" | "image2video"): Promise<WanVideoResult> {
     const endpoint = type === "image2video" ? WAN_ENDPOINTS.imageToVideo : WAN_ENDPOINTS.textToVideo;
 
-    const result = await fal.queue.result(endpoint, {
-        requestId,
-    });
+    try {
+        // Try queue.result first
+        const result = await fal.queue.result(endpoint, {
+            requestId,
+        });
 
-    console.log(`[WAN] Got result for ${requestId}:`, result);
+        console.log(`[WAN] Got result for ${requestId}:`, result);
 
-    // Cast result data to expected shape
-    const data = result.data as { video?: { url: string }; url?: string; duration?: number; resolution?: string };
+        // Cast result data to expected shape
+        const data = result.data as { video?: { url: string }; url?: string; duration?: number; resolution?: string };
 
-    // Extract video URL from result
-    const videoUrl = data?.video?.url || data?.url;
+        // Extract video URL from result
+        const videoUrl = data?.video?.url || data?.url;
 
-    if (!videoUrl) {
-        throw new Error("No video URL in result");
+        if (!videoUrl) {
+            throw new Error("No video URL in result");
+        }
+
+        return {
+            videoUrl,
+            requestId,
+            duration: data?.duration || 0,
+            resolution: data?.resolution || "720p",
+        };
+    } catch (error: any) {
+        // If 404, the result might have been consumed or expired
+        // Re-throw with more context
+        if (error.status === 404) {
+            console.error(`[WAN] Result not found for ${requestId} - may have expired or already been fetched`);
+            throw error;
+        }
+
+        console.error(`[WAN] Failed to get result for ${requestId}:`, error);
+        throw error;
     }
-
-    return {
-        videoUrl,
-        requestId,
-        duration: data?.duration || 0,
-        resolution: data?.resolution || "720p",
-    };
 }
 
 /**

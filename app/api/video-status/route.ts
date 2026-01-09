@@ -119,57 +119,93 @@ export async function GET(req: NextRequest) {
         if (queueStatus.status === "COMPLETED") {
             console.log(`[Video] Generation completed, fetching result...`);
 
-            const result = await getWanVideoResult(requestId, type);
+            try {
+                const result = await getWanVideoResult(requestId, type);
 
-            if (!result.videoUrl) {
-                return NextResponse.json({
-                    status: "failed",
-                    error: "No video URL in result",
-                });
-            }
-
-            // Persist video to storage
-            console.log(`[Video] Persisting video for request ${requestId}...`);
-            const permanentUrl = await persistExternalVideo(result.videoUrl, user.id);
-
-            // Update generation record
-            if (generationId) {
-                const { data: existingGen } = await supabase
-                    .from("generations")
-                    .select("metadata")
-                    .eq("id", generationId)
-                    .eq("user_id", user.id)
-                    .single();
-
-                const adminClient = createAdminClient();
-                const { error: updateError } = await adminClient
-                    .from("generations")
-                    .update({
-                        status: "completed",
-                        file_url: permanentUrl,
-                        metadata: {
-                            ...existingGen?.metadata,
-                            duration: result.duration,
-                            resolution: result.resolution,
-                        },
-                    })
-                    .eq("id", generationId)
-                    .eq("user_id", user.id);
-
-                if (updateError) {
-                    console.error("[Video] Failed to update generation record:", updateError);
+                if (!result.videoUrl) {
+                    return NextResponse.json({
+                        status: "failed",
+                        error: "No video URL in result",
+                    });
                 }
+
+                // Persist video to storage
+                console.log(`[Video] Persisting video for request ${requestId}...`);
+                const permanentUrl = await persistExternalVideo(result.videoUrl, user.id);
+
+                // Update generation record
+                if (generationId) {
+                    const { data: existingGen } = await supabase
+                        .from("generations")
+                        .select("metadata")
+                        .eq("id", generationId)
+                        .eq("user_id", user.id)
+                        .single();
+
+                    const adminClient = createAdminClient();
+                    const { error: updateError } = await adminClient
+                        .from("generations")
+                        .update({
+                            status: "completed",
+                            file_url: permanentUrl,
+                            metadata: {
+                                ...existingGen?.metadata,
+                                duration: result.duration,
+                                resolution: result.resolution,
+                            },
+                        })
+                        .eq("id", generationId)
+                        .eq("user_id", user.id);
+
+                    if (updateError) {
+                        console.error("[Video] Failed to update generation record:", updateError);
+                    }
+                }
+
+                console.log(`[Video] Completed and persisted: ${requestId}`);
+
+                return NextResponse.json({
+                    status: "completed",
+                    requestId,
+                    url: permanentUrl,
+                    duration: result.duration,
+                    resolution: result.resolution,
+                });
+            } catch (resultError: any) {
+                // Handle 404 - result already consumed or expired
+                if (resultError.status === 404) {
+                    console.log(`[Video] Result already consumed for ${requestId}, checking database...`);
+
+                    // Check if we already have it in database
+                    if (generationId) {
+                        const { data: existing } = await supabase
+                            .from("generations")
+                            .select("status, file_url, metadata")
+                            .eq("id", generationId)
+                            .eq("user_id", user.id)
+                            .single();
+
+                        if (existing?.file_url) {
+                            return NextResponse.json({
+                                status: "completed",
+                                requestId,
+                                url: existing.file_url,
+                                duration: existing.metadata?.duration,
+                                resolution: existing.metadata?.resolution,
+                            });
+                        }
+                    }
+
+                    // Result is gone and not in database - mark as failed
+                    return NextResponse.json({
+                        status: "failed",
+                        requestId,
+                        error: "Video result expired. Please generate a new video.",
+                    });
+                }
+
+                throw resultError;
             }
-
-            console.log(`[Video] Completed and persisted: ${requestId}`);
-
-            return NextResponse.json({
-                status: "completed",
-                requestId,
-                url: permanentUrl,
-                duration: result.duration,
-                resolution: result.resolution,
-            });
         }
 
         return NextResponse.json({
