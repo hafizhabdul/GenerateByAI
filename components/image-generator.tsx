@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
 import { GenerationLoading } from "./loading-states";
 import type { Generation } from "@/lib/supabase/types";
+import { BatikPattern } from "@/components/ui/batik-pattern";
 
 // Extended Generation type to handle "optimistic" pending state
 type FeedItem = {
@@ -831,7 +832,7 @@ export function ImageGenerator() {
                             <Icon icon="mingcute:alert-circle-fill" className="w-6 h-6 text-destructive shrink-0" />
                             <div className="flex-1">
                                 <p className="font-semibold text-destructive mb-3">{error}</p>
-                                <button 
+                                <button
                                     onClick={() => setError(null)}
                                     className="text-sm text-destructive hover:underline font-medium"
                                 >
@@ -871,10 +872,14 @@ export function ImageGenerator() {
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
                 <div className="w-full max-w-2xl mx-auto md:pl-24">
-                    {/* Clean Transparent Container with Subtle Glow */}
-                    <div className="relative rounded-2xl overflow-hidden transition-all duration-300 group/container">
-                        {/* Subtle Border Glow Effect */}
-                        <div className="absolute inset-0 rounded-2xl border border-primary/40 group-focus-within/container:border-primary/60 transition-colors" />
+                    {/* Clean Solid Container with Batik Touch - Crafted Stone Style */}
+                    <div className="relative rounded-xl overflow-hidden shadow-2xl transition-all duration-300 group/container border-2 border-primary/20 bg-surface-2 focus-within:border-primary">
+                        {/* Subtle Batik Pattern Watermark - Visible on empty or focus */}
+                        <div className="absolute inset-0 pointer-events-none">
+                            <BatikPattern color="currentColor" opacity={0.05} />
+                        </div>
+
+                        {/* No more glow border, using solid border in parent */}
 
                         {/* Inner Content */}
                         <div className="relative bg-transparent">
@@ -889,7 +894,6 @@ export function ImageGenerator() {
                                             : "text-muted-foreground hover:text-foreground/70"
                                     )}
                                 >
-                                    <Icon icon="mingcute:magic-1-line" className="w-3.5 h-3.5" />
                                     <span>Generate</span>
                                     {mode === "generate" && (
                                         <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
@@ -904,7 +908,6 @@ export function ImageGenerator() {
                                             : "text-muted-foreground hover:text-foreground/70"
                                     )}
                                 >
-                                    <Icon icon="mingcute:transfer-3-line" className="w-3.5 h-3.5" />
                                     <span>Transform</span>
                                     {mode === "transform" && (
                                         <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
