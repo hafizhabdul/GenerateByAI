@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 
-export type MascotExpression = 
+export type MascotExpression =
   | "happy"      // ✨ Success, celebration
   | "thinking"   // 🤔 Loading, processing
   | "confused"   // ❓ Not enough tokens, errors
@@ -72,7 +72,7 @@ export function Mascot({
         )}
       >
         <img
-          src="/mascot.png"
+          src="/maskot.png"
           alt="SquirrAI"
           className={cn(
             "w-full h-full object-contain drop-shadow-lg",

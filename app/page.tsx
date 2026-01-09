@@ -80,80 +80,88 @@ function HomeContent() {
   // Show landing page when not logged in
   if (!user) {
     return (
-      <div className="flex min-h-screen w-full bg-background text-foreground overflow-x-hidden selection:bg-primary/30 font-sans">
-        <Sidebar />
-        <main className="flex-1 flex flex-col relative w-full pl-0 md:pl-28 pb-20 md:pb-0">
-          <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 lg:p-10 max-w-4xl mx-auto w-full">
-            {/* Welcome Hero - Modern Nusantara */}
-            <div className="text-center space-y-8 w-full relative z-10">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] -z-10 opacity-20 pointer-events-none">
-                <BatikPattern color="currentColor" />
+      <div className="flex min-h-screen w-full bg-[#FAFAF9] text-[#1c1917] font-sans overflow-hidden selection:bg-[#c2410c] selection:text-white">
+
+        {/* Minimal Navbar */}
+        <header className="fixed top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-center z-50 mix-blend-multiply">
+          <div className="w-10 h-10 md:w-12 md:h-12 border border-[#1c1917]/10 rounded-xl flex items-center justify-center bg-white shadow-sm hover:rotate-3 transition-transform cursor-pointer">
+            <Icon icon="mingcute:squirrel-fill" className="w-6 h-6 text-[#c2410c]" />
+          </div>
+          <Link
+            href="/login"
+            className="w-10 h-10 md:w-12 md:h-12 border border-[#1c1917]/10 rounded-xl flex items-center justify-center bg-white shadow-sm hover:scale-105 transition-transform text-[#1c1917]"
+            title="Masuk"
+          >
+            <Icon icon="mingcute:arrow-right-line" className="w-5 h-5 md:w-6 md:h-6" />
+          </Link>
+        </header>
+
+        {/* Main Content - Georgi Inspired Layout */}
+        <main className="flex-1 flex flex-col items-center justify-center relative w-full px-4 pt-20 md:pt-0">
+
+          {/* Background Elements */}
+          <div className="absolute inset-0 overflow-hidden pointer-events-none">
+            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#c2410c]/5 rounded-full blur-[100px]" />
+            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#ea580c]/5 rounded-full blur-[100px]" />
+            <BatikPattern className="opacity-[0.03] text-[#1c1917] w-full h-full object-cover" />
+          </div>
+
+          <div className="relative z-10 flex flex-col items-center text-center">
+            {/* Intro Pill */}
+            <div className="mb-6 md:mb-8 animate-fade-in-down">
+              <span className="px-4 py-2 rounded-full border border-[#1c1917]/5 bg-white/50 backdrop-blur-sm text-sm md:text-base font-medium text-[#57534e]">
+                Halo & Selamat Datang! 👋
+              </span>
+            </div>
+
+            {/* Massive Typography */}
+            <h1 className="text-[18vw] md:text-[160px] lg:text-[200px] leading-[0.8] font-[800] tracking-tighter text-[#1c1917] mb-2 md:mb-6 animate-scale-in select-none">
+              SquirrAI
+            </h1>
+
+            {/* Subtitle */}
+            <p className="text-xl md:text-3xl font-medium text-[#57534e] max-w-2xl animate-fade-in-up delay-100 px-4">
+              Asisten kreatif <span className="text-[#c2410c] underline decoration-wavy decoration-2 decoration-[#c2410c]/30">Nusantara</span> paling estetik.
+            </p>
+
+            {/* Interactive Mascot Area */}
+            <div className="relative mt-12 md:mt-16 w-full max-w-3xl flex items-center justify-center">
+
+              {/* Floating Action: Create Image (Left) */}
+              <Link
+                href="/register"
+                className="absolute left-[5%] md:left-[10%] top-[20%] w-24 h-24 md:w-32 md:h-32 bg-[#c2410c] text-white rounded-[2rem] flex flex-col items-center justify-center gap-1 shadow-xl rotate-[-12deg] hover:rotate-[-6deg] hover:scale-110 active:scale-95 transition-all z-20 group animate-tilt hidden sm:flex"
+              >
+                <Icon icon="mingcute:pic-fill" className="w-8 h-8 md:w-10 md:h-10 opacity-90" />
+                <span className="font-bold text-sm md:text-base">Gambar</span>
+              </Link>
+
+              {/* Main Mascot Center */}
+              <div className="w-64 h-64 md:w-96 md:h-96 relative z-10 transition-transform hover:scale-105 duration-500">
+                <div className="absolute inset-0 bg-[#c2410c] blur-[60px] opacity-20 rounded-full animate-pulse"></div>
+                <img
+                  src="/maskot.png"
+                  alt="SquirrAI Mascot"
+                  className="w-full h-full object-contain drop-shadow-2xl animate-wobble"
+                />
               </div>
 
-              <div className="w-24 h-24 mx-auto mb-8 relative">
-                <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full"></div>
-                <img src="/mascot.png" alt="SquirrAI" className="w-full h-full drop-shadow-lg relative z-10" />
-              </div>
-              <div className="space-y-4">
-                <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-foreground">
-                  Selamat datang di <span className="text-primary relative inline-block">
-                    SquirrAI
-                    <span className="absolute -bottom-2 left-0 w-full h-1 bg-primary/20 rounded-full"></span>
-                  </span>
-                </h1>
-                <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-                  Platform AI kreatif buatan lokal. Ciptakan gambar dan video berkualitas tinggi dengan sentuhan Nusantara.
-                </p>
-              </div>
+              {/* Floating Action: Create Video (Right) */}
+              <Link
+                href="/register"
+                className="absolute right-[5%] md:right-[10%] top-[30%] w-20 h-20 md:w-28 md:h-28 bg-[#f5f5f4] border-2 border-[#1c1917]/10 text-[#1c1917] rounded-[2rem] flex flex-col items-center justify-center gap-1 shadow-lg rotate-[12deg] hover:rotate-[6deg] hover:scale-110 active:scale-95 transition-all z-20 group animate-tilt hidden sm:flex"
+              >
+                <Icon icon="mingcute:movie-fill" className="w-6 h-6 md:w-8 md:h-8 text-[#c2410c]" />
+                <span className="font-bold text-xs md:text-sm">Video</span>
+              </Link>
 
-              {/* CTA Buttons - Flat & Solid */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-                <Link href="/login">
-                  <button className="w-full sm:w-auto px-10 py-4 rounded-xl btn-primary text-lg flex items-center justify-center gap-2 shadow-none border-b-4 border-primary-dark active:border-b-0 active:translate-y-1 transition-all">
-                    <Icon icon="mingcute:login-fill" className="w-6 h-6" />
-                    Masuk
-                  </button>
+              {/* Mobile CTA (replaces floating buttons on small screens) */}
+              <div className="absolute -bottom-16 sm:hidden w-full px-8 pb-8">
+                <Link href="/register" className="w-full py-4 bg-[#c2410c] text-white rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all">
+                  Mulai Sekarang <Icon icon="mingcute:arrow-right-fill" />
                 </Link>
-                <Link href="/register">
-                  <button className="w-full sm:w-auto px-10 py-4 rounded-xl btn-secondary text-lg flex items-center justify-center gap-2 border-b-4 border-border-hover active:border-b-0 active:translate-y-1 transition-all">
-                    <Icon icon="mingcute:user-add-fill" className="w-6 h-6" />
-                    Daftar Gratis
-                  </button>
-                </Link>
               </div>
 
-              {/* Free Credits Banner */}
-              <div className="mt-10 p-5 rounded-2xl bg-primary/10 border border-primary/20 max-w-md mx-auto">
-                <div className="flex items-center justify-center gap-3 text-primary">
-                  <Icon icon="mingcute:gift-fill" className="w-6 h-6" />
-                  <span className="font-bold text-lg">Daftar & dapatkan 100 token GRATIS!</span>
-                </div>
-              </div>
-
-              {/* Features Preview */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-12">
-                <div className="p-6 rounded-2xl bg-surface-1 border border-border text-center hover:border-primary/30 transition-colors">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <Icon icon="mingcute:pic-fill" className="w-7 h-7 text-primary" />
-                  </div>
-                  <p className="font-bold text-lg">Generate Image</p>
-                  <p className="text-sm text-muted-foreground mt-1">AI-powered image creation</p>
-                </div>
-                <div className="p-6 rounded-2xl bg-surface-1 border border-border text-center hover:border-primary/30 transition-colors">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <Icon icon="mingcute:movie-fill" className="w-7 h-7 text-primary" />
-                  </div>
-                  <p className="font-bold text-lg">Create Video</p>
-                  <p className="text-sm text-muted-foreground mt-1">Turn images into videos</p>
-                </div>
-                <div className="p-6 rounded-2xl bg-surface-1 border border-border text-center hover:border-primary/30 transition-colors">
-                  <div className="w-14 h-14 mx-auto mb-3 rounded-2xl bg-primary/10 flex items-center justify-center">
-                    <Icon icon="mingcute:sparkles-2-fill" className="w-7 h-7 text-primary" />
-                  </div>
-                  <p className="font-bold text-lg">Premium Quality</p>
-                  <p className="text-sm text-muted-foreground mt-1">Veo 3.1 with audio</p>
-                </div>
-              </div>
             </div>
           </div>
         </main>
