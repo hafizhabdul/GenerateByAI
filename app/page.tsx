@@ -77,94 +77,161 @@ function HomeContent() {
     || user?.email?.split("@")[0]?.split(".")[0]?.replace(/^\w/, c => c.toUpperCase())
     || "Creator";
 
-  // Show landing page when not logged in
+  // Show landing page when not logged in - Neo-Wayang Bold Dark Style (Option B)
   if (!user) {
     return (
-      <div className="flex min-h-screen w-full bg-[#FAFAF9] text-[#1c1917] font-sans overflow-hidden selection:bg-[#c2410c] selection:text-white">
+      <div className="min-h-screen w-full bg-[#0a0a0a] text-white overflow-hidden selection:bg-[#c2410c] selection:text-white relative noise-overlay">
 
-        {/* Minimal Navbar */}
-        <header className="fixed top-0 left-0 right-0 p-4 md:p-6 flex justify-between items-center z-50 mix-blend-multiply">
-          <div className="w-10 h-10 md:w-12 md:h-12 border border-[#1c1917]/10 rounded-xl flex items-center justify-center bg-white shadow-sm hover:rotate-3 transition-transform cursor-pointer">
-            <Icon icon="mingcute:squirrel-fill" className="w-6 h-6 text-[#c2410c]" />
-          </div>
-          <Link
-            href="/login"
-            className="w-10 h-10 md:w-12 md:h-12 border border-[#1c1917]/10 rounded-xl flex items-center justify-center bg-white shadow-sm hover:scale-105 transition-transform text-[#1c1917]"
-            title="Masuk"
-          >
-            <Icon icon="mingcute:arrow-right-line" className="w-5 h-5 md:w-6 md:h-6" />
-          </Link>
-        </header>
+        {/* Gunungan pattern background */}
+        <div className="fixed inset-0 gunungan-pattern opacity-30 pointer-events-none" />
 
-        {/* Main Content - Georgi Inspired Layout */}
-        <main className="flex-1 flex flex-col items-center justify-center relative w-full px-4 pt-20 md:pt-0">
+        {/* Dramatic copper gradient accent */}
+        <div className="fixed top-0 right-0 w-[60%] h-[70%] pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-bl from-[#c2410c]/20 via-transparent to-transparent" />
+        </div>
 
-          {/* Background Elements */}
-          <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] bg-[#c2410c]/5 rounded-full blur-[100px]" />
-            <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-[#ea580c]/5 rounded-full blur-[100px]" />
-            <BatikPattern className="opacity-[0.03] text-[#1c1917] w-full h-full object-cover" />
-          </div>
-
-          <div className="relative z-10 flex flex-col items-center text-center">
-            {/* Intro Pill */}
-            <div className="mb-6 md:mb-8 animate-fade-in-down">
-              <span className="px-4 py-2 rounded-full border border-[#1c1917]/5 bg-white/50 backdrop-blur-sm text-sm md:text-base font-medium text-[#57534e]">
-                Halo & Selamat Datang! 👋
-              </span>
+        {/* Minimal Header - Icon Only */}
+        <header className="fixed top-0 left-0 right-0 z-50 px-6 md:px-12 py-6">
+          <div className="flex justify-between items-center">
+            {/* Logo */}
+            <div className="flex items-center gap-3 text-[#c2410c]">
+              <div className="w-12 h-12 border-2 border-[#c2410c] flex items-center justify-center animate-border-dance">
+                <Icon icon="mingcute:squirrel-fill" className="w-6 h-6" />
+              </div>
             </div>
 
-            {/* Massive Typography */}
-            <h1 className="text-[18vw] md:text-[160px] lg:text-[200px] leading-[0.8] font-[800] tracking-tighter text-[#1c1917] mb-2 md:mb-6 animate-scale-in select-none">
-              SquirrAI
-            </h1>
+            {/* Login */}
+            <Link
+              href="/login"
+              className="group flex items-center gap-3 text-white/60 hover:text-white transition-colors"
+            >
+              <span className="font-grotesque text-sm tracking-wider">MASUK</span>
+              <div className="w-10 h-10 border border-white/20 flex items-center justify-center group-hover:border-[#c2410c] group-hover:bg-[#c2410c] transition-all">
+                <Icon icon="mingcute:arrow-right-line" className="w-5 h-5" />
+              </div>
+            </Link>
+          </div>
+        </header>
 
-            {/* Subtitle */}
-            <p className="text-xl md:text-3xl font-medium text-[#57534e] max-w-2xl animate-fade-in-up delay-100 px-4">
-              Asisten kreatif <span className="text-[#c2410c] underline decoration-wavy decoration-2 decoration-[#c2410c]/30">Nusantara</span> paling estetik.
-            </p>
+        {/* Main Content */}
+        <main className="min-h-screen flex items-center relative">
+          <div className="w-full max-w-[1800px] mx-auto px-6 md:px-12 lg:px-20 py-24 md:py-0">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
 
-            {/* Interactive Mascot Area */}
-            <div className="relative mt-12 md:mt-16 w-full max-w-3xl flex items-center justify-center">
+              {/* Left - Giant Typography */}
+              <div className="relative z-10">
+                {/* Pre-title */}
+                <div className="flex items-center gap-4 mb-6 animate-dramatic-enter" style={{ animationDelay: '0.1s' }}>
+                  <div className="w-12 h-[2px] bg-[#c2410c]" />
+                  <span className="font-grotesque text-xs tracking-[0.4em] text-[#c2410c] uppercase">
+                    AI Generatif Indonesia
+                  </span>
+                </div>
 
-              {/* Floating Action: Create Image (Left) */}
-              <Link
-                href="/register"
-                className="absolute left-[5%] md:left-[10%] top-[20%] w-24 h-24 md:w-32 md:h-32 bg-[#c2410c] text-white rounded-[2rem] flex flex-col items-center justify-center gap-1 shadow-xl rotate-[-12deg] hover:rotate-[-6deg] hover:scale-110 active:scale-95 transition-all z-20 group animate-tilt hidden sm:flex"
-              >
-                <Icon icon="mingcute:pic-fill" className="w-8 h-8 md:w-10 md:h-10 opacity-90" />
-                <span className="font-bold text-sm md:text-base">Gambar</span>
-              </Link>
+                {/* Main Title - Stacked Vertical */}
+                <div className="space-y-0">
+                  <h1 className="animate-dramatic-enter" style={{ animationDelay: '0.2s' }}>
+                    <span className="block font-wayang text-[20vw] md:text-[15vw] lg:text-[12vw] leading-[0.85] text-white tracking-tight">
+                      SQUIRR
+                    </span>
+                  </h1>
+                  <h1 className="animate-dramatic-enter" style={{ animationDelay: '0.3s' }}>
+                    <span className="block font-wayang text-[20vw] md:text-[15vw] lg:text-[12vw] leading-[0.85] text-stroke text-[#c2410c] tracking-tight glitch-hover">
+                      AI
+                    </span>
+                  </h1>
+                </div>
 
-              {/* Main Mascot Center */}
-              <div className="w-64 h-64 md:w-96 md:h-96 relative z-10 transition-transform hover:scale-105 duration-500">
-                <div className="absolute inset-0 bg-[#c2410c] blur-[60px] opacity-20 rounded-full animate-pulse"></div>
-                <img
-                  src="/maskot.png"
-                  alt="SquirrAI Mascot"
-                  className="w-full h-full object-contain drop-shadow-2xl animate-wobble"
-                />
+                {/* Tagline */}
+                <p className="mt-8 md:mt-12 font-grotesque text-xl md:text-2xl text-white/50 max-w-md leading-relaxed animate-dramatic-enter" style={{ animationDelay: '0.5s' }}>
+                  Wujudkan <span className="text-[#c2410c] font-semibold">imajinasi Nusantara</span> dalam hitungan detik.
+                  Visual batik, wayang, hingga arsitektur tradisional.
+                </p>
+
+                {/* CTA Row */}
+                <div className="mt-10 md:mt-14 flex flex-col sm:flex-row items-start gap-4 animate-dramatic-enter" style={{ animationDelay: '0.6s' }}>
+                  <Link
+                    href="/register"
+                    className="group relative corner-accents text-[#c2410c] px-10 py-5 bg-[#c2410c] text-white font-wayang text-xl tracking-wider overflow-hidden transition-all hover:scale-105"
+                  >
+                    <span className="relative z-10 flex items-center gap-3">
+                      MULAI SEKARANG
+                      <Icon icon="mingcute:arrow-right-fill" className="w-6 h-6 group-hover:translate-x-2 transition-transform" />
+                    </span>
+                  </Link>
+                </div>
+
+                {/* Feature pills */}
+                <div className="mt-12 md:mt-16 flex flex-wrap gap-3 animate-dramatic-enter" style={{ animationDelay: '0.7s' }}>
+                  {['BATIK', 'WAYANG', 'TENUN', 'NUSANTARA'].map((tag, i) => (
+                    <span
+                      key={tag}
+                      className="px-4 py-2 border border-white/10 text-white/40 font-grotesque text-xs tracking-widest hover:border-[#c2410c] hover:text-[#c2410c] transition-all cursor-default"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
               </div>
 
-              {/* Floating Action: Create Video (Right) */}
-              <Link
-                href="/register"
-                className="absolute right-[5%] md:right-[10%] top-[30%] w-20 h-20 md:w-28 md:h-28 bg-[#f5f5f4] border-2 border-[#1c1917]/10 text-[#1c1917] rounded-[2rem] flex flex-col items-center justify-center gap-1 shadow-lg rotate-[12deg] hover:rotate-[6deg] hover:scale-110 active:scale-95 transition-all z-20 group animate-tilt hidden sm:flex"
-              >
-                <Icon icon="mingcute:movie-fill" className="w-6 h-6 md:w-8 md:h-8 text-[#c2410c]" />
-                <span className="font-bold text-xs md:text-sm">Video</span>
-              </Link>
+              {/* Right - Mascot with dramatic treatment */}
+              <div className="relative flex items-center justify-center lg:justify-end">
+                {/* Rotating geometric ring */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                  <div className="w-[400px] h-[400px] md:w-[500px] md:h-[500px] lg:w-[600px] lg:h-[600px] border border-[#c2410c]/20 rounded-full animate-rotate-slow" />
+                  <div className="absolute w-[350px] h-[350px] md:w-[450px] md:h-[450px] lg:w-[550px] lg:h-[550px] border border-white/5 rounded-full animate-rotate-slow" style={{ animationDirection: 'reverse', animationDuration: '40s' }} />
+                </div>
 
-              {/* Mobile CTA (replaces floating buttons on small screens) */}
-              <div className="absolute -bottom-16 sm:hidden w-full px-8 pb-8">
-                <Link href="/register" className="w-full py-4 bg-[#c2410c] text-white rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-2 active:scale-95 transition-all">
-                  Mulai Sekarang <Icon icon="mingcute:arrow-right-fill" />
-                </Link>
+                {/* Mascot */}
+                <div className="relative z-10 w-[280px] md:w-[380px] lg:w-[450px] animate-dramatic-enter" style={{ animationDelay: '0.4s' }}>
+                  {/* Copper glow behind mascot */}
+                  <div className="absolute inset-0 bg-[#c2410c]/30 blur-[80px] rounded-full animate-breathe" />
+
+                  <div className="relative animate-breathe">
+                    <img
+                      src="/maskot.png"
+                      alt="SquirrAI"
+                      className="w-full h-auto wayang-shadow"
+                    />
+                  </div>
+
+                  {/* Floating stats */}
+                  <div className="absolute -left-6 md:-left-12 top-1/4 bg-[#0a0a0a] border border-[#c2410c]/30 p-4 md:p-5 animate-dramatic-enter" style={{ animationDelay: '0.8s' }}>
+                    <div className="font-wayang text-3xl md:text-4xl text-[#c2410c]">10K+</div>
+                    <div className="font-grotesque text-xs text-white/40 tracking-wider mt-1">KREATOR</div>
+                  </div>
+
+                  <div className="absolute -right-4 md:-right-8 bottom-1/3 bg-[#c2410c] p-4 md:p-5 animate-dramatic-enter" style={{ animationDelay: '0.9s' }}>
+                    <div className="font-wayang text-3xl md:text-4xl text-white">50K+</div>
+                    <div className="font-grotesque text-xs text-white/70 tracking-wider mt-1">KREASI</div>
+                  </div>
+                </div>
               </div>
-
             </div>
           </div>
         </main>
+
+        {/* Bottom bar */}
+        <footer className="fixed bottom-0 left-0 right-0 border-t border-white/5 bg-[#0a0a0a]/80 backdrop-blur-sm">
+          <div className="px-6 md:px-12 py-4 flex justify-between items-center">
+            <div className="flex items-center gap-6">
+              <span className="font-grotesque text-xs text-white/30 tracking-wider hidden md:block">© 2024 SQUIRRAI</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {['GAMBAR', 'VIDEO', 'ANIMASI'].map((item, i) => (
+                <span key={item} className="flex items-center gap-2 font-grotesque text-xs text-white/30 tracking-wider">
+                  {i > 0 && <span className="text-[#c2410c]">◆</span>}
+                  {item}
+                </span>
+              ))}
+            </div>
+
+            <div className="hidden md:flex items-center gap-4 text-white/30">
+              <span className="font-grotesque text-xs tracking-wider">NUSANTARA EDITION</span>
+            </div>
+          </div>
+        </footer>
       </div>
     );
   }

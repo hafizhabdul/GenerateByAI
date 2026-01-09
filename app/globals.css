@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Geist&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Geist&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Space+Mono:wght@400;700&family=Bebas+Neue&family=Darker+Grotesque:wght@400;500;600;700;800;900&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -985,4 +985,444 @@ button[data-variant="secondary"]:hover,
   display: flex;
   flex-direction: row;
   align-items: center;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EDITORIAL LANDING PAGE - Craft & Heritage Style
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Paper texture overlay */
+.paper-texture {
+  position: relative;
+}
+
+.paper-texture::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Editorial typography */
+.font-editorial {
+  font-family: var(--font-editorial);
+}
+
+.font-mono-display {
+  font-family: var(--font-mono);
+}
+
+/* Text reveal animation */
+@keyframes textReveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes lineGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes floatSubtle {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1deg);
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+@keyframes staggerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-text-reveal {
+  animation: textReveal 0.8s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
+.animate-line-grow {
+  animation: lineGrow 0.6s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+  transform-origin: left;
+}
+
+.animate-float-subtle {
+  animation: floatSubtle 4s ease-in-out infinite;
+}
+
+.animate-marquee {
+  animation: marquee 20s linear infinite;
+}
+
+.animate-stagger-fade {
+  animation: staggerFadeIn 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+/* Delay utilities */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+.delay-600 { animation-delay: 600ms; }
+.delay-700 { animation-delay: 700ms; }
+
+/* Diagonal line decoration */
+.diagonal-line {
+  position: relative;
+}
+
+.diagonal-line::after {
+  content: "";
+  position: absolute;
+  width: 120%;
+  height: 2px;
+  background: var(--primary);
+  top: 50%;
+  left: -10%;
+  transform: rotate(-3deg);
+}
+
+/* Stamp/badge effect */
+.stamp {
+  border: 3px solid currentColor;
+  padding: 0.5rem 1rem;
+  transform: rotate(-3deg);
+  position: relative;
+}
+
+.stamp::before {
+  content: "";
+  position: absolute;
+  inset: 4px;
+  border: 1px dashed currentColor;
+  opacity: 0.5;
+}
+
+/* Copper strip decoration */
+.copper-strip {
+  background: var(--primary);
+  position: relative;
+  overflow: hidden;
+}
+
+.copper-strip::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,0.1) 50%,
+    transparent 100%
+  );
+  animation: shimmerGradient 3s infinite;
+}
+
+/* Editorial grid lines */
+.editorial-grid {
+  background-image:
+    linear-gradient(to right, var(--border) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+/* Hover lift with shadow */
+.hover-lift {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.hover-lift:hover {
+  transform: translateY(-4px) rotate(-1deg);
+  box-shadow: 8px 8px 0 var(--primary);
+}
+
+/* Underline animation */
+.animated-underline {
+  position: relative;
+  display: inline-block;
+}
+
+.animated-underline::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--primary);
+  transform: scaleX(0);
+  transform-origin: right;
+  transition: transform 0.4s cubic-bezier(0.77, 0, 0.175, 1);
+}
+
+.animated-underline:hover::after {
+  transform: scaleX(1);
+  transform-origin: left;
+}
+
+/* Vertical text */
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Custom cursor for landing */
+.cursor-craft {
+  cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='8' fill='%23c2410c' opacity='0.8'/%3E%3Ccircle cx='16' cy='16' r='4' fill='%23fff'/%3E%3C/svg%3E") 16 16, pointer;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NEO-WAYANG LANDING PAGE - Bold Graphic Dark Style
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Wayang-inspired fonts */
+.font-wayang {
+  font-family: "Bebas Neue", "Impact", sans-serif;
+  letter-spacing: 0.05em;
+}
+
+.font-grotesque {
+  font-family: "Darker Grotesque", sans-serif;
+}
+
+/* Gunungan pattern - wayang mountain shape */
+.gunungan-pattern {
+  background-image: url("data:image/svg+xml,%3Csvg width='120' height='140' viewBox='0 0 120 140' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M60 0 L120 140 L0 140 Z' fill='none' stroke='%23c2410c' stroke-width='1' opacity='0.15'/%3E%3Cpath d='M60 20 L100 140 L20 140 Z' fill='none' stroke='%23c2410c' stroke-width='0.5' opacity='0.1'/%3E%3Ccircle cx='60' cy='50' r='8' fill='none' stroke='%23c2410c' stroke-width='0.5' opacity='0.1'/%3E%3C/svg%3E");
+  background-size: 120px 140px;
+}
+
+/* Diagonal stripes pattern */
+.diagonal-stripes {
+  background: repeating-linear-gradient(
+    -45deg,
+    transparent,
+    transparent 2px,
+    rgba(194, 65, 12, 0.03) 2px,
+    rgba(194, 65, 12, 0.03) 4px
+  );
+}
+
+/* Wayang shadow effect */
+.wayang-shadow {
+  filter: drop-shadow(8px 8px 0 rgba(194, 65, 12, 0.3));
+}
+
+/* Glitch text effect */
+@keyframes glitch {
+  0%, 100% {
+    transform: translate(0);
+  }
+  20% {
+    transform: translate(-2px, 2px);
+  }
+  40% {
+    transform: translate(-2px, -2px);
+  }
+  60% {
+    transform: translate(2px, 2px);
+  }
+  80% {
+    transform: translate(2px, -2px);
+  }
+}
+
+.glitch-hover:hover {
+  animation: glitch 0.3s ease-in-out;
+}
+
+/* Slice reveal animation */
+@keyframes sliceReveal {
+  0% {
+    clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
+  }
+  100% {
+    clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
+  }
+}
+
+.animate-slice-reveal {
+  animation: sliceReveal 0.8s cubic-bezier(0.77, 0, 0.175, 1) forwards;
+}
+
+/* Dramatic entrance */
+@keyframes dramaticEnter {
+  0% {
+    opacity: 0;
+    transform: translateY(60px) scale(0.9);
+    filter: blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+.animate-dramatic-enter {
+  animation: dramaticEnter 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  opacity: 0;
+}
+
+/* Copper glow pulse */
+@keyframes copperGlow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(194, 65, 12, 0.3), 0 0 60px rgba(194, 65, 12, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(194, 65, 12, 0.5), 0 0 80px rgba(194, 65, 12, 0.2);
+  }
+}
+
+.animate-copper-glow {
+  animation: copperGlow 3s ease-in-out infinite;
+}
+
+/* Rotate slow */
+@keyframes rotateSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-rotate-slow {
+  animation: rotateSlow 30s linear infinite;
+}
+
+/* Scale breathe */
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.animate-breathe {
+  animation: breathe 4s ease-in-out infinite;
+}
+
+/* Border animation */
+@keyframes borderDance {
+  0%, 100% {
+    border-color: rgba(194, 65, 12, 0.5);
+  }
+  50% {
+    border-color: rgba(194, 65, 12, 1);
+  }
+}
+
+.animate-border-dance {
+  animation: borderDance 2s ease-in-out infinite;
+}
+
+/* Text stroke effect */
+.text-stroke {
+  -webkit-text-stroke: 2px currentColor;
+  -webkit-text-fill-color: transparent;
+}
+
+.text-stroke-thin {
+  -webkit-text-stroke: 1px currentColor;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Noise overlay for dark theme */
+.noise-overlay::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E");
+  opacity: 0.03;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+}
+
+/* Scan line effect */
+.scanlines::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 0, 0, 0.1) 2px,
+    rgba(0, 0, 0, 0.1) 4px
+  );
+  pointer-events: none;
+  opacity: 0.3;
+}
+
+/* Geometric border */
+.geo-border {
+  position: relative;
+}
+
+.geo-border::before {
+  content: "";
+  position: absolute;
+  inset: -4px;
+  border: 2px solid;
+  border-color: inherit;
+  clip-path: polygon(0 10%, 10% 0, 90% 0, 100% 10%, 100% 90%, 90% 100%, 10% 100%, 0 90%);
+}
+
+/* Corner accents */
+.corner-accents {
+  position: relative;
+}
+
+.corner-accents::before,
+.corner-accents::after {
+  content: "";
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border: 2px solid currentColor;
+}
+
+.corner-accents::before {
+  top: -8px;
+  left: -8px;
+  border-right: none;
+  border-bottom: none;
+}
+
+.corner-accents::after {
+  bottom: -8px;
+  right: -8px;
+  border-left: none;
+  border-top: none;
 }
