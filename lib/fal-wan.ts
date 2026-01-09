@@ -7,10 +7,12 @@ fal.config({
 
 /**
  * wan/v2.6 Model Endpoints
+ * NOTE: Use format "wan/v2.6/..." NOT "fal-ai/wan/v2.6/..."
+ * Ref: https://fal.ai/models/wan/v2.6/image-to-video/api
  */
 export const WAN_ENDPOINTS = {
-    textToVideo: "fal-ai/wan/v2.6/text-to-video",
-    imageToVideo: "fal-ai/wan/v2.6/image-to-video",
+    textToVideo: "wan/v2.6/text-to-video",
+    imageToVideo: "wan/v2.6/image-to-video",
 } as const;
 
 /**
