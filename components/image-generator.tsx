@@ -931,7 +931,7 @@ export function ImageGenerator() {
                                 <div className="hidden sm:flex items-center gap-1">
                                     {([
                                         { key: "low", label: "Fast", tokens: "10" },
-                                        { key: "medium", label: "Balanced", tokens: "20" },
+                                        { key: "medium", label: "Balanced", tokens: "25" },
                                         { key: "high", label: "Quality", tokens: "40" }
                                     ] as const).map((q) => (
                                         <button

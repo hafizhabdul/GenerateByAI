@@ -8,7 +8,7 @@ export type QualityTier = 'low' | 'medium' | 'high';
 // High: Best quality, slower
 export const TOKEN_COSTS: Record<string, number> = {
     image_low: 10,      // Fast generation
-    image_medium: 20,   // Balanced
+    image_medium: 25,   // Balanced
     image_high: 40,     // Best quality
     edit: 15,
     video: 25, // Base video cost (Kling 5s std)
