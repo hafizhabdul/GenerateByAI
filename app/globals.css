@@ -1205,12 +1205,16 @@ button[data-variant="secondary"]:hover,
 
 /* Wayang-inspired fonts */
 .font-wayang {
-  font-family: "Bebas Neue", "Impact", sans-serif;
-  letter-spacing: 0.05em;
+  font-family: "Syne", sans-serif;
+  letter-spacing: -0.02em;
+}
+
+.font-heritage {
+  font-family: "Cormorant Garamond", serif;
 }
 
 .font-grotesque {
-  font-family: "Darker Grotesque", sans-serif;
+  font-family: "Outfit", sans-serif;
 }
 
 /* Gunungan pattern - wayang mountain shape */
@@ -1363,10 +1367,11 @@ button[data-variant="secondary"]:hover,
   content: "";
   position: absolute;
   inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.4'/%3E%3C/svg%3E");
-  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='1'/%3E%3C/svg%3E");
+  opacity: 0.05;
   pointer-events: none;
   mix-blend-mode: overlay;
+  z-index: 50;
 }
 
 /* Scan line effect */
