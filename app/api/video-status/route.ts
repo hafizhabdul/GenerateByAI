@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { checkWanVideoStatus, getWanVideoResult } from "@/lib/fal-wan";
 import { persistExternalVideo } from "@/lib/storage-utils";
+import { refundTokens } from "@/lib/tokens-server";
 
 // UUID validation helper
 const uuidSchema = z.string().uuid();
@@ -43,7 +44,7 @@ export async function GET(req: NextRequest) {
         if (generationId) {
             const { data: existing } = await supabase
                 .from("generations")
-                .select("status, file_url, metadata")
+                .select("status, file_url, metadata, tokens_used")
                 .eq("id", generationId)
                 .eq("user_id", user.id)
                 .single();
@@ -96,24 +97,56 @@ export async function GET(req: NextRequest) {
             // Update generation record if exists
             if (generationId) {
                 const adminClient = createAdminClient();
-                await adminClient
+
+                // First, get the generation to know how many tokens to refund
+                const { data: generation } = await supabase
                     .from("generations")
-                    .update({
-                        status: "failed",
-                        metadata: {
-                            error: "Video generation failed",
-                        }
-                    })
+                    .select("tokens_used, metadata, status")
                     .eq("id", generationId)
-                    .eq("user_id", user.id);
+                    .eq("user_id", user.id)
+                    .single();
+
+                // Only refund if not already failed (prevent double refund)
+                if (generation && generation.status !== "failed") {
+                    const tokensToRefund = generation.tokens_used || 0;
+
+                    // Refund the tokens
+                    if (tokensToRefund > 0) {
+                        const refundResult = await refundTokens(
+                            user.id,
+                            tokensToRefund,
+                            generationId,
+                            "Video generation failed on provider"
+                        );
+                        console.log(`[Video] Refund result for ${generationId}:`, refundResult);
+                    }
+
+                    // Update generation record with failed status and refund info
+                    await adminClient
+                        .from("generations")
+                        .update({
+                            status: "failed",
+                            metadata: {
+                                ...generation.metadata,
+                                error: "Video generation failed",
+                                refunded: true,
+                                refund_amount: tokensToRefund,
+                                refund_at: new Date().toISOString(),
+                            }
+                        })
+                        .eq("id", generationId)
+                        .eq("user_id", user.id);
+                }
             }
 
             return NextResponse.json({
                 status: "failed",
                 requestId,
                 error: "Video generation failed",
+                refunded: true,
             });
         }
+
 
         // If completed, get the result
         if (queueStatus.status === "COMPLETED") {
@@ -180,7 +213,7 @@ export async function GET(req: NextRequest) {
                     if (generationId) {
                         const { data: existing } = await supabase
                             .from("generations")
-                            .select("status, file_url, metadata")
+                            .select("status, file_url, metadata, tokens_used")
                             .eq("id", generationId)
                             .eq("user_id", user.id)
                             .single();
@@ -194,6 +227,36 @@ export async function GET(req: NextRequest) {
                                 resolution: existing.metadata?.resolution,
                             });
                         }
+
+                        // Result is gone and not saved - refund tokens
+                        if (existing && existing.status !== "failed") {
+                            const tokensToRefund = existing.tokens_used || 0;
+                            if (tokensToRefund > 0) {
+                                await refundTokens(
+                                    user.id,
+                                    tokensToRefund,
+                                    generationId,
+                                    "Video result expired before retrieval"
+                                );
+                            }
+
+                            // Update status to failed with refund info
+                            const adminClient = createAdminClient();
+                            await adminClient
+                                .from("generations")
+                                .update({
+                                    status: "failed",
+                                    metadata: {
+                                        ...existing.metadata,
+                                        error: "Video result expired",
+                                        refunded: true,
+                                        refund_amount: tokensToRefund,
+                                        refund_at: new Date().toISOString(),
+                                    }
+                                })
+                                .eq("id", generationId)
+                                .eq("user_id", user.id);
+                        }
                     }
 
                     // Result is gone and not in database - mark as failed
@@ -201,6 +264,7 @@ export async function GET(req: NextRequest) {
                         status: "failed",
                         requestId,
                         error: "Video result expired. Please generate a new video.",
+                        refunded: true,
                     });
                 }
 

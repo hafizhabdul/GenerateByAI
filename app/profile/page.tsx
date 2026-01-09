@@ -17,6 +17,25 @@ interface Stats {
     tokensTotal: number;
 }
 
+interface TokenHistoryEntry {
+    id: string;
+    amount: number;
+    type: 'deduction' | 'refund' | 'purchase' | 'bonus' | 'reset';
+    status: 'success' | 'failed' | 'pending';
+    generation_type?: string;
+    description?: string;
+    balance_before: number;
+    balance_after: number;
+    created_at: string;
+}
+
+interface TokenHistorySummary {
+    totalDeductions: number;
+    totalRefunds: number;
+    totalPurchases: number;
+    netUsage: number;
+}
+
 export default function ProfilePage() {
     const router = useRouter();
     const { user, profile, signOut, loading: authLoading, refreshProfile } = useAuth();
@@ -24,6 +43,10 @@ export default function ProfilePage() {
     const [stats, setStats] = useState<Stats | null>(null);
     const [loading, setLoading] = useState(true);
     const [syncing, setSyncing] = useState(false);
+    const [tokenHistory, setTokenHistory] = useState<TokenHistoryEntry[]>([]);
+    const [historySummary, setHistorySummary] = useState<TokenHistorySummary | null>(null);
+    const [showHistory, setShowHistory] = useState(false);
+    const [historyLoading, setHistoryLoading] = useState(false);
 
     useEffect(() => {
         let mounted = true;
@@ -58,6 +81,29 @@ export default function ProfilePage() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchTokenHistory = async () => {
+        setHistoryLoading(true);
+        try {
+            const res = await fetch("/api/token-history?limit=20");
+            if (res.ok) {
+                const data = await res.json();
+                setTokenHistory(data.history || []);
+                setHistorySummary(data.summary || null);
+            }
+        } catch (error) {
+            console.error("Failed to fetch token history:", error);
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    const toggleHistory = () => {
+        if (!showHistory && tokenHistory.length === 0) {
+            fetchTokenHistory();
+        }
+        setShowHistory(!showHistory);
     };
 
     const handleSyncPayments = async () => {
@@ -202,6 +248,120 @@ export default function ProfilePage() {
                             </CardContent>
                         </Card>
                     )}
+
+                    {/* Token History */}
+                    <Card variant="glass" onClick={toggleHistory} hover className="cursor-pointer">
+                        <CardHeader>
+                            <div className="flex items-center justify-between pointer-events-none">
+                                <CardTitle className="text-base">Token History</CardTitle>
+                                <Button variant="ghost" size="sm" className="h-8 px-2">
+                                    <Icon
+                                        icon={showHistory ? "lucide:chevron-up" : "lucide:chevron-down"}
+                                        className="w-4 h-4"
+                                    />
+                                </Button>
+                            </div>
+                        </CardHeader>
+
+                        {showHistory && (
+                            <CardContent className="pt-0">
+                                {historyLoading ? (
+                                    <div className="flex items-center justify-center py-6">
+                                        <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        {/* Summary Stats */}
+                                        {historySummary && (
+                                            <div className="grid grid-cols-3 gap-3 p-3 rounded-lg bg-surface-2/50">
+                                                <div className="text-center">
+                                                    <p className="text-sm font-medium text-destructive">
+                                                        -{historySummary.totalDeductions}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">Deductions</p>
+                                                </div>
+                                                <div className="text-center border-x border-border">
+                                                    <p className="text-sm font-medium text-emerald-500">
+                                                        +{historySummary.totalRefunds}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">Refunds</p>
+                                                </div>
+                                                <div className="text-center">
+                                                    <p className="text-sm font-medium">
+                                                        {historySummary.netUsage}
+                                                    </p>
+                                                    <p className="text-xs text-muted-foreground">Net Used</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* History List */}
+                                        <div className="space-y-1 max-h-64 overflow-y-auto">
+                                            {tokenHistory.length === 0 ? (
+                                                <p className="text-center text-muted-foreground text-sm py-4">
+                                                    No transactions yet
+                                                </p>
+                                            ) : (
+                                                tokenHistory.map((entry) => (
+                                                    <div
+                                                        key={entry.id}
+                                                        className="flex items-center justify-between py-2 px-2 rounded hover:bg-surface-2/50 transition-colors"
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            {/* Type Indicator */}
+                                                            <div className={`w-2 h-2 rounded-full ${entry.type === 'refund' ? 'bg-emerald-500' :
+                                                                entry.type === 'purchase' || entry.type === 'bonus' ? 'bg-blue-500' :
+                                                                    entry.type === 'deduction' ? 'bg-orange-500' :
+                                                                        'bg-muted-foreground'
+                                                                }`} />
+
+                                                            <div>
+                                                                <p className="text-sm font-medium capitalize">
+                                                                    {entry.type === 'deduction' && entry.generation_type
+                                                                        ? `${entry.generation_type} generation`
+                                                                        : entry.type
+                                                                    }
+                                                                </p>
+                                                                <p className="text-xs text-muted-foreground">
+                                                                    {new Date(entry.created_at).toLocaleDateString('en-US', {
+                                                                        month: 'short',
+                                                                        day: 'numeric',
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit',
+                                                                    })}
+                                                                </p>
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="text-right">
+                                                            <p className={`text-sm font-medium ${entry.type === 'refund' || entry.type === 'purchase' || entry.type === 'bonus'
+                                                                ? 'text-emerald-500'
+                                                                : 'text-destructive'
+                                                                }`}>
+                                                                {entry.type === 'refund' || entry.type === 'purchase' || entry.type === 'bonus'
+                                                                    ? `+${Math.abs(entry.amount)}`
+                                                                    : `-${Math.abs(entry.amount)}`
+                                                                }
+                                                            </p>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                → {entry.balance_after}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            )}
+                                        </div>
+
+                                        {/* Info Note */}
+                                        <p className="text-xs text-muted-foreground text-center pt-2 border-t border-border">
+                                            Failed generations are automatically refunded
+                                        </p>
+                                    </div>
+                                )}
+                            </CardContent>
+                        )}
+                    </Card>
+
 
                     {/* Account Info */}
                     <Card variant="glass">

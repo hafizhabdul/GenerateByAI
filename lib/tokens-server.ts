@@ -77,6 +77,73 @@ export async function processTokenCharge(userId: string, cost: number): Promise<
 }
 
 /**
+ * Refund tokens for a failed generation.
+ * This should be called when a generation fails AFTER tokens were committed.
+ */
+export async function refundTokens(
+    userId: string,
+    amount: number,
+    generationId?: string,
+    reason: string = "Generation failed"
+): Promise<{ success: boolean; message: string }> {
+    const adminClient = createAdminClient();
+
+    const { data, error } = await adminClient.rpc('refund_tokens', {
+        p_user_id: userId,
+        p_amount: amount,
+        p_generation_id: generationId || null,
+        p_reason: reason
+    });
+
+    if (error) {
+        console.error("[Token] Refund RPC error:", error);
+        return { success: false, message: "Failed to refund tokens" };
+    }
+
+    const result = data as { success: boolean; message?: string; amount?: number };
+
+    if (result.success) {
+        console.log(`[Token] Refunded ${amount} tokens for user ${userId}. Reason: ${reason}`);
+    }
+
+    return {
+        success: result.success,
+        message: result.message || (result.success ? "Tokens refunded" : "Refund failed")
+    };
+}
+
+/**
+ * Record a token history entry for tracking purposes.
+ */
+export async function recordTokenHistory(
+    userId: string,
+    amount: number,
+    type: 'deduction' | 'refund' | 'purchase' | 'bonus' | 'reset',
+    status: 'success' | 'failed' | 'pending',
+    options?: {
+        generationType?: string;
+        generationId?: string;
+        description?: string;
+    }
+): Promise<void> {
+    const adminClient = createAdminClient();
+
+    const { error } = await adminClient.rpc('record_token_history', {
+        p_user_id: userId,
+        p_amount: amount,
+        p_type: type,
+        p_status: status,
+        p_generation_type: options?.generationType || null,
+        p_generation_id: options?.generationId || null,
+        p_description: options?.description || null
+    });
+
+    if (error) {
+        console.error("[Token] Failed to record token history:", error);
+    }
+}
+
+/**
  * Legacy function for simple token check without reservation.
  * Use processTokenCharge() for new code - it handles concurrency properly.
  * @deprecated Use processTokenCharge() instead
