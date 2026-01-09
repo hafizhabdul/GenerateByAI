@@ -42,7 +42,7 @@ const getDraftKey = (userId: string) => `imageGeneratorDraft_${userId}`;
 // Draft state type
 type DraftState = {
     prompt: string;
-    mode: "image" | "video";
+    mode: "generate" | "transform";
     quality: string;
 };
 
@@ -147,7 +147,9 @@ export function ImageGenerator() {
     const [prompt, setPrompt] = useState("");
     const [feed, setFeed] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(false);
-    const [mode, setMode] = useState<"image" | "video">("image");
+    const [mode, setMode] = useState<"generate" | "transform">("generate");
+    const [transformImage, setTransformImage] = useState<string | null>(null);
+    const [transformFile, setTransformFile] = useState<File | null>(null);
     const [isHero, setIsHero] = useState(true);
     const [showHistory, setShowHistory] = useState(() => {
         if (typeof window !== "undefined") {
@@ -168,13 +170,16 @@ export function ImageGenerator() {
     const abortControllerRef = useRef<AbortController | null>(null);
     const historyListRef = useRef<HTMLDivElement>(null);
     const prevUserIdRef = useRef<string | null>(null);
+    const transformInputRef = useRef<HTMLInputElement>(null);
 
     const handleNewSession = useCallback(() => {
         setFeed([]);
         setIsHero(true);
         setPrompt("");
         setCurrentSessionId(null); // Reset current session
-        setMode("image"); // Reset to default mode
+        setMode("generate"); // Reset to default mode
+        setTransformImage(null);
+        setTransformFile(null);
         if (user) {
             clearSession(user.id); // Clear localStorage for this user
             clearDraft(user.id); // Explicitly clear draft to prevent autosave race condition
@@ -226,7 +231,9 @@ export function ImageGenerator() {
         const draft = loadDraft(user.id);
         if (draft) {
             if (draft.prompt) setPrompt(draft.prompt);
-            if (draft.mode) setMode(draft.mode);
+            if (draft.mode && (draft.mode === "generate" || draft.mode === "transform")) {
+                setMode(draft.mode);
+            }
         }
 
         // Load quality setting
@@ -425,17 +432,78 @@ export function ImageGenerator() {
         return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
     };
 
+    // Upload image for transform mode
+    const uploadTransformImage = async (file: File): Promise<string> => {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const res = await fetch("/api/upload", {
+            method: "POST",
+            body: formData,
+        });
+
+        if (!res.ok) {
+            const data = await res.json();
+            throw new Error(data.error || "Failed to upload image");
+        }
+
+        const data = await res.json();
+        return data.url;
+    };
+
+    // Handle transform image selection
+    const handleTransformImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (!file.type.startsWith("image/")) {
+                showToast("Please upload an image file", "error");
+                return;
+            }
+            if (file.size > 10 * 1024 * 1024) {
+                showToast("Image must be less than 10MB", "error");
+                return;
+            }
+            setTransformFile(file);
+            const reader = new FileReader();
+            reader.onload = (e) => setTransformImage(e.target?.result as string);
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // Remove transform image
+    const removeTransformImage = () => {
+        setTransformImage(null);
+        setTransformFile(null);
+        if (transformInputRef.current) transformInputRef.current.value = "";
+    };
+
     const handleGenerate = useCallback(async () => {
         if (!prompt.trim()) {
             showToast("Please enter a prompt to generate", "warning");
             return;
         }
 
+        // For transform mode, require an image
+        if (mode === "transform" && !transformImage && !transformFile) {
+            showToast("Please upload an image to transform", "warning");
+            return;
+        }
+
         const currentPrompt = prompt;
+        const currentTransformFile = transformFile;
+        const currentTransformImage = transformImage;
+
         setPrompt(""); // Clear immediately
         setIsHero(false);
         setLoading(true);
         setShowHistory(false);
+
+        // Clear transform image after starting
+        if (mode === "transform") {
+            setTransformImage(null);
+            setTransformFile(null);
+            if (transformInputRef.current) transformInputRef.current.value = "";
+        }
 
         // Clear draft since generation has started
         if (user) clearDraft(user.id);
@@ -444,7 +512,7 @@ export function ImageGenerator() {
         const tempId = Date.now().toString();
         const optimisticItem: FeedItem = {
             id: tempId,
-            type: mode,
+            type: "image",
             prompt: currentPrompt,
             status: "pending",
             created_at: new Date().toISOString()
@@ -455,36 +523,65 @@ export function ImageGenerator() {
         if (user) savePendingGeneration(user.id, tempId, currentPrompt);
 
         try {
-            if (mode === "video") {
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                showToast("Video generation coming soon!", "info");
-                setFeed(prev => prev.filter(item => item.id !== tempId)); // Remove pending item
-                setLoading(false);
-                setPendingGenerationId(null);
-                if (user) clearPendingGeneration(user.id);
-                return;
+            if (mode === "transform") {
+                // Upload the image first if it's a file
+                let imageUrl: string;
+                if (currentTransformFile) {
+                    imageUrl = await uploadTransformImage(currentTransformFile);
+                } else if (currentTransformImage) {
+                    // It's already a URL
+                    imageUrl = currentTransformImage;
+                } else {
+                    throw new Error("No image to transform");
+                }
+
+                // Get quality setting
+                const quality = localStorage.getItem("generation_quality") || "high";
+
+                const res = await fetch("/api/transform-image", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        imageUrl,
+                        prompt: currentPrompt,
+                        quality,
+                    }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Transformation failed");
+
+                // Update optimistic item with result
+                setFeed(prev => prev.map(item =>
+                    item.id === tempId
+                        ? { ...item, id: data.generation?.id || tempId, status: "completed", file_url: data.imageUrl }
+                        : item
+                ));
+
+                showToast("Image transformed successfully!", "success");
+            } else {
+                // Standard generation mode
+                const quality = localStorage.getItem("generation_quality") || "high";
+
+                const res = await fetch("/api/generate-image", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ prompt: currentPrompt, quality }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Generation failed");
+
+                // Update optimistic item with result
+                setFeed(prev => prev.map(item =>
+                    item.id === tempId
+                        ? { ...item, id: data.generationId || tempId, status: "completed", file_url: data.url }
+                        : item
+                ));
+
+                showToast("Image generated successfully!", "success");
             }
 
-            // Get quality setting from localStorage
-            const quality = localStorage.getItem("generation_quality") || "high";
-
-            const res = await fetch("/api/generate-image", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ prompt: currentPrompt, quality }),
-            });
-
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || "Generation failed");
-
-            // Update optimistic item with result
-            setFeed(prev => prev.map(item =>
-                item.id === tempId
-                    ? { ...item, id: data.generationId || tempId, status: "completed", file_url: data.url }
-                    : item
-            ));
-
-            showToast("Image generated successfully!", "success");
             if (user) clearPendingGeneration(user.id);
 
             // Refresh profile to update credits immediately
@@ -504,7 +601,7 @@ export function ImageGenerator() {
             setLoading(false);
             setPendingGenerationId(null);
         }
-    }, [prompt, mode, user, showToast, refreshProfile]);
+    }, [prompt, mode, transformFile, transformImage, user, showToast, refreshProfile]);
 
     const handleSelectFromHistory = useCallback(async (session: HistorySession) => {
         // Fetch generations for this session from API
@@ -681,6 +778,15 @@ export function ImageGenerator() {
                 )}
             </div>
 
+            {/* Hidden file input for transform mode */}
+            <input
+                ref={transformInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleTransformImageSelect}
+                className="hidden"
+            />
+
             {/* Floating Input Bar */}
             <div className={cn(
                 "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
@@ -692,10 +798,75 @@ export function ImageGenerator() {
             >
                 <div className="w-full max-w-2xl mx-auto md:pl-24">
                     <div className="rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 flex flex-col gap-2 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 bg-surface-1 border border-border">
+                        {/* Mode Toggle - Generate vs Transform */}
+                        <div className="flex items-center gap-4 px-4 md:px-6 pt-2">
+                            <button
+                                onClick={() => setMode("generate")}
+                                className={cn(
+                                    "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors",
+                                    mode === "generate"
+                                        ? "text-foreground"
+                                        : "text-muted-foreground hover:text-foreground/70"
+                                )}
+                            >
+                                <Icon icon="mingcute:magic-1-line" className="w-4 h-4" />
+                                <span>Generate</span>
+                                {mode === "generate" && (
+                                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setMode("transform")}
+                                className={cn(
+                                    "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors",
+                                    mode === "transform"
+                                        ? "text-foreground"
+                                        : "text-muted-foreground hover:text-foreground/70"
+                                )}
+                            >
+                                <Icon icon="mingcute:transfer-3-line" className="w-4 h-4" />
+                                <span>Transform</span>
+                                {mode === "transform" && (
+                                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
+                                )}
+                            </button>
+                        </div>
+
+                        {/* Transform Image Preview */}
+                        {mode === "transform" && (
+                            <div className="px-4 md:px-6">
+                                {transformImage ? (
+                                    <div className="relative group/img w-fit">
+                                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border border-border/50 shadow-sm">
+                                            <img
+                                                src={transformImage}
+                                                alt="Source"
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={removeTransformImage}
+                                            className="absolute -top-2 -right-2 p-1.5 rounded-full bg-surface-1 border border-border shadow-sm hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-950 dark:hover:border-red-800 transition-all opacity-0 group-hover/img:opacity-100"
+                                        >
+                                            <Icon icon="mingcute:close-line" className="w-3 h-3 text-muted-foreground hover:text-red-500" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => transformInputRef.current?.click()}
+                                        className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground border border-dashed border-border/50 rounded-xl hover:border-border hover:text-foreground transition-all"
+                                    >
+                                        <Icon icon="mingcute:upload-3-line" className="w-4 h-4" />
+                                        <span>Upload image to transform</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
                         <textarea
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Describe what you want to create..."
+                            placeholder={mode === "transform" ? "Describe how to transform the image..." : "Describe what you want to create..."}
                             className="w-full bg-transparent border-none focus:ring-0 focus:outline-none px-4 md:px-6 py-3 md:py-4 min-h-[50px] md:min-h-[60px] max-h-[100px] md:max-h-[120px] resize-none placeholder:text-muted-foreground/70 text-foreground"
                             style={{ fontSize: "var(--text-base)" }}
                             onKeyDown={(e) => {
@@ -746,12 +917,12 @@ export function ImageGenerator() {
                             </div>
                             <Button
                                 onClick={handleGenerate}
-                                disabled={loading || !prompt.trim()}
+                                disabled={loading || !prompt.trim() || (mode === "transform" && !transformImage)}
                                 loading={loading}
                                 size="lg"
                                 className="rounded-xl px-6 md:px-8"
                             >
-                                <span>Generate</span>
+                                <span>{mode === "transform" ? "Transform" : "Generate"}</span>
                             </Button>
                         </div>
                     </div>

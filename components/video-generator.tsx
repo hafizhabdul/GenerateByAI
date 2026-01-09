@@ -42,23 +42,24 @@ type VideoFeedItem = {
     videoUrl?: string;
     status: "pending" | "processing" | "completed" | "failed";
     duration: string;
-    mode: "std" | "pro";
+    resolution?: "720p" | "1080p";
+    mode?: "std" | "pro"; // Legacy, kept for compatibility
     created_at: string;
     error?: string;
     canExtend?: boolean;
     sourceType?: "image2video" | "text2video";
-    taskId?: string; // Kling task ID for polling
+    requestId?: string; // fal.ai request ID for polling (wan/v2.6)
+    taskId?: string; // Legacy Kling task ID
     generationId?: string; // Database generation ID
-    tier?: VideoTier; // standard (Kling) or premium (Veo 3.1)
-    provider?: string; // kling or fal-veo-3.1
+    tier?: VideoTier; // standard (wan/v2.6) or premium (Veo 3.1)
+    provider?: string; // fal-wan-v2.6 or fal-veo-3.1
 };
 
 type VideoSettings = {
-    duration: "5" | "8" | "10"; // 5/10 for standard (Kling), 5/8 for premium (Veo 3.1)
-    mode: "std" | "pro";
+    duration: "5" | "8" | "10" | "15"; // 5/10/15 for standard (wan/v2.6), 5/8 for premium (Veo 3.1)
+    resolution: "720p" | "1080p"; // Only for standard tier (wan/v2.6)
     aspectRatio: "16:9" | "9:16" | "1:1";
-    sound: boolean; // Kling 2.6 native audio
-    tier: VideoTier; // standard (Kling) or premium (Veo 3.1)
+    tier: VideoTier; // standard (wan/v2.6) or premium (Veo 3.1)
 };
 
 type GenerationMode = "image2video" | "text2video";
@@ -188,6 +189,7 @@ export function VideoGenerator() {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [feed, setFeed] = useState<VideoFeedItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [isHero, setIsHero] = useState(true);
     const [showSettings, setShowSettings] = useState(false);
@@ -203,10 +205,9 @@ export function VideoGenerator() {
     const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
     const [settings, setSettings] = useState<VideoSettings>({
         duration: "5",
-        mode: "pro",
+        resolution: "720p",
         aspectRatio: "16:9",
-        sound: false, // Kling 2.6 native audio - off by default
-        tier: "standard", // Default to Kling (standard tier)
+        tier: "standard", // Default to wan/v2.6 (standard tier)
     });
 
     const { showToast } = useToast();
@@ -237,9 +238,8 @@ export function VideoGenerator() {
         setSettings(prev => ({
             ...prev,
             duration: "5",
-            mode: "pro",
+            resolution: "720p",
             aspectRatio: "16:9",
-            sound: false,
         }));
         // Clear localStorage for this user
         if (user) {
@@ -381,10 +381,10 @@ export function VideoGenerator() {
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
     }, [user]);
 
-    // Poll for pending video status
+    // Poll for pending video status (supports both requestId for wan/v2.6 and taskId for legacy)
     useEffect(() => {
         const pendingItems = feed.filter(item =>
-            (item.status === "pending" || item.status === "processing") && item.taskId
+            (item.status === "pending" || item.status === "processing") && (item.requestId || item.taskId)
         );
 
         if (pendingItems.length === 0) {
@@ -397,11 +397,13 @@ export function VideoGenerator() {
 
         const pollStatus = async () => {
             for (const item of pendingItems) {
-                if (!item.taskId) continue;
+                // Use requestId for wan/v2.6, fallback to taskId for legacy
+                const pollId = item.requestId || item.taskId;
+                if (!pollId) continue;
 
                 try {
                     const params = new URLSearchParams({
-                        taskId: item.taskId,
+                        requestId: pollId,
                         type: item.sourceType || "image2video",
                     });
                     if (item.generationId) {
@@ -415,13 +417,19 @@ export function VideoGenerator() {
                         setFeed(prev => {
                             const updated = prev.map(f =>
                                 f.id === item.id
-                                    ? { ...f, status: "completed" as const, videoUrl: data.url, canExtend: true }
+                                    ? {
+                                        ...f,
+                                        status: "completed" as const,
+                                        videoUrl: data.url,
+                                        resolution: data.resolution || f.resolution,
+                                        canExtend: false, // Extend not supported for wan/v2.6 yet
+                                    }
                                     : f
                             );
                             if (user) savePendingVideos(user.id, updated);
                             return updated;
                         });
-                        showToast("🎉 Video generated successfully!", "success");
+                        showToast("Video generated successfully!", "success");
                         await refreshProfile();
                     } else if (data.status === "failed") {
                         setFeed(prev => {
@@ -555,9 +563,8 @@ export function VideoGenerator() {
     };
 
     // Calculate token cost based on tier
-    // Standard (Kling): aligned with lib/kling.ts getVideoCost + getAudioCost
+    // Standard (wan/v2.6): aligned with lib/fal-wan.ts WAN_VIDEO_COSTS
     // Premium (Veo 3.1): aligned with lib/fal.ts getVeoCost
-    // ANTI-BONCOS PRICING - Updated for profitability
     const getEstimatedCost = useCallback(() => {
         if (settings.tier === "premium") {
             // Veo 3.1 costs (always with audio) - HIGH MARGIN
@@ -568,18 +575,24 @@ export function VideoGenerator() {
             return veoCosts[settings.duration] || 250;
         }
 
-        // Standard Kling costs (ANTI-BONCOS updated)
-        // Note: Standard tier only supports "5" and "10" durations
-        const baseCosts: Record<string, Record<string, number>> = {
-            '5': { std: 25, pro: 45 },
-            '10': { std: 50, pro: 90 },
+        // Standard wan/v2.6 costs based on duration + resolution
+        // Aligned with WAN_VIDEO_COSTS in lib/fal-wan.ts
+        const wanCosts: Record<string, Record<string, number>> = {
+            "720p": {
+                "5": 40,   // $0.50 cost -> 40 tokens
+                "10": 80,  // $1.00 cost -> 80 tokens
+                "15": 120, // $1.50 cost -> 120 tokens
+            },
+            "1080p": {
+                "5": 60,   // $0.75 cost -> 60 tokens
+                "10": 120, // $1.50 cost -> 120 tokens
+                "15": 180, // $2.25 cost -> 180 tokens
+            },
         };
 
-        // Fallback to "5" if duration is not valid for standard tier (e.g., "8" from premium)
-        const duration = settings.duration === "8" ? "5" : settings.duration;
-        const videoCost = baseCosts[duration]?.[settings.mode] || 25;
-        const audioCost = settings.sound ? 10 : 0; // Audio via Video2Audio API
-        return videoCost + audioCost;
+        const resolution = settings.resolution || "720p";
+        const duration = settings.duration === "8" ? "5" : settings.duration; // Fallback for premium duration
+        return wanCosts[resolution]?.[duration] || 40;
     }, [settings]);
 
     // Auto-scroll to bottom when feed updates
@@ -675,11 +688,11 @@ export function VideoGenerator() {
             imageUrl: currentMode === "image2video" ? currentImage || undefined : undefined,
             status: "pending",
             duration: settings.duration,
-            mode: settings.mode,
+            resolution: settings.tier === "standard" ? settings.resolution : undefined,
             created_at: new Date().toISOString(),
             sourceType: currentMode,
             tier: settings.tier,
-            provider: settings.tier === "premium" ? "fal-veo-3.1" : "kling",
+            provider: settings.tier === "premium" ? "fal-veo-3.1" : "fal-wan-v2.6",
         };
 
         setFeed((prev) => {
@@ -757,35 +770,35 @@ export function VideoGenerator() {
                 // Refresh profile to update token balance
                 if (refreshProfile) refreshProfile();
             } else {
-                // Standard tier: Use Kling (async with polling)
+                // Standard tier: Use wan/v2.6 (async with polling)
                 const res = await fetch("/api/video-start", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         imageUrl,
                         prompt: currentPrompt,
-                        mode: settings.mode,
                         duration: settings.duration,
+                        resolution: settings.resolution,
                         aspectRatio: settings.aspectRatio,
                         type: currentMode,
-                        sound: settings.sound,
                     }),
                 });
 
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Video generation failed");
 
-                // Update with taskId for polling - video is now generating in background
+                // Update with requestId for polling - video is now generating in background
                 setFeed((prev) => {
                     const updated = prev.map((item) =>
                         item.id === tempId
                             ? {
                                 ...item,
                                 status: "processing" as const,
-                                taskId: data.taskId,
+                                requestId: data.requestId,
                                 generationId: data.generationId,
+                                resolution: settings.resolution,
                                 tier: "standard" as const,
-                                provider: "kling",
+                                provider: "fal-wan-v2.6",
                             }
                             : item
                     );
@@ -816,8 +829,9 @@ export function VideoGenerator() {
     };
 
     const handleExtend = async (item: VideoFeedItem) => {
-        if (!item.canExtend) {
-            showToast("This video cannot be extended", "warning");
+        // Only premium (Veo 3.1) videos can be extended
+        if (item.tier !== "premium") {
+            showToast("Only premium (Veo 3.1) videos can be extended", "warning");
             return;
         }
 
@@ -829,15 +843,17 @@ export function VideoGenerator() {
             id: tempId,
             prompt: `Extending: ${item.prompt}`,
             status: "processing",
-            duration: (parseInt(item.duration) + 5).toString(),
-            mode: item.mode,
+            duration: (parseInt(item.duration) + 4).toString(), // Veo adds ~4 seconds
             created_at: new Date().toISOString(),
+            tier: "premium",
+            provider: "fal-veo-3.1",
         };
 
         setFeed((prev) => [...prev, extendItem]);
 
         try {
-            const res = await fetch("/api/extend-video", {
+            // Use premium extend API for Veo 3.1 videos
+            const res = await fetch("/api/extend-video-premium", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -854,11 +870,12 @@ export function VideoGenerator() {
                     i.id === tempId
                         ? {
                             ...i,
-                            id: data.generationId || tempId,
+                            id: data.generation?.id || tempId,
                             status: "completed",
-                            videoUrl: data.url,
+                            videoUrl: data.videoUrl,
                             duration: data.duration.toString(),
-                            canExtend: true,
+                            tier: "premium",
+                            provider: "fal-veo-3.1",
                         }
                         : i
                 )
@@ -883,7 +900,143 @@ export function VideoGenerator() {
         }
     };
 
+    const handleRegenerate = async (failedItem: VideoFeedItem) => {
+        if (regeneratingId) return;
+        setRegeneratingId(failedItem.id);
 
+        // Remove the failed item from feed
+        setFeed((prev) => prev.filter((f) => f.id !== failedItem.id));
+
+        // Re-trigger generation with the same parameters
+        const currentPrompt = failedItem.prompt;
+        const currentImage = failedItem.imageUrl;
+        const currentMode = failedItem.sourceType || "text2video";
+        const itemTier = failedItem.tier || "standard";
+
+        // Create optimistic item
+        const tempId = Date.now().toString();
+        const optimisticItem: VideoFeedItem = {
+            id: tempId,
+            prompt: currentPrompt,
+            imageUrl: currentMode === "image2video" ? currentImage : undefined,
+            status: "pending",
+            duration: failedItem.duration,
+            resolution: failedItem.resolution || "720p",
+            created_at: new Date().toISOString(),
+            sourceType: currentMode,
+            tier: itemTier,
+            provider: itemTier === "premium" ? "fal-veo-3.1" : "fal-wan-v2.6",
+        };
+
+        setFeed((prev) => {
+            const newFeed = [...prev, optimisticItem];
+            if (user) savePendingVideos(user.id, newFeed);
+            return newFeed;
+        });
+
+        try {
+            // Update status to processing
+            setFeed((prev) => {
+                const updated = prev.map((item) =>
+                    item.id === tempId ? { ...item, status: "processing" as const } : item
+                );
+                if (user) savePendingVideos(user.id, updated);
+                return updated;
+            });
+
+            if (itemTier === "premium") {
+                // Premium tier: Use Veo 3.1 via fal.ai (synchronous)
+                const res = await fetch("/api/generate-video-premium", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        imageUrl: currentImage,
+                        prompt: currentPrompt,
+                        duration: failedItem.duration,
+                        aspectRatio: settings.aspectRatio,
+                        type: currentMode,
+                    }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Premium video generation failed");
+
+                setFeed((prev) => {
+                    const updated = prev.map((item) =>
+                        item.id === tempId
+                            ? {
+                                ...item,
+                                status: "completed" as const,
+                                videoUrl: data.videoUrl,
+                                generationId: data.generation?.id,
+                                tier: "premium" as const,
+                                provider: "fal-veo-3.1",
+                                canExtend: false,
+                            }
+                            : item
+                    );
+                    if (user) savePendingVideos(user.id, updated);
+                    return updated;
+                });
+
+                showToast("Video regenerated successfully!", "success");
+                if (refreshProfile) refreshProfile();
+            } else {
+                // Standard tier: Use wan/v2.6 (async with polling)
+                const res = await fetch("/api/video-start", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        imageUrl: currentImage,
+                        prompt: currentPrompt,
+                        duration: failedItem.duration,
+                        resolution: failedItem.resolution || "720p",
+                        aspectRatio: settings.aspectRatio,
+                        type: currentMode,
+                    }),
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Video generation failed");
+
+                setFeed((prev) => {
+                    const updated = prev.map((item) =>
+                        item.id === tempId
+                            ? {
+                                ...item,
+                                status: "processing" as const,
+                                requestId: data.requestId,
+                                generationId: data.generationId,
+                                resolution: failedItem.resolution || "720p",
+                                tier: "standard" as const,
+                                provider: "fal-wan-v2.6",
+                            }
+                            : item
+                    );
+                    if (user) savePendingVideos(user.id, updated);
+                    return updated;
+                });
+
+                showToast("Regenerating video...", "success");
+            }
+        } catch (err) {
+            console.error(err);
+            const errorMessage = err instanceof Error ? err.message : "Failed to regenerate video";
+            showToast(errorMessage, "error");
+
+            setFeed((prev) => {
+                const updated = prev.map((item) =>
+                    item.id === tempId
+                        ? { ...item, status: "failed" as const, error: errorMessage }
+                        : item
+                );
+                if (user) savePendingVideos(user.id, updated);
+                return updated;
+            });
+        } finally {
+            setRegeneratingId(null);
+        }
+    };
 
     // Helper to format session date like ChatGPT
     const formatSessionDate = (dateStr: string): string => {
@@ -1102,7 +1255,7 @@ export function VideoGenerator() {
                                 <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Generation Model</label>
                                 <div className="grid grid-cols-2 gap-4">
                                     <button
-                                        onClick={() => setSettings((s) => ({ ...s, tier: "standard", duration: "5", sound: false }))}
+                                        onClick={() => setSettings((s) => ({ ...s, tier: "standard", duration: "5", resolution: "720p" }))}
                                         className={cn(
                                             "relative p-4 rounded-2xl border-2 text-left transition-all duration-200 flex flex-col gap-3 hover:scale-[1.02]",
                                             settings.tier === "standard"
@@ -1115,13 +1268,13 @@ export function VideoGenerator() {
                                             {settings.tier === "standard" && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
                                         </div>
                                         <div className="space-y-1">
-                                            <p className="text-xs font-medium opacity-70">Kling Model</p>
-                                            <p className="text-[10px] opacity-50">Fast generation • Silent</p>
+                                            <p className="text-xs font-medium opacity-70">wan/v2.6 Model</p>
+                                            <p className="text-[10px] opacity-50">Up to 15s • 720p/1080p</p>
                                         </div>
                                     </button>
 
                                     <button
-                                        onClick={() => setSettings((s) => ({ ...s, tier: "premium", duration: "5", sound: true }))}
+                                        onClick={() => setSettings((s) => ({ ...s, tier: "premium", duration: "5" }))}
                                         className={cn(
                                             "relative p-4 rounded-2xl border-2 text-left transition-all duration-200 flex flex-col gap-3 hover:scale-[1.02]",
                                             settings.tier === "premium"
@@ -1147,10 +1300,10 @@ export function VideoGenerator() {
                                 <div className="space-y-4">
                                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Duration</label>
                                     <div className="flex bg-surface-2 p-1 rounded-xl">
-                                        {(settings.tier === "premium" ? ["5", "8"] : ["5", "10"]).map((d) => (
+                                        {(settings.tier === "premium" ? ["5", "8"] : ["5", "10", "15"]).map((d) => (
                                             <button
                                                 key={d}
-                                                onClick={() => setSettings((s) => ({ ...s, duration: d as "5" | "10" }))}
+                                                onClick={() => setSettings((s) => ({ ...s, duration: d as "5" | "8" | "10" | "15" }))}
                                                 className={cn(
                                                     "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
                                                     settings.duration === d
@@ -1164,33 +1317,33 @@ export function VideoGenerator() {
                                     </div>
                                 </div>
 
-                                {/* Quality / Aspect Ratio (depending on availability) */}
+                                {/* Resolution / Aspect Ratio (depending on tier) */}
                                 <div className="space-y-4">
                                     {settings.tier === "standard" ? (
                                         <>
-                                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Quality</label>
+                                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Resolution</label>
                                             <div className="flex bg-surface-2 p-1 rounded-xl">
                                                 <button
-                                                    onClick={() => setSettings((s) => ({ ...s, mode: "std" }))}
+                                                    onClick={() => setSettings((s) => ({ ...s, resolution: "720p" }))}
                                                     className={cn(
                                                         "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                                                        settings.mode === "std"
+                                                        settings.resolution === "720p"
                                                             ? "bg-foreground text-background shadow-sm"
                                                             : "text-muted-foreground hover:text-foreground"
                                                     )}
                                                 >
-                                                    Std
+                                                    720p
                                                 </button>
                                                 <button
-                                                    onClick={() => setSettings((s) => ({ ...s, mode: "pro" }))}
+                                                    onClick={() => setSettings((s) => ({ ...s, resolution: "1080p" }))}
                                                     className={cn(
                                                         "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                                                        settings.mode === "pro"
+                                                        settings.resolution === "1080p"
                                                             ? "bg-foreground text-background shadow-sm"
                                                             : "text-muted-foreground hover:text-foreground"
                                                     )}
                                                 >
-                                                    Pro
+                                                    1080p
                                                 </button>
                                             </div>
                                         </>
@@ -1287,7 +1440,9 @@ export function VideoGenerator() {
                                 key={item.id}
                                 item={item}
                                 onExtend={() => handleExtend(item)}
+                                onRegenerate={() => handleRegenerate(item)}
                                 isExtending={loading}
+                                isRegenerating={regeneratingId === item.id}
                             />
                         ))}
                     </div>
@@ -1498,11 +1653,15 @@ export function VideoGenerator() {
 const VideoFeedCard = memo(function VideoFeedCard({
     item,
     onExtend,
+    onRegenerate,
     isExtending,
+    isRegenerating,
 }: {
     item: VideoFeedItem;
     onExtend: () => void;
+    onRegenerate: () => void;
     isExtending: boolean;
+    isRegenerating: boolean;
 }) {
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(true);
@@ -1529,11 +1688,24 @@ const VideoFeedCard = memo(function VideoFeedCard({
     };
 
     const handleDownload = async () => {
-        if (!item.videoUrl || isDownloading) return;
+        if (isDownloading) return;
+
+        // Check if video URL is available
+        if (!item.videoUrl) {
+            showToast("Video is not ready for download yet. Please wait for generation to complete.", "warning");
+            return;
+        }
+
         setIsDownloading(true);
         try {
-            // Use our API endpoint to bypass CORS and handle download
-            const downloadUrl = `/api/download?url=${encodeURIComponent(item.videoUrl)}`;
+            // Determine the best URL to use for download
+            let downloadSourceUrl = item.videoUrl;
+
+            // Check if URL is from Supabase (already persisted) - can download directly
+            const isSupabaseUrl = downloadSourceUrl.includes('supabase');
+
+            // For all URLs, use our download proxy to handle CORS and validate domains
+            const downloadUrl = `/api/download?url=${encodeURIComponent(downloadSourceUrl)}`;
 
             const response = await fetch(downloadUrl);
             if (!response.ok) {
@@ -1572,15 +1744,15 @@ const VideoFeedCard = memo(function VideoFeedCard({
                     <p className="text-foreground/90 leading-relaxed">{item.prompt}</p>
                     <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                         <Icon icon="mingcute:time-fill" className="w-3 h-3" />
-                        {item.duration}s {item.tier !== "premium" && item.mode}
+                        {item.duration}s {item.resolution && `• ${item.resolution}`}
                         {item.tier === "premium" && (
                             <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-foreground/5 text-foreground rounded-md">
-                                🎬 Veo 3.1
+                                Veo 3.1
                             </span>
                         )}
                         {item.tier !== "premium" && (
                             <span className="ml-1 px-1.5 py-0.5 text-[10px] bg-surface-3 text-muted-foreground rounded-md">
-                                Kling
+                                {item.provider === "fal-wan-v2.6" ? "wan/v2.6" : "Standard"}
                             </span>
                         )}
                     </div>
@@ -1597,9 +1769,22 @@ const VideoFeedCard = memo(function VideoFeedCard({
                     {item.status === "pending" || item.status === "processing" ? (
                         <VideoProgressIndicator status={item.status} duration={item.duration} />
                     ) : item.status === "failed" ? (
-                        <div className="w-full max-w-lg p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-200">
-                            <p className="font-medium mb-1">Failed to generate video</p>
-                            <p className="text-sm text-red-300/70">{item.error || "Please try again"}</p>
+                        <div className="w-full max-w-lg p-6 rounded-2xl bg-red-500/10 border border-red-500/20">
+                            <div className="flex items-center gap-3 mb-3">
+                                <Icon icon="mingcute:warning-fill" className="w-5 h-5 text-red-400" />
+                                <p className="font-medium text-red-200">Failed to generate video</p>
+                            </div>
+                            <p className="text-sm text-red-300/70 mb-4">{item.error || "Something went wrong. Please try again."}</p>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={onRegenerate}
+                                disabled={isRegenerating}
+                                className="border-red-500/30 hover:bg-red-500/10 text-red-200 hover:text-red-100"
+                            >
+                                <Icon icon={isRegenerating ? "mingcute:loading-fill" : "mingcute:refresh-2-line"} className={cn("w-4 h-4 mr-2", isRegenerating && "animate-spin")} />
+                                {isRegenerating ? "Regenerating..." : "Try Again"}
+                            </Button>
                         </div>
                     ) : (
                         <div className="relative group w-full max-w-lg">
@@ -1648,15 +1833,15 @@ const VideoFeedCard = memo(function VideoFeedCard({
                                     variant="outline"
                                     size="sm"
                                     onClick={handleDownload}
-                                    disabled={isDownloading}
+                                    disabled={isDownloading || !item.videoUrl}
                                     className="bg-surface-2 hover:bg-surface-3"
+                                    title={!item.videoUrl ? "Video not ready" : "Download video"}
                                 >
                                     <Icon icon={isDownloading ? "mingcute:loading-fill" : "mingcute:download-2-fill"} className={cn("w-4 h-4 mr-2", isDownloading && "animate-spin")} />
                                     {isDownloading ? "Downloading..." : "Download"}
                                 </Button>
-                                {/* Extend button hidden - requires special model that is not available yet */}
-                                {/* TODO: Re-enable when extend model is ready
-                                {item.canExtend && item.tier !== "premium" && (
+                                {/* Extend button - only for premium (Veo 3.1) videos */}
+                                {item.tier === "premium" && item.status === "completed" && (
                                     <Button
                                         variant="ghost"
                                         size="sm"
@@ -1664,10 +1849,9 @@ const VideoFeedCard = memo(function VideoFeedCard({
                                         disabled={isExtending}
                                     >
                                         <Icon icon={isExtending ? "mingcute:loading-fill" : "mingcute:refresh-2-fill"} className={cn("w-4 h-4 mr-2", isExtending && "animate-spin")} />
-                                        {isExtending ? "Extending..." : "Extend +5s"}
+                                        {isExtending ? "Extending..." : "Extend +4s"}
                                     </Button>
                                 )}
-                                */}
                                 {/* Show premium badge */}
                                 {item.tier === "premium" && (
                                     <span className="flex items-center gap-1 text-xs text-foreground px-2 py-1 bg-surface-2 rounded-md">

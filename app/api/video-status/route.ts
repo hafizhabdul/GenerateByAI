@@ -1,27 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
-import { createKlingClient } from "@/lib/kling";
-import { persistExternalVideo } from "@/lib/storage-utils";
 import { z } from "zod";
+import { checkWanVideoStatus, getWanVideoResult } from "@/lib/fal-wan";
+import { persistExternalVideo } from "@/lib/storage-utils";
 
 // UUID validation helper
 const uuidSchema = z.string().uuid();
 
 /**
- * Check video generation status and finalize when complete
- * GET /api/video-status?taskId=xxx&type=image2video&generationId=xxx
+ * Check video generation status for fal.ai wan/v2.6
+ * GET /api/video-status?requestId=xxx&type=image2video&generationId=xxx
  */
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const taskId = searchParams.get("taskId");
+        const requestId = searchParams.get("requestId");
         const type = (searchParams.get("type") as "image2video" | "text2video") || "image2video";
         const generationId = searchParams.get("generationId");
 
-        if (!taskId) {
+        if (!requestId) {
             return NextResponse.json(
-                { error: "Task ID is required" },
+                { error: "Request ID is required" },
                 { status: 400 }
             );
         }
@@ -51,45 +51,48 @@ export async function GET(req: NextRequest) {
             if (existing?.status === "completed" && existing?.file_url) {
                 return NextResponse.json({
                     status: "completed",
-                    taskId,
+                    requestId,
                     url: existing.file_url,
-                    klingVideoId: existing.metadata?.klingVideoId,
+                    duration: existing.metadata?.duration,
+                    resolution: existing.metadata?.resolution,
+                });
+            }
+
+            if (existing?.status === "failed") {
+                return NextResponse.json({
+                    status: "failed",
+                    requestId,
+                    error: existing.metadata?.error || "Generation failed",
                 });
             }
         }
 
-        // Create Kling client and check status
-        const kling = createKlingClient();
-        let result;
-
+        // Check fal.ai queue status
+        let queueStatus;
         try {
-            if (type === "text2video") {
-                result = await kling.getTextToVideoResult(taskId);
-            } else {
-                result = await kling.getTaskResult(taskId);
-            }
+            queueStatus = await checkWanVideoStatus(requestId, type);
         } catch (apiError: any) {
-            console.error("Kling API error:", apiError);
+            console.error("fal.ai status check error:", apiError);
             return NextResponse.json({
                 status: "processing",
-                taskId,
+                requestId,
                 message: "Checking status...",
             });
         }
 
-        const status = result.data.task_status;
-
-        // If still processing, return current status
-        if (status === "submitted" || status === "processing") {
+        // If still in queue or processing
+        if (queueStatus.status === "IN_QUEUE" || queueStatus.status === "IN_PROGRESS") {
             return NextResponse.json({
                 status: "processing",
-                taskId,
-                message: result.data.task_status_msg || "Video is being generated...",
+                requestId,
+                message: queueStatus.status === "IN_QUEUE"
+                    ? "Video is queued for processing..."
+                    : "Video is being generated...",
             });
         }
 
         // If failed
-        if (status === "failed") {
+        if (queueStatus.status === "FAILED") {
             // Update generation record if exists
             if (generationId) {
                 const adminClient = createAdminClient();
@@ -98,7 +101,7 @@ export async function GET(req: NextRequest) {
                     .update({
                         status: "failed",
                         metadata: {
-                            error: result.data.task_status_msg || "Generation failed",
+                            error: "Video generation failed",
                         }
                     })
                     .eq("id", generationId)
@@ -107,117 +110,30 @@ export async function GET(req: NextRequest) {
 
             return NextResponse.json({
                 status: "failed",
-                taskId,
-                error: result.data.task_status_msg || "Video generation failed",
+                requestId,
+                error: "Video generation failed",
             });
         }
 
-        // If succeeded, check if audio is needed and persist video
-        if (status === "succeed") {
-            const videoData = result.data.task_result?.videos?.[0];
+        // If completed, get the result
+        if (queueStatus.status === "COMPLETED") {
+            console.log(`[Video] Generation completed, fetching result...`);
 
-            if (!videoData?.url) {
+            const result = await getWanVideoResult(requestId, type);
+
+            if (!result.videoUrl) {
                 return NextResponse.json({
                     status: "failed",
                     error: "No video URL in result",
                 });
             }
 
-            // Check if we need to add audio
-            let finalVideoUrl = videoData.url;
-            let audioTaskId = null;
-
-            if (generationId) {
-                const { data: genRecord } = await supabase
-                    .from("generations")
-                    .select("metadata")
-                    .eq("id", generationId)
-                    .eq("user_id", user.id)
-                    .single();
-
-                const hasAudio = genRecord?.metadata?.hasAudio;
-                const existingAudioTaskId = genRecord?.metadata?.audioTaskId;
-
-                // If audio is requested but not started yet
-                if (hasAudio && !existingAudioTaskId) {
-                    console.log(`[Video] Starting audio generation for video: ${videoData.id}`);
-
-                    try {
-                        const audioTask = await kling.videoToAudio(videoData.id);
-
-                        if (audioTask.code === 0) {
-                            audioTaskId = audioTask.data.task_id;
-                            console.log(`[Video] Audio task started: ${audioTaskId}`);
-
-                            // Update metadata with audio task ID
-                            const adminClient = createAdminClient();
-                            await adminClient
-                                .from("generations")
-                                .update({
-                                    metadata: {
-                                        ...genRecord?.metadata,
-                                        klingVideoId: videoData.id,
-                                        audioTaskId: audioTaskId,
-                                    },
-                                })
-                                .eq("id", generationId)
-                                .eq("user_id", user.id);
-
-                            // Return processing status - audio is being generated
-                            return NextResponse.json({
-                                status: "processing",
-                                taskId,
-                                message: "Adding audio to video...",
-                                step: "audio",
-                            });
-                        } else {
-                            console.warn(`[Video] Audio generation failed: ${audioTask.message}`);
-                            // Continue without audio
-                        }
-                    } catch (audioError) {
-                        console.error("[Video] Audio generation error:", audioError);
-                        // Continue without audio
-                    }
-                }
-
-                // If audio task is in progress, check its status
-                if (existingAudioTaskId) {
-                    try {
-                        const audioResult = await kling.getVideoToAudioResult(existingAudioTaskId);
-
-                        if (audioResult.data.task_status === "processing" || audioResult.data.task_status === "submitted") {
-                            return NextResponse.json({
-                                status: "processing",
-                                taskId,
-                                message: "Adding audio to video...",
-                                step: "audio",
-                            });
-                        }
-
-                        if (audioResult.data.task_status === "succeed") {
-                            const audioVideoUrl = audioResult.data.task_result?.videos?.[0]?.url;
-                            if (audioVideoUrl) {
-                                finalVideoUrl = audioVideoUrl;
-                                console.log(`[Video] Audio added successfully`);
-                            }
-                        } else if (audioResult.data.task_status === "failed") {
-                            console.warn(`[Video] Audio failed: ${audioResult.data.task_status_msg}`);
-                            // Continue with original video
-                        }
-                    } catch (audioCheckError) {
-                        console.error("[Video] Audio status check error:", audioCheckError);
-                        // Continue with original video
-                    }
-                }
-            }
-
             // Persist video to storage
-            console.log(`[Video] Persisting video for task ${taskId}...`);
-            const permanentUrl = await persistExternalVideo(finalVideoUrl, user.id);
+            console.log(`[Video] Persisting video for request ${requestId}...`);
+            const permanentUrl = await persistExternalVideo(result.videoUrl, user.id);
 
-            // Update generation record - preserve existing metadata
+            // Update generation record
             if (generationId) {
-                // Get existing metadata first
                 const { data: existingGen } = await supabase
                     .from("generations")
                     .select("metadata")
@@ -231,12 +147,10 @@ export async function GET(req: NextRequest) {
                     .update({
                         status: "completed",
                         file_url: permanentUrl,
-                        thumbnail_url: existingGen?.metadata?.sourceImage || null,
                         metadata: {
                             ...existingGen?.metadata,
-                            klingVideoId: videoData.id,
-                            duration: videoData.duration,
-                            hasAudio: finalVideoUrl !== videoData.url,
+                            duration: result.duration,
+                            resolution: result.resolution,
                         },
                     })
                     .eq("id", generationId)
@@ -247,22 +161,21 @@ export async function GET(req: NextRequest) {
                 }
             }
 
-            console.log(`[Video] Completed and persisted: ${taskId}`);
+            console.log(`[Video] Completed and persisted: ${requestId}`);
 
             return NextResponse.json({
                 status: "completed",
-                taskId,
+                requestId,
                 url: permanentUrl,
-                klingVideoId: videoData.id,
-                duration: videoData.duration,
-                hasAudio: finalVideoUrl !== videoData.url,
+                duration: result.duration,
+                resolution: result.resolution,
             });
         }
 
         return NextResponse.json({
             status: "unknown",
-            taskId,
-            rawStatus: status,
+            requestId,
+            rawStatus: queueStatus.status,
         });
 
     } catch (error: any) {

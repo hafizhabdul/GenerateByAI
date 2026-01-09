@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
-import { processTokenCharge } from "@/lib/tokens-server";
+import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
 import { generateVeoVideo, getVeoCost, isFalConfigured } from "@/lib/fal";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
+import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
 
 const GenerateVideoPremiumSchema = z.object({
     imageUrl: z.string().url().optional(),
@@ -61,84 +62,100 @@ export async function POST(req: Request) {
             return createRateLimitResponse(rateLimit.resetIn);
         }
 
-        // --- Token Balance Pre-Check ---
-        let commitCharge: () => Promise<void>;
+        // --- Daily Limit Check ---
+        const dailyLimit = await checkDailyLimit(user.id);
+        if (!dailyLimit.allowed) {
+            return NextResponse.json(createDailyLimitResponse(dailyLimit), { status: 429 });
+        }
+
+        // --- Token Balance Pre-Check & Reserve ---
+        let tokenCharge: TokenChargeResult;
         try {
-            commitCharge = await processTokenCharge(user.id, cost);
+            tokenCharge = await processTokenCharge(user.id, cost);
         } catch (e: unknown) {
             const message = e instanceof Error ? e.message : "Token charge failed";
             return NextResponse.json({ error: message }, { status: 403 });
         }
 
-        // --- Enhanced Prompt for Better Results ---
-        const enhancedPrompt = enhancePromptForVeo(prompt);
+        try {
+            // --- Enhanced Prompt for Better Results ---
+            const enhancedPrompt = enhancePromptForVeo(prompt);
 
-        // --- Generate Video with Veo 3.1 ---
-        console.log(`[Premium Video] Starting Veo 3.1 generation for user ${user.id}`);
-        
-        const result = await generateVeoVideo({
-            prompt: enhancedPrompt,
-            imageUrl: type === "image2video" ? imageUrl : undefined,
-            duration: durationNum,
-            aspectRatio,
-            enableAudio: true, // Always enable native audio for premium
-        });
+            // --- Generate Video with Veo 3.1 ---
+            console.log(`[Premium Video] Starting Veo 3.1 generation for user ${user.id}`);
 
-        // --- Commit Token Charge ---
-        await commitCharge();
+            const result = await generateVeoVideo({
+                prompt: enhancedPrompt,
+                imageUrl: type === "image2video" ? imageUrl : undefined,
+                duration: durationNum,
+                aspectRatio,
+                enableAudio: true, // Always enable native audio for premium
+            });
 
-        // --- Save to Database ---
-        const { data: generation, error: dbError } = await supabase
-            .from("generations")
-            .insert({
-                user_id: user.id,
-                type: "video",
-                prompt: prompt,
-                file_url: result.videoUrl,
-                status: "completed",
-                tokens_used: cost,
-                metadata: {
-                    provider: "fal-veo-3.1",
-                    duration: durationNum,
-                    hasAudio: true,
-                    aspectRatio,
-                    sourceType: type,
-                    requestId: result.requestId,
-                    tier: "premium",
-                },
-            })
-            .select()
-            .single();
+            // --- Save to Database ---
+            const { data: generation, error: dbError } = await supabase
+                .from("generations")
+                .insert({
+                    user_id: user.id,
+                    type: "video",
+                    prompt: prompt,
+                    file_url: result.videoUrl,
+                    status: "completed",
+                    tokens_used: cost,
+                    metadata: {
+                        provider: "fal-veo-3.1",
+                        duration: durationNum,
+                        hasAudio: true,
+                        aspectRatio,
+                        sourceType: type,
+                        requestId: result.requestId,
+                        tier: "premium",
+                    },
+                })
+                .select()
+                .single();
 
-        if (dbError) {
-            console.error("[Premium Video] DB error:", dbError);
+            if (dbError) {
+                console.error("[Premium Video] DB error:", dbError);
+            }
+
+            // --- Commit Token Charge ---
+            await tokenCharge.commit();
+
+            // --- Increment Daily Generation Count ---
+            await incrementDailyGeneration(user.id);
+
+            console.log(`[Premium Video] Generation complete for user ${user.id}:`, {
+                videoUrl: result.videoUrl,
+                duration: durationNum,
+                tokensUsed: cost,
+                generationId: generation?.id,
+            });
+
+            return NextResponse.json({
+                success: true,
+                videoUrl: result.videoUrl,
+                audioIncluded: true,
+                duration: durationNum,
+                tokensUsed: cost,
+                generation,
+                provider: "veo-3.1",
+                tier: "premium",
+            });
+
+        } catch (generationError) {
+            // Cancel the token reservation if generation fails
+            await tokenCharge.cancel();
+            throw generationError;
         }
-
-        console.log(`[Premium Video] Generation complete for user ${user.id}:`, {
-            videoUrl: result.videoUrl,
-            duration: durationNum,
-            tokensUsed: cost,
-            generationId: generation?.id,
-        });
-
-        return NextResponse.json({
-            success: true,
-            videoUrl: result.videoUrl,
-            audioIncluded: true,
-            duration: durationNum,
-            tokensUsed: cost,
-            generation,
-            provider: "veo-3.1",
-            tier: "premium",
-        });
 
     } catch (error) {
         console.error("[Premium Video] Generation error:", error);
-        
+
         // Return user-friendly error
         const message = error instanceof Error ? error.message : "Video generation failed";
         return NextResponse.json(
-            { 
+            {
                 error: "Premium video generation failed",
                 details: message,
             },

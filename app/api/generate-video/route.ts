@@ -59,10 +59,10 @@ export async function POST(req: Request) {
             return createRateLimitResponse(rateLimit.resetIn);
         }
 
-        // --- Token Balance Pre-Check ---
-        let commitCharge: () => Promise<void>;
+        // --- Token Balance Pre-Check & Reserve ---
+        let tokenCharge;
         try {
-            commitCharge = await processTokenCharge(user.id, cost);
+            tokenCharge = await processTokenCharge(user.id, cost);
         } catch (e: any) {
             return NextResponse.json({ error: e.message }, { status: 403 });
         }
@@ -176,7 +176,7 @@ export async function POST(req: Request) {
             // Just log the error and continue
         }
 
-        await commitCharge();
+        await tokenCharge.commit();
 
         return NextResponse.json({
             url: permanentUrl,

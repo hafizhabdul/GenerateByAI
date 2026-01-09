@@ -4,8 +4,9 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { persistExternalImage } from "@/lib/storage-utils";
 import { getTokenCost, QualityTier } from "@/lib/tokens";
-import { processTokenCharge } from "@/lib/tokens-server";
+import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
+import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
 import { generateImage, isFalConfigured } from "@/lib/fal";
 
 const GenerateSchema = z.object({
@@ -43,64 +44,81 @@ export async function POST(req: Request) {
             return createRateLimitResponse(rateLimit.resetIn);
         }
 
+        // --- Daily Limit Check ---
+        const dailyLimit = await checkDailyLimit(user.id);
+        if (!dailyLimit.allowed) {
+            return NextResponse.json(createDailyLimitResponse(dailyLimit), { status: 429 });
+        }
+
         // --- Check fal.ai Configuration ---
         if (!isFalConfigured()) {
             return NextResponse.json({ error: "Image generation service not configured" }, { status: 500 });
         }
 
-        // --- 1. Token Balance Pre-Check ---
-        let commitCharge: () => Promise<void>;
+        // --- 1. Token Balance Pre-Check & Reserve ---
+        let tokenCharge: TokenChargeResult;
         try {
-            commitCharge = await processTokenCharge(user.id, cost);
+            tokenCharge = await processTokenCharge(user.id, cost);
         } catch (e: any) {
             return NextResponse.json({ error: e.message }, { status: 403 });
         }
 
-        // --- 2. Enhance Prompt based on quality ---
-        let enhancedPrompt = prompt;
-        if (quality === "medium") {
-            enhancedPrompt = `${prompt}, high resolution, professional photography, cinematic lighting, sharp focus, vibrant colors`;
-        } else if (quality === "high") {
-            enhancedPrompt = `${prompt}, hyper-realistic masterpiece, award-winning photography, ultra-detailed 8k, ray tracing, soft global illumination, professional color grading, shot on Nikon Z9`;
+        try {
+            // --- 2. Enhance Prompt based on quality ---
+            let enhancedPrompt = prompt;
+            if (quality === "medium") {
+                enhancedPrompt = `${prompt}, high resolution, professional photography, cinematic lighting, sharp focus, vibrant colors`;
+            } else if (quality === "high") {
+                enhancedPrompt = `${prompt}, hyper-realistic masterpiece, award-winning photography, ultra-detailed 8k, ray tracing, soft global illumination, professional color grading, shot on Nikon Z9`;
+            }
+            // For "low" quality, use prompt as-is for faster generation
+
+            // --- 3. Generate Image using fal.ai GPT-Image-1.5 ---
+            console.log(`[Generate Image] Using fal.ai GPT-Image-1.5 with quality: ${quality}`);
+
+            const result = await generateImage({
+                prompt: enhancedPrompt,
+                size: size as "1024x1024" | "512x512" | "1024x1536" | "1536x1024",
+                quality: quality as "low" | "medium" | "high",
+                outputFormat: "png",
+            });
+
+            const tempImageUrl = result.imageUrl;
+
+            if (!tempImageUrl) {
+                throw new Error("Failed to generate image - no URL returned from fal.ai");
+            }
+
+            // --- 4. Persist to Storage (Prevent Expiration) ---
+            const permanentUrl = await persistExternalImage(tempImageUrl, user.id);
+
+            // --- 5. Save Record & Commit Token Charge ---
+            const adminClient = createAdminClient();
+            const { data: generation } = await adminClient.from("generations").insert({
+                user_id: user.id,
+                type: "image",
+                prompt: prompt,
+                file_url: permanentUrl,
+                tokens_used: cost,
+                status: "completed",
+            }).select("id").single();
+
+            // Commit the token charge after successful generation
+            await tokenCharge.commit();
+
+            // Increment daily generation count
+            await incrementDailyGeneration(user.id);
+
+            return NextResponse.json({
+                url: permanentUrl,
+                generationId: generation?.id,
+            });
+
+        } catch (generationError: any) {
+            // Cancel the token reservation if generation fails
+            await tokenCharge.cancel();
+            throw generationError;
         }
-        // For "low" quality, use prompt as-is for faster generation
-
-        // --- 3. Generate Image using fal.ai GPT-Image-1.5 ---
-        console.log(`[Generate Image] Using fal.ai GPT-Image-1.5 with quality: ${quality}`);
-
-        const result = await generateImage({
-            prompt: enhancedPrompt,
-            size: size as "1024x1024" | "512x512" | "1024x1536" | "1536x1024",
-            quality: quality as "low" | "medium" | "high",
-            outputFormat: "png",
-        });
-
-        const tempImageUrl = result.imageUrl;
-
-        if (!tempImageUrl) {
-            throw new Error("Failed to generate image - no URL returned from fal.ai");
-        }
-
-        // --- 4. Persist to Storage (Prevent Expiration) ---
-        const permanentUrl = await persistExternalImage(tempImageUrl, user.id);
-
-        // --- 5. Save Record & Deduct Tokens ---
-        const adminClient = createAdminClient();
-        const { data: generation } = await adminClient.from("generations").insert({
-            user_id: user.id,
-            type: "image",
-            prompt: prompt,
-            file_url: permanentUrl,
-            tokens_used: cost,
-            status: "completed",
-        }).select("id").single();
-
-        await commitCharge();
-
-        return NextResponse.json({
-            url: permanentUrl,
-            generationId: generation?.id,
-        });
 
     } catch (error: any) {
         console.error("Image generation error:", error);

@@ -65,10 +65,10 @@ export async function POST(req: Request) {
             );
         }
 
-        // --- Token Balance Pre-Check ---
-        let commitCharge: () => Promise<void>;
+        // --- Token Balance Pre-Check & Reserve ---
+        let tokenCharge;
         try {
-            commitCharge = await processTokenCharge(user.id, cost);
+            tokenCharge = await processTokenCharge(user.id, cost);
         } catch (e: any) {
             return NextResponse.json({ error: e.message }, { status: 403 });
         }
@@ -126,7 +126,7 @@ export async function POST(req: Request) {
             },
         }).select().single();
 
-        await commitCharge();
+        await tokenCharge.commit();
 
         return NextResponse.json({
             url: permanentUrl,
