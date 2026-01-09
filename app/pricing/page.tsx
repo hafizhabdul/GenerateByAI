@@ -33,9 +33,8 @@ const TOKEN_PACKAGES = [
         description: "Untuk kreator rutin",
         features: [
             "1.000 Token",
-            "~40x video Standard",
-            "~50 gambar HD",
-            "Priority queue",
+            "~25x video Standard",
+            "~50 gambar HD"
         ],
         popular: true,
     },
@@ -47,9 +46,8 @@ const TOKEN_PACKAGES = [
         description: "Power user & agency",
         features: [
             "4.000 Token",
-            "~160x video Standard",
+            "~100x video Standard",
             "~200 gambar HD",
-            "Commercial license",
         ],
         popular: false,
     },
@@ -154,7 +152,7 @@ export default function PricingPage() {
                 <h3 className="text-base md:text-lg font-medium text-foreground text-center mb-4 md:mb-6">Estimasi penggunaan token</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-4">
                     <UsageInfo label="Gambar" cost="10-40 token" />
-                    <UsageInfo label="Video Standard" cost="25 token" />
+                    <UsageInfo label="Video Standard" cost="40 token" />
                     <UsageInfo label="Video Pro" cost="45 token" />
                     <UsageInfo label="Video Premium" cost="250 token" />
                 </div>
