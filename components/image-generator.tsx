@@ -787,7 +787,7 @@ export function ImageGenerator() {
                 className="hidden"
             />
 
-            {/* Floating Input Bar */}
+            {/* Floating Input Bar - Unified Premium Design */}
             <div className={cn(
                 "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
                 isHero
@@ -797,133 +797,128 @@ export function ImageGenerator() {
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
                 <div className="w-full max-w-2xl mx-auto md:pl-24">
-                    <div className="rounded-[1.5rem] md:rounded-[2rem] p-3 md:p-4 flex flex-col gap-2 shadow-2xl ring-1 ring-border transition-all duration-300 focus-within:ring-primary/50 bg-surface-1 border border-border">
-                        {/* Mode Toggle - Generate vs Transform */}
-                        <div className="flex items-center gap-4 px-4 md:px-6 pt-2">
-                            <button
-                                onClick={() => setMode("generate")}
-                                className={cn(
-                                    "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors",
-                                    mode === "generate"
-                                        ? "text-foreground"
-                                        : "text-muted-foreground hover:text-foreground/70"
-                                )}
-                            >
-                                <Icon icon="mingcute:magic-1-line" className="w-4 h-4" />
-                                <span>Generate</span>
-                                {mode === "generate" && (
-                                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
-                                )}
-                            </button>
-                            <button
-                                onClick={() => setMode("transform")}
-                                className={cn(
-                                    "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors",
-                                    mode === "transform"
-                                        ? "text-foreground"
-                                        : "text-muted-foreground hover:text-foreground/70"
-                                )}
-                            >
-                                <Icon icon="mingcute:transfer-3-line" className="w-4 h-4" />
-                                <span>Transform</span>
-                                {mode === "transform" && (
-                                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
-                                )}
-                            </button>
-                        </div>
+                    {/* Clean Transparent Container with Subtle Glow */}
+                    <div className="relative rounded-2xl overflow-hidden transition-all duration-300 group/container">
+                        {/* Subtle Border Glow Effect */}
+                        <div className="absolute inset-0 rounded-2xl border border-primary/40 group-focus-within/container:border-primary/60 transition-colors" />
 
-                        {/* Transform Image Preview */}
-                        {mode === "transform" && (
-                            <div className="px-4 md:px-6">
-                                {transformImage ? (
-                                    <div className="relative group/img w-fit">
-                                        <div className="w-16 h-16 md:w-20 md:h-20 rounded-xl overflow-hidden border border-border/50 shadow-sm">
-                                            <img
-                                                src={transformImage}
-                                                alt="Source"
-                                                className="w-full h-full object-cover"
-                                            />
-                                        </div>
-                                        <button
-                                            onClick={removeTransformImage}
-                                            className="absolute -top-2 -right-2 p-1.5 rounded-full bg-surface-1 border border-border shadow-sm hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-950 dark:hover:border-red-800 transition-all opacity-0 group-hover/img:opacity-100"
-                                        >
-                                            <Icon icon="mingcute:close-line" className="w-3 h-3 text-muted-foreground hover:text-red-500" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={() => transformInputRef.current?.click()}
-                                        className="flex items-center gap-2 px-4 py-3 text-sm text-muted-foreground border border-dashed border-border/50 rounded-xl hover:border-border hover:text-foreground transition-all"
-                                    >
-                                        <Icon icon="mingcute:upload-3-line" className="w-4 h-4" />
-                                        <span>Upload image to transform</span>
-                                    </button>
-                                )}
+                        {/* Inner Content */}
+                        <div className="relative bg-transparent">
+                            {/* Mode Toggle - Minimal Top Bar */}
+                            <div className="flex items-center gap-4 px-4 py-3">
+                                <button
+                                    onClick={() => setMode("generate")}
+                                    className={cn(
+                                        "relative flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5",
+                                        mode === "generate"
+                                            ? "text-foreground"
+                                            : "text-muted-foreground hover:text-foreground/70"
+                                    )}
+                                >
+                                    <Icon icon="mingcute:magic-1-line" className="w-3.5 h-3.5" />
+                                    <span>Generate</span>
+                                    {mode === "generate" && (
+                                        <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
+                                    )}
+                                </button>
+                                <button
+                                    onClick={() => setMode("transform")}
+                                    className={cn(
+                                        "relative flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5",
+                                        mode === "transform"
+                                            ? "text-foreground"
+                                            : "text-muted-foreground hover:text-foreground/70"
+                                    )}
+                                >
+                                    <Icon icon="mingcute:transfer-3-line" className="w-3.5 h-3.5" />
+                                    <span>Transform</span>
+                                    {mode === "transform" && (
+                                        <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
+                                    )}
+                                </button>
                             </div>
-                        )}
 
-                        <textarea
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder={mode === "transform" ? "Describe how to transform the image..." : "Describe what you want to create..."}
-                            className="w-full bg-transparent border-none focus:ring-0 focus:outline-none px-4 md:px-6 py-3 md:py-4 min-h-[50px] md:min-h-[60px] max-h-[100px] md:max-h-[120px] resize-none placeholder:text-muted-foreground/70 text-foreground"
-                            style={{ fontSize: "var(--text-base)" }}
-                            onKeyDown={(e) => {
-                                if (e.key === "Enter" && !e.shiftKey) {
-                                    e.preventDefault();
-                                    handleGenerate();
-                                }
-                            }}
-                        />
-                        <div className="flex items-center justify-between px-3 md:px-4 pb-2 gap-2">
-                            <div className="flex items-center gap-2">
-                                {/* Quality Selector - Minimalist Inline Pills */}
-                                <div className="hidden sm:flex items-center gap-2 p-1 bg-surface-2/50 rounded-xl border border-border/50">
-                                    {([
-                                        { key: "low", label: "Fast", tokens: "10", desc: "Fastest generation" },
-                                        { key: "medium", label: "Balanced", tokens: "20", desc: "Recommended" },
-                                        { key: "high", label: "Quality", tokens: "40", desc: "Best detailed results" }
-                                    ] as const).map((q) => (
-                                        <div key={q.key} className="relative group/tooltip">
-                                            <button
-                                                onClick={() => {
-                                                    setQualitySetting(q.key);
-                                                    localStorage.setItem("generation_quality", q.key);
-                                                }}
-                                                className={cn(
-                                                    "flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
-                                                    qualitySetting === q.key
-                                                        ? "bg-foreground text-background shadow-sm"
-                                                        : "text-muted-foreground hover:text-foreground hover:bg-surface-3"
-                                                )}
-                                            >
-                                                <span>{q.label}</span>
-                                                <span className={cn(
-                                                    "text-[10px] px-1 rounded",
-                                                    qualitySetting === q.key ? "bg-background/20" : "bg-black/5 dark:bg-white/10"
-                                                )}>
-                                                    {q.tokens}
-                                                </span>
-                                            </button>
-
-                                            {/* Tooltip */}
-                                            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-[10px] rounded opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
-                                                {q.desc} - {q.tokens} tokens
+                            {/* Transform Image Preview - Compact */}
+                            {mode === "transform" && (
+                                <div className="px-4 pb-2">
+                                    {transformImage ? (
+                                        <div className="relative group/img w-fit">
+                                            <div className="w-14 h-14 rounded-lg overflow-hidden border border-border/30">
+                                                <img src={transformImage} alt="Source" className="w-full h-full object-cover" />
                                             </div>
+                                            <button
+                                                onClick={removeTransformImage}
+                                                className="absolute -top-1.5 -right-1.5 p-1 rounded-full bg-background/90 border border-border/50 opacity-0 group-hover/img:opacity-100 transition-opacity"
+                                            >
+                                                <Icon icon="mingcute:close-line" className="w-2.5 h-2.5 text-muted-foreground" />
+                                            </button>
                                         </div>
+                                    ) : (
+                                        <button
+                                            onClick={() => transformInputRef.current?.click()}
+                                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:border-border rounded-lg transition-all"
+                                        >
+                                            <Icon icon="mingcute:upload-3-line" className="w-3.5 h-3.5" />
+                                            <span>Upload image</span>
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Textarea - Clean & Minimal */}
+                            <div className="px-4 pb-3">
+                                <textarea
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    placeholder={mode === "transform" ? "Describe how to transform the image..." : "Describe what you want to create..."}
+                                    className="w-full bg-transparent border-none focus:ring-0 focus:outline-none min-h-[48px] max-h-[100px] resize-none placeholder:text-muted-foreground/50 text-foreground text-sm leading-relaxed"
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleGenerate();
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            {/* Bottom Actions - Sleek Bar */}
+                            <div className="flex items-center justify-between px-4 pb-3">
+                                {/* Quality Selector - Clean Pills */}
+                                <div className="hidden sm:flex items-center gap-1">
+                                    {([
+                                        { key: "low", label: "Fast", tokens: "10" },
+                                        { key: "medium", label: "Balanced", tokens: "20" },
+                                        { key: "high", label: "Quality", tokens: "40" }
+                                    ] as const).map((q) => (
+                                        <button
+                                            key={q.key}
+                                            onClick={() => {
+                                                setQualitySetting(q.key);
+                                                localStorage.setItem("generation_quality", q.key);
+                                            }}
+                                            className={cn(
+                                                "flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all",
+                                                qualitySetting === q.key
+                                                    ? "bg-foreground/10 text-foreground"
+                                                    : "text-muted-foreground/70 hover:text-muted-foreground"
+                                            )}
+                                        >
+                                            <span>{q.label}</span>
+                                            <span className="text-[10px] opacity-60">{q.tokens}</span>
+                                        </button>
                                     ))}
                                 </div>
+
+                                {/* Generate Button - Premium Pill */}
+                                <Button
+                                    onClick={handleGenerate}
+                                    disabled={loading || !prompt.trim() || (mode === "transform" && !transformImage)}
+                                    loading={loading}
+                                    className="rounded-full px-5"
+                                >
+                                    <span>{mode === "transform" ? "Transform" : "Generate"}</span>
+                                </Button>
                             </div>
-                            <Button
-                                onClick={handleGenerate}
-                                disabled={loading || !prompt.trim() || (mode === "transform" && !transformImage)}
-                                loading={loading}
-                                size="lg"
-                                className="rounded-xl px-6 md:px-8"
-                            >
-                                <span>{mode === "transform" ? "Transform" : "Generate"}</span>
-                            </Button>
                         </div>
                     </div>
                 </div>

@@ -1229,151 +1229,121 @@ export function VideoGenerator() {
                 </div>
             )}
 
-            {/* Settings Panel - Premium Minimalist Modal */}
+            {/* Settings Panel - Ultra Minimal Design */}
             {showSettings && (
                 <div
-                    className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm animate-fade-in flex items-center justify-center p-4"
+                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm animate-fade-in flex items-center justify-center p-4"
                     onClick={() => setShowSettings(false)}
                 >
                     <div
-                        className="w-full max-w-md bg-card border border-border shadow-2xl rounded-3xl overflow-hidden flex flex-col animate-scale-in"
+                        className="w-full max-w-sm bg-background/95 backdrop-blur-xl border border-border/40 rounded-2xl overflow-hidden animate-scale-in"
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="flex items-center justify-between px-6 py-5 border-b border-border/50 bg-card/50">
-                            <h2 className="font-semibold text-lg tracking-tight">Studio Settings</h2>
+                        {/* Header - Clean & Minimal */}
+                        <div className="flex items-center justify-between px-5 py-4 border-b border-border/30">
+                            <h2 className="text-sm font-medium text-foreground">Video Settings</h2>
                             <button
                                 onClick={() => setShowSettings(false)}
-                                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-foreground/5 transition-colors text-muted-foreground hover:text-foreground"
+                                className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none"
                             >
-                                ✕
+                                ×
                             </button>
                         </div>
 
-                        <div className="p-6 space-y-8 bg-card/50">
-                            {/* Model Selection - Two Big Cards */}
-                            <div className="space-y-4">
-                                <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Generation Model</label>
-                                <div className="grid grid-cols-2 gap-4">
+                        <div className="p-5 space-y-6">
+                            {/* Model Selection - Simple Toggle */}
+                            <div className="space-y-3">
+                                <label className="text-xs text-muted-foreground">Model</label>
+                                <div className="flex gap-2">
                                     <button
                                         onClick={() => setSettings((s) => ({ ...s, tier: "standard", duration: "5", resolution: "720p" }))}
                                         className={cn(
-                                            "relative p-4 rounded-2xl border-2 text-left transition-all duration-200 flex flex-col gap-3 hover:scale-[1.02]",
+                                            "flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all border",
                                             settings.tier === "standard"
-                                                ? "border-foreground bg-foreground/5 shadow-sm"
-                                                : "border-transparent bg-surface-2 hover:bg-surface-3 text-muted-foreground"
+                                                ? "border-primary/50 bg-primary/5 text-foreground"
+                                                : "border-border/30 text-muted-foreground hover:text-foreground hover:border-border/50"
                                         )}
                                     >
-                                        <div className="flex justify-between items-start">
-                                            <span className={cn("font-semibold text-lg", settings.tier === "standard" ? "text-foreground" : "text-muted-foreground")}>Standard</span>
-                                            {settings.tier === "standard" && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-medium opacity-70">wan/v2.6 Model</p>
-                                            <p className="text-[10px] opacity-50">Up to 15s • 720p/1080p</p>
+                                        <div className="text-left">
+                                            <div>Standard</div>
+                                            <div className="text-[10px] opacity-60 font-normal mt-0.5">Up to 15s</div>
                                         </div>
                                     </button>
-
                                     <button
                                         onClick={() => setSettings((s) => ({ ...s, tier: "premium", duration: "5" }))}
                                         className={cn(
-                                            "relative p-4 rounded-2xl border-2 text-left transition-all duration-200 flex flex-col gap-3 hover:scale-[1.02]",
+                                            "flex-1 py-2.5 px-3 rounded-lg text-sm font-medium transition-all border",
                                             settings.tier === "premium"
-                                                ? "border-foreground bg-foreground/5 shadow-sm"
-                                                : "border-transparent bg-surface-2 hover:bg-surface-3 text-muted-foreground"
+                                                ? "border-primary/50 bg-primary/5 text-foreground"
+                                                : "border-border/30 text-muted-foreground hover:text-foreground hover:border-border/50"
                                         )}
                                     >
-                                        <div className="flex justify-between items-start">
-                                            <span className={cn("font-semibold text-lg", settings.tier === "premium" ? "text-foreground" : "text-muted-foreground")}>Premium</span>
-                                            {settings.tier === "premium" && <div className="w-2.5 h-2.5 rounded-full bg-foreground" />}
-                                        </div>
-                                        <div className="space-y-1">
-                                            <p className="text-xs font-medium opacity-70">Veo 3.1 Model</p>
-                                            <p className="text-[10px] opacity-50">Cinematic • With Audio</p>
+                                        <div className="text-left">
+                                            <div>Premium</div>
+                                            <div className="text-[10px] opacity-60 font-normal mt-0.5">With Audio</div>
                                         </div>
                                     </button>
                                 </div>
                             </div>
 
-                            {/* Configuration Grid */}
-                            <div className="grid grid-cols-2 gap-8">
-                                {/* Duration */}
-                                <div className="space-y-4">
-                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Duration</label>
-                                    <div className="flex bg-surface-2 p-1 rounded-xl">
-                                        {(settings.tier === "premium" ? ["5", "8"] : ["5", "10", "15"]).map((d) => (
+                            {/* Duration - Clean Pills */}
+                            <div className="space-y-3">
+                                <label className="text-xs text-muted-foreground">Duration</label>
+                                <div className="flex gap-2">
+                                    {(settings.tier === "premium" ? ["5", "8"] : ["5", "10", "15"]).map((d) => (
+                                        <button
+                                            key={d}
+                                            onClick={() => setSettings((s) => ({ ...s, duration: d as "5" | "8" | "10" | "15" }))}
+                                            className={cn(
+                                                "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
+                                                settings.duration === d
+                                                    ? "bg-foreground/10 text-foreground"
+                                                    : "text-muted-foreground hover:text-foreground"
+                                            )}
+                                        >
+                                            {d}s
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Resolution - Only for Standard */}
+                            {settings.tier === "standard" && (
+                                <div className="space-y-3">
+                                    <label className="text-xs text-muted-foreground">Resolution</label>
+                                    <div className="flex gap-2">
+                                        {(["720p", "1080p"] as const).map((res) => (
                                             <button
-                                                key={d}
-                                                onClick={() => setSettings((s) => ({ ...s, duration: d as "5" | "8" | "10" | "15" }))}
+                                                key={res}
+                                                onClick={() => setSettings((s) => ({ ...s, resolution: res }))}
                                                 className={cn(
                                                     "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                                                    settings.duration === d
-                                                        ? "bg-foreground text-background shadow-sm"
+                                                    settings.resolution === res
+                                                        ? "bg-foreground/10 text-foreground"
                                                         : "text-muted-foreground hover:text-foreground"
                                                 )}
                                             >
-                                                {d}s
+                                                {res}
                                             </button>
                                         ))}
                                     </div>
                                 </div>
+                            )}
 
-                                {/* Resolution / Aspect Ratio (depending on tier) */}
-                                <div className="space-y-4">
-                                    {settings.tier === "standard" ? (
-                                        <>
-                                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Resolution</label>
-                                            <div className="flex bg-surface-2 p-1 rounded-xl">
-                                                <button
-                                                    onClick={() => setSettings((s) => ({ ...s, resolution: "720p" }))}
-                                                    className={cn(
-                                                        "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                                                        settings.resolution === "720p"
-                                                            ? "bg-foreground text-background shadow-sm"
-                                                            : "text-muted-foreground hover:text-foreground"
-                                                    )}
-                                                >
-                                                    720p
-                                                </button>
-                                                <button
-                                                    onClick={() => setSettings((s) => ({ ...s, resolution: "1080p" }))}
-                                                    className={cn(
-                                                        "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
-                                                        settings.resolution === "1080p"
-                                                            ? "bg-foreground text-background shadow-sm"
-                                                            : "text-muted-foreground hover:text-foreground"
-                                                    )}
-                                                >
-                                                    1080p
-                                                </button>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Aspect Ratio</label>
-                                            <div className="flex bg-surface-2 p-1 rounded-xl">
-                                                <div className="w-full flex items-center justify-center text-xs text-muted-foreground py-2">
-                                                    Fixed 16:9
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-
-                            {/* Aspect Ratio for Standard */}
+                            {/* Aspect Ratio - Only for Standard */}
                             {settings.tier === "standard" && (
-                                <div className="space-y-4">
-                                    <label className="text-xs font-medium text-muted-foreground uppercase tracking-widest pl-1">Aspect Ratio</label>
-                                    <div className="grid grid-cols-3 gap-3">
+                                <div className="space-y-3">
+                                    <label className="text-xs text-muted-foreground">Aspect Ratio</label>
+                                    <div className="flex gap-2">
                                         {(["16:9", "9:16", "1:1"] as const).map((ratio) => (
                                             <button
                                                 key={ratio}
                                                 onClick={() => setSettings((s) => ({ ...s, aspectRatio: ratio }))}
                                                 className={cn(
-                                                    "py-2.5 rounded-xl border text-sm font-medium transition-all",
+                                                    "flex-1 py-2 rounded-lg text-sm font-medium transition-all",
                                                     settings.aspectRatio === ratio
-                                                        ? "border-foreground bg-foreground/5 text-foreground"
-                                                        : "border-border hover:border-foreground/30 text-muted-foreground"
+                                                        ? "bg-foreground/10 text-foreground"
+                                                        : "text-muted-foreground hover:text-foreground"
                                                 )}
                                             >
                                                 {ratio}
@@ -1382,12 +1352,12 @@ export function VideoGenerator() {
                                     </div>
                                 </div>
                             )}
+                        </div>
 
-                            {/* Footer Info */}
-                            <div className="pt-6 border-t border-border/50 flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">Estimated Cost</span>
-                                <span className="font-bold text-foreground text-lg">{getEstimatedCost()} <span className="text-sm font-normal text-muted-foreground">tokens</span></span>
-                            </div>
+                        {/* Footer - Token Cost */}
+                        <div className="px-5 py-4 border-t border-border/30 flex items-center justify-between">
+                            <span className="text-xs text-muted-foreground">Estimated cost</span>
+                            <span className="text-sm font-medium text-foreground">{getEstimatedCost()} tokens</span>
                         </div>
                     </div>
                 </div>
@@ -1449,7 +1419,7 @@ export function VideoGenerator() {
                 )}
             </div>
 
-            {/* Floating Input Bar - Elegant Premium Design */}
+            {/* Floating Input Bar - Unified Premium Design */}
             <div
                 className={cn(
                     "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
@@ -1460,190 +1430,166 @@ export function VideoGenerator() {
                 style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
             >
                 <div className="w-full max-w-2xl mx-auto md:pl-24">
-                    {/* Main Container - Clean & Minimal */}
-                    <div className="relative rounded-[1.5rem] md:rounded-[2rem] bg-card/95 backdrop-blur-xl border border-border/50 shadow-[0_8px_32px_rgba(0,0,0,0.08)] overflow-hidden hover:shadow-[0_12px_48px_rgba(0,0,0,0.12)] transition-all">
+                    {/* Clean Transparent Container with Subtle Glow */}
+                    <div className="relative rounded-2xl overflow-hidden transition-all duration-300 group/container">
+                        {/* Subtle Border Glow Effect */}
+                        <div className="absolute inset-0 rounded-2xl border border-primary/40 group-focus-within/container:border-primary/60 transition-colors" />
 
-                        {/* Top Bar - Mode & Settings */}
-                        <div className="flex items-center justify-between px-5 pt-4 pb-3 border-b border-border/30">
-                            {/* Mode Toggle - Elegant Underline Style */}
-                            <div className="flex items-center gap-6">
-                                <button
-                                    onClick={() => setGenerationMode("text2video")}
-                                    className={cn(
-                                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors",
-                                        generationMode === "text2video"
-                                            ? "text-foreground"
-                                            : "text-muted-foreground hover:text-foreground/70"
-                                    )}
-                                >
-                                    <Icon icon="mingcute:text-fill" className="w-4 h-4" />
-                                    <span>Text to Video</span>
-                                    {generationMode === "text2video" && (
-                                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setGenerationMode("image2video")}
-                                    className={cn(
-                                        "relative flex items-center gap-2 pb-1 text-sm font-medium transition-colors",
-                                        generationMode === "image2video"
-                                            ? "text-foreground"
-                                            : "text-muted-foreground hover:text-foreground/70"
-                                    )}
-                                >
-                                    <Icon icon="mingcute:image-fill" className="w-4 h-4" />
-                                    <span>Image to Video</span>
-                                    {generationMode === "image2video" && (
-                                        <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-foreground rounded-full" />
-                                    )}
-                                </button>
-                            </div>
-
-                            {/* Settings - Minimal Chip */}
-                            <button
-                                onClick={() => setShowSettings(true)}
-                                className={cn(
-                                    "flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-all border",
-                                    settings.tier === "premium"
-                                        ? "text-foreground bg-foreground/5 border-foreground/10 hover:bg-foreground/10"
-                                        : "text-muted-foreground border-transparent hover:text-foreground hover:bg-surface-2/50"
-                                )}
-                            >
-                                <Icon icon="mingcute:settings-3-line" className="w-3.5 h-3.5" />
-                                <span className="font-medium">
-                                    {settings.tier === "premium"
-                                        ? `Video Settings`
-                                        : `Video Settings`
-                                    }
-                                </span>
-                            </button>
-                        </div>
-
-                        {/* Image Preview - Clean Card */}
-                        {generationMode === "image2video" && imagePreview && (
-                            <div className="px-5 pt-4">
-                                <div className="relative group/img w-fit">
-                                    <div className="w-20 h-20 md:w-24 md:h-24 rounded-xl overflow-hidden border border-border/50 shadow-sm">
-                                        <img
-                                            src={imagePreview}
-                                            alt="Source"
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
+                        {/* Inner Content */}
+                        <div className="relative bg-transparent">
+                            {/* Mode Toggle - Minimal Top Bar */}
+                            <div className="flex items-center justify-between px-4 py-3">
+                                <div className="flex items-center gap-4">
                                     <button
-                                        onClick={removeImage}
-                                        className="absolute -top-2 -right-2 p-1.5 rounded-full bg-card border border-border shadow-sm hover:bg-red-50 hover:border-red-200 dark:hover:bg-red-950 dark:hover:border-red-800 transition-all opacity-0 group-hover/img:opacity-100"
-                                    >
-                                        <Icon icon="mingcute:close-line" className="w-3 h-3 text-muted-foreground hover:text-red-500" />
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Prompt Input - Clean & Spacious */}
-                        <div className="px-5 py-4">
-                            <textarea
-                                value={prompt}
-                                onChange={(e) => setPrompt(e.target.value)}
-                                placeholder={
-                                    generationMode === "text2video"
-                                        ? "Describe the video you want to create..."
-                                        : imagePreview
-                                            ? "Describe how you want the image to move..."
-                                            : "Upload an image first..."
-                                }
-                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none min-h-[56px] max-h-[120px] resize-none placeholder:text-muted-foreground/40 text-foreground text-[15px] leading-relaxed"
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !e.shiftKey) {
-                                        e.preventDefault();
-                                        handleGenerate();
-                                    }
-                                }}
-                            />
-                        </div>
-
-                        {/* Bottom Bar - Actions */}
-                        <div className="flex items-center justify-between px-5 pb-4 pt-1">
-                            <div className="flex items-center gap-3">
-                                {/* Upload Button */}
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageUpload}
-                                    className="hidden"
-                                />
-                                {generationMode === "image2video" && (
-                                    <button
-                                        onClick={() => fileInputRef.current?.click()}
+                                        onClick={() => setGenerationMode("text2video")}
                                         className={cn(
-                                            "flex items-center gap-2 px-3 py-2 text-sm rounded-lg border transition-all",
-                                            imagePreview
-                                                ? "text-foreground border-foreground/20 bg-foreground/5"
-                                                : "text-muted-foreground border-border/50 hover:border-border hover:text-foreground"
+                                            "relative flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5",
+                                            generationMode === "text2video"
+                                                ? "text-foreground"
+                                                : "text-muted-foreground hover:text-foreground/70"
                                         )}
                                     >
-                                        <Icon icon={imagePreview ? "mingcute:check-line" : "mingcute:upload-3-line"} className="w-4 h-4" />
-                                        <span className="hidden sm:inline font-medium">{imagePreview ? "Uploaded" : "Upload Image"}</span>
+                                        <Icon icon="mingcute:text-fill" className="w-3.5 h-3.5" />
+                                        <span>Text to Video</span>
+                                        {generationMode === "text2video" && (
+                                            <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
+                                        )}
                                     </button>
-                                )}
-                            </div>
+                                    <button
+                                        onClick={() => setGenerationMode("image2video")}
+                                        className={cn(
+                                            "relative flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5",
+                                            generationMode === "image2video"
+                                                ? "text-foreground"
+                                                : "text-muted-foreground hover:text-foreground/70"
+                                        )}
+                                    >
+                                        <Icon icon="mingcute:image-fill" className="w-3.5 h-3.5" />
+                                        <span>Image to Video</span>
+                                        {generationMode === "image2video" && (
+                                            <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
+                                        )}
+                                    </button>
+                                </div>
 
-                            <div className="flex items-center gap-4">
-                                {/* Token Cost - Subtle */}
-                                <span className="hidden sm:flex items-center gap-1.5 text-xs text-muted-foreground">
-                                    <Icon icon="mingcute:token-line" className="w-3.5 h-3.5" />
-                                    <span className="font-medium">{getEstimatedCost()} tokens</span>
-                                </span>
-
-                                {/* Generate Button - Solid & Refined */}
+                                {/* Video Settings - Clean Text Link */}
                                 <button
-                                    onClick={handleGenerate}
-                                    disabled={loading || !prompt.trim() || (generationMode === "image2video" && !imagePreview)}
-                                    className={cn(
-                                        "flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200",
-                                        loading || !prompt.trim() || (generationMode === "image2video" && !imagePreview)
-                                            ? "bg-muted text-muted-foreground cursor-not-allowed"
-                                            : "bg-foreground text-background hover:opacity-90 active:scale-[0.98] shadow-sm"
-                                    )}
+                                    onClick={() => setShowSettings(true)}
+                                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
                                 >
-                                    {loading ? (
-                                        <Icon icon="mingcute:loading-line" className="w-4 h-4 animate-spin" />
-                                    ) : (
-                                        <Icon icon="mingcute:sparkles-2-line" className="w-4 h-4" />
-                                    )}
-                                    <span>{loading ? "Creating..." : "Generate"}</span>
+                                    <Icon icon="mingcute:settings-3-line" className="w-3.5 h-3.5" />
+                                    <span>Video Settings</span>
                                 </button>
                             </div>
-                        </div>
 
-                        {/* Suggestions - Minimal Pills */}
-                        {!prompt && (
-                            <div className="px-5 pb-4 pt-2 border-t border-border/20">
-                                <div className="flex flex-wrap gap-2">
-                                    {(generationMode === "image2video" ? [
-                                        "Slow rotation with soft lighting",
-                                        "Gentle zoom with particles",
-                                        "Cinematic orbit",
-                                        "Light reveal effect",
-                                    ] : [
-                                        "Perfume bottle on marble surface",
-                                        "Coffee with rising steam",
-                                        "Floating tech product",
-                                        "Cinematic landscape",
-                                    ]).map((suggestion, i) => (
+                            {/* Image Preview - Compact */}
+                            {generationMode === "image2video" && imagePreview && (
+                                <div className="px-4 pb-2">
+                                    <div className="relative group/img w-fit">
+                                        <div className="w-14 h-14 rounded-lg overflow-hidden border border-border/30">
+                                            <img src={imagePreview} alt="Source" className="w-full h-full object-cover" />
+                                        </div>
                                         <button
-                                            key={i}
-                                            onClick={() => setPrompt(suggestion)}
-                                            className="px-3 py-1.5 text-xs text-muted-foreground bg-surface-2/50 hover:bg-surface-2 hover:text-foreground rounded-lg border border-transparent hover:border-border/50 transition-all"
+                                            onClick={removeImage}
+                                            className="absolute -top-1.5 -right-1.5 p-1 rounded-full bg-background/90 border border-border/50 opacity-0 group-hover/img:opacity-100 transition-opacity"
                                         >
-                                            {suggestion}
+                                            <Icon icon="mingcute:close-line" className="w-2.5 h-2.5 text-muted-foreground" />
                                         </button>
-                                    ))}
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Textarea - Clean & Minimal */}
+                            <div className="px-4 pb-3">
+                                <textarea
+                                    value={prompt}
+                                    onChange={(e) => setPrompt(e.target.value)}
+                                    placeholder={
+                                        generationMode === "text2video"
+                                            ? "Describe the video you want to create..."
+                                            : imagePreview
+                                                ? "Describe how you want the image to move..."
+                                                : "Upload an image first..."
+                                    }
+                                    className="w-full bg-transparent border-none focus:ring-0 focus:outline-none min-h-[48px] max-h-[100px] resize-none placeholder:text-muted-foreground/50 text-foreground text-sm leading-relaxed"
+                                    onKeyDown={(e) => {
+                                        if (e.key === "Enter" && !e.shiftKey) {
+                                            e.preventDefault();
+                                            handleGenerate();
+                                        }
+                                    }}
+                                />
+                            </div>
+
+                            {/* Bottom Actions - Sleek Bar */}
+                            <div className="flex items-center justify-between px-4 pb-3">
+                                <div className="flex items-center gap-2">
+                                    {/* Upload Button for Image Mode */}
+                                    <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
+                                    {generationMode === "image2video" && !imagePreview && (
+                                        <button
+                                            onClick={() => fileInputRef.current?.click()}
+                                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:border-border rounded-lg transition-all"
+                                        >
+                                            <Icon icon="mingcute:upload-3-line" className="w-3.5 h-3.5" />
+                                            <span>Upload</span>
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div className="flex items-center gap-3">
+                                    {/* Token Cost */}
+                                    <span className="text-xs text-muted-foreground">
+                                        {getEstimatedCost()} tokens
+                                    </span>
+
+                                    {/* Generate Button - Premium Pill */}
+                                    <button
+                                        onClick={handleGenerate}
+                                        disabled={loading || !prompt.trim() || (generationMode === "image2video" && !imagePreview)}
+                                        className={cn(
+                                            "flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200",
+                                            loading || !prompt.trim() || (generationMode === "image2video" && !imagePreview)
+                                                ? "bg-muted/50 text-muted-foreground cursor-not-allowed"
+                                                : "bg-primary text-primary-foreground hover:bg-primary-hover active:scale-[0.98]"
+                                        )}
+                                    >
+                                        {loading ? (
+                                            <Icon icon="mingcute:loading-line" className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                            <Icon icon="mingcute:sparkles-2-line" className="w-3.5 h-3.5" />
+                                        )}
+                                        <span>Generate</span>
+                                    </button>
                                 </div>
                             </div>
-                        )}
+                        </div>
                     </div>
+
+                    {/* Suggestions - Floating Pills Below */}
+                    {!prompt && (
+                        <div className="flex flex-wrap justify-center gap-2 mt-3 px-2">
+                            {(generationMode === "image2video" ? [
+                                "Slow rotation with soft lighting",
+                                "Gentle zoom with particles",
+                                "Cinematic orbit",
+                                "Light reveal effect",
+                            ] : [
+                                "Perfume bottle on marble surface",
+                                "Coffee with rising steam",
+                                "Floating tech product",
+                                "Cinematic landscape",
+                            ]).map((suggestion, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => setPrompt(suggestion)}
+                                    className="px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground bg-surface-2/30 hover:bg-surface-2/60 rounded-full transition-all"
+                                >
+                                    {suggestion}
+                                </button>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
