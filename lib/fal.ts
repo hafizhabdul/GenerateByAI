@@ -362,8 +362,9 @@ export async function transformImage(
     });
 
     try {
+        // Note: GPT-Image-1.5 Edit API requires `image_urls` (array), not `image_url`
         const input = {
-            image_url: imageUrl,
+            image_urls: [imageUrl], // Array of image URLs
             prompt,
             image_size: size,
             quality,
@@ -372,7 +373,7 @@ export async function transformImage(
 
         console.log(`[fal.ai GPT-Image-1.5 Edit] Input:`, JSON.stringify({
             ...input,
-            image_url: input.image_url.substring(0, 50) + '...',
+            image_urls: [input.image_urls[0].substring(0, 50) + '...'],
         }, null, 2));
 
         const result = await fal.subscribe(IMAGE_EDIT_ENDPOINT, {
