@@ -11,6 +11,36 @@ import { decrementDailyGeneration } from "@/lib/daily-limits";
 const uuidSchema = z.string().uuid();
 
 /**
+ * Helper: Wait for DB to have completed result
+ * Used when another request is already fetching the result
+ */
+async function waitForDbResult(
+    supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+    generationId: string,
+    maxAttempts: number = 10,
+    intervalMs: number = 2000
+): Promise<{ status: string; file_url?: string; metadata?: Record<string, unknown> } | null> {
+    for (let i = 0; i < maxAttempts; i++) {
+        await new Promise(resolve => setTimeout(resolve, intervalMs));
+
+        const { data: check } = await supabase
+            .from("generations")
+            .select("status, file_url, metadata")
+            .eq("id", generationId)
+            .single();
+
+        if (check?.status === "completed" && check?.file_url) {
+            return check;
+        }
+
+        if (check?.status === "failed") {
+            return check;
+        }
+    }
+    return null;
+}
+
+/**
  * Check video generation status for fal.ai wan/v2.6
  * GET /api/video-status?requestId=xxx&type=image2video&generationId=xxx
  */
@@ -65,6 +95,37 @@ export async function GET(req: NextRequest) {
                     status: "failed",
                     requestId,
                     error: existing.metadata?.error || "Generation failed",
+                });
+            }
+
+            // If another request is currently fetching, wait for it
+            if (existing?.status === "fetching") {
+                console.log(`[Video] Another request is fetching ${requestId}, waiting...`);
+                const result = await waitForDbResult(supabase, generationId);
+
+                if (result?.status === "completed" && result?.file_url) {
+                    return NextResponse.json({
+                        status: "completed",
+                        requestId,
+                        url: result.file_url,
+                        duration: result.metadata?.duration,
+                        resolution: result.metadata?.resolution,
+                    });
+                }
+
+                if (result?.status === "failed") {
+                    return NextResponse.json({
+                        status: "failed",
+                        requestId,
+                        error: result.metadata?.error || "Generation failed",
+                    });
+                }
+
+                // Timeout waiting - return processing status to retry
+                return NextResponse.json({
+                    status: "processing",
+                    requestId,
+                    message: "Video is being processed, please wait...",
                 });
             }
         }
@@ -136,7 +197,54 @@ export async function GET(req: NextRequest) {
 
         // If completed, get the result
         if (queueStatus.status === "COMPLETED") {
-            console.log(`[Video] Generation completed, fetching result...`);
+            console.log(`[Video] Generation completed, attempting to acquire fetch lock...`);
+
+            // Acquire lock by atomically updating status from 'processing' to 'fetching'
+            // This prevents race condition where multiple polls try to fetch the same result
+            if (generationId) {
+                const adminClient = createAdminClient();
+                const { data: lockResult, error: lockError } = await adminClient
+                    .from("generations")
+                    .update({ status: "fetching" })
+                    .eq("id", generationId)
+                    .eq("status", "processing")  // Only if still processing
+                    .select("id")
+                    .single();
+
+                if (lockError || !lockResult) {
+                    // Another request already acquired the lock, wait for result
+                    console.log(`[Video] Lock not acquired for ${requestId}, waiting for result...`);
+
+                    const result = await waitForDbResult(supabase, generationId);
+
+                    if (result?.status === "completed" && result?.file_url) {
+                        return NextResponse.json({
+                            status: "completed",
+                            requestId,
+                            url: result.file_url,
+                            duration: result.metadata?.duration,
+                            resolution: result.metadata?.resolution,
+                        });
+                    }
+
+                    if (result?.status === "failed") {
+                        return NextResponse.json({
+                            status: "failed",
+                            requestId,
+                            error: result.metadata?.error || "Generation failed",
+                        });
+                    }
+
+                    // Timeout waiting - return processing status to retry
+                    return NextResponse.json({
+                        status: "processing",
+                        requestId,
+                        message: "Video is being processed, please wait...",
+                    });
+                }
+
+                console.log(`[Video] Lock acquired for ${requestId}, fetching result...`);
+            }
 
             try {
                 const result = await getWanVideoResult(requestId, type);
@@ -193,10 +301,11 @@ export async function GET(req: NextRequest) {
             } catch (resultError: any) {
                 // Handle 404 - result already consumed or expired
                 if (resultError.status === 404) {
-                    console.log(`[Video] Result already consumed for ${requestId}, checking database...`);
+                    console.log(`[Video] Result already consumed for ${requestId}, waiting for DB update...`);
 
-                    // Check if we already have it in database
+                    // Another request might be downloading, wait for DB update
                     if (generationId) {
+                        // First immediate check
                         const { data: existing } = await supabase
                             .from("generations")
                             .select("status, file_url, metadata, tokens_used")
@@ -214,7 +323,24 @@ export async function GET(req: NextRequest) {
                             });
                         }
 
-                        if (existing && existing.status !== "failed") {
+                        // If status is 'fetching', another request is downloading - wait for it
+                        if (existing?.status === "fetching") {
+                            console.log(`[Video] Status is 'fetching', waiting for download to complete...`);
+                            const result = await waitForDbResult(supabase, generationId, 15, 2000); // Max 30s wait
+
+                            if (result?.status === "completed" && result?.file_url) {
+                                return NextResponse.json({
+                                    status: "completed",
+                                    requestId,
+                                    url: result.file_url,
+                                    duration: result.metadata?.duration,
+                                    resolution: result.metadata?.resolution,
+                                });
+                            }
+                        }
+
+                        // Only refund if status is still 'processing' or 'fetching' (not already failed/completed)
+                        if (existing && existing.status !== "failed" && existing.status !== "completed") {
                             const tokensToRefund = existing.tokens_used || 0;
                             if (tokensToRefund > 0) {
                                 await refundTokens(

@@ -856,8 +856,8 @@ export function VideoGenerator() {
                 // Refresh profile to update token balance
                 if (refreshProfile) refreshProfile();
             } else {
-                // Standard tier: Use wan/v2.6 (async with polling)
-                const res = await fetch("/api/video-start", {
+                // Standard tier: Use wan/v2.6 (synchronous - same as premium)
+                const res = await fetch("/api/generate-video-standard", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -873,18 +873,19 @@ export function VideoGenerator() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Video generation failed");
 
-                // Update with requestId for polling - video is now generating in background
+                // Standard generation is now synchronous - update with result immediately
                 setFeed((prev) => {
                     const updated = prev.map((item) =>
                         item.id === tempId
                             ? {
                                 ...item,
-                                status: "processing" as const,
-                                requestId: data.requestId,
+                                status: "completed" as const,
+                                videoUrl: data.videoUrl,
                                 generationId: data.generationId,
-                                resolution: settings.resolution,
+                                resolution: data.resolution || settings.resolution,
                                 tier: "standard" as const,
                                 provider: "fal-wan-v2.6",
+                                canExtend: false,
                             }
                             : item
                     );
@@ -892,7 +893,10 @@ export function VideoGenerator() {
                     return updated;
                 });
 
-                showToast("🚀 Video generation started! You can navigate away - we'll keep generating.", "success");
+                showToast("🎬 Video generated successfully!", "success");
+
+                // Refresh profile to update token balance
+                if (refreshProfile) refreshProfile();
             }
 
         } catch (err) {
@@ -1068,8 +1072,8 @@ export function VideoGenerator() {
                 showToast("Video regenerated successfully!", "success");
                 if (refreshProfile) refreshProfile();
             } else {
-                // Standard tier: Use wan/v2.6 (async with polling)
-                const res = await fetch("/api/video-start", {
+                // Standard tier: Use wan/v2.6 (synchronous)
+                const res = await fetch("/api/generate-video-standard", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
@@ -1090,12 +1094,13 @@ export function VideoGenerator() {
                         item.id === tempId
                             ? {
                                 ...item,
-                                status: "processing" as const,
-                                requestId: data.requestId,
+                                status: "completed" as const,
+                                videoUrl: data.videoUrl,
                                 generationId: data.generationId,
-                                resolution: failedItem.resolution || "720p",
+                                resolution: data.resolution || failedItem.resolution || "720p",
                                 tier: "standard" as const,
                                 provider: "fal-wan-v2.6",
+                                canExtend: false,
                             }
                             : item
                     );
@@ -1103,7 +1108,8 @@ export function VideoGenerator() {
                     return updated;
                 });
 
-                showToast("Regenerating video...", "success");
+                showToast("Video regenerated successfully!", "success");
+                if (refreshProfile) refreshProfile();
             }
         } catch (err) {
             console.error(err);

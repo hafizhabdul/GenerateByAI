@@ -65,7 +65,7 @@ CREATE TABLE generations (
     width INTEGER,
     height INTEGER,
     duration INTEGER, -- for videos (seconds)
-    status TEXT DEFAULT 'completed' CHECK (status IN ('pending', 'processing', 'completed', 'failed')),
+    status TEXT DEFAULT 'completed' CHECK (status IN ('pending', 'processing', 'fetching', 'completed', 'failed')),
     tokens_used INTEGER DEFAULT 10,
     is_favorite BOOLEAN DEFAULT FALSE,
     metadata JSONB DEFAULT NULL, -- flexible metadata storage for video settings, etc.
