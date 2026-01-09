@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { persistExternalImage } from "@/lib/storage-utils";
 import { getTokenCost, QualityTier } from "@/lib/tokens";
@@ -8,6 +7,7 @@ import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server"
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
 import { generateImage, isFalConfigured } from "@/lib/fal";
+import { createGenerationWithSession } from "@/lib/session-utils";
 
 const GenerateSchema = z.object({
     prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt too long (max 2000 chars)"),
@@ -92,16 +92,21 @@ export async function POST(req: Request) {
             // --- 4. Persist to Storage (Prevent Expiration) ---
             const permanentUrl = await persistExternalImage(tempImageUrl, user.id);
 
-            // --- 5. Save Record & Commit Token Charge ---
-            const adminClient = createAdminClient();
-            const { data: generation } = await adminClient.from("generations").insert({
-                user_id: user.id,
+            // --- 5. Save Record with Session & Commit Token Charge ---
+            const { generationId, sessionId } = await createGenerationWithSession({
+                userId: user.id,
                 type: "image",
                 prompt: prompt,
-                file_url: permanentUrl,
-                tokens_used: cost,
+                fileUrl: permanentUrl,
                 status: "completed",
-            }).select("id").single();
+                tokensUsed: cost,
+                metadata: {
+                    provider: "fal-gpt-image-1.5",
+                    quality,
+                    size,
+                    generationType: "text-to-image",
+                },
+            });
 
             // Commit the token charge after successful generation
             await tokenCharge.commit();
@@ -111,7 +116,8 @@ export async function POST(req: Request) {
 
             return NextResponse.json({
                 url: permanentUrl,
-                generationId: generation?.id,
+                generationId,
+                sessionId,
             });
 
         } catch (generationError: any) {

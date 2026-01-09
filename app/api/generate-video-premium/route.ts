@@ -5,6 +5,7 @@ import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server"
 import { generateVeoVideo, getVeoCost, isFalConfigured } from "@/lib/fal";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
+import { createGenerationWithSession } from "@/lib/session-utils";
 
 const GenerateVideoPremiumSchema = z.object({
     imageUrl: z.string().url().optional(),
@@ -92,32 +93,24 @@ export async function POST(req: Request) {
                 enableAudio: true, // Always enable native audio for premium
             });
 
-            // --- Save to Database ---
-            const { data: generation, error: dbError } = await supabase
-                .from("generations")
-                .insert({
-                    user_id: user.id,
-                    type: "video",
-                    prompt: prompt,
-                    file_url: result.videoUrl,
-                    status: "completed",
-                    tokens_used: cost,
-                    metadata: {
-                        provider: "fal-veo-3.1",
-                        duration: durationNum,
-                        hasAudio: true,
-                        aspectRatio,
-                        sourceType: type,
-                        requestId: result.requestId,
-                        tier: "premium",
-                    },
-                })
-                .select()
-                .single();
-
-            if (dbError) {
-                console.error("[Premium Video] DB error:", dbError);
-            }
+            // --- Save to Database with Session ---
+            const { generationId, sessionId } = await createGenerationWithSession({
+                userId: user.id,
+                type: "video",
+                prompt: prompt,
+                fileUrl: result.videoUrl,
+                status: "completed",
+                tokensUsed: cost,
+                metadata: {
+                    provider: "fal-veo-3.1",
+                    duration: durationNum,
+                    hasAudio: true,
+                    aspectRatio,
+                    sourceType: type,
+                    requestId: result.requestId,
+                    tier: "premium",
+                },
+            });
 
             // --- Commit Token Charge ---
             await tokenCharge.commit();
@@ -129,7 +122,8 @@ export async function POST(req: Request) {
                 videoUrl: result.videoUrl,
                 duration: durationNum,
                 tokensUsed: cost,
-                generationId: generation?.id,
+                generationId,
+                sessionId,
             });
 
             return NextResponse.json({
@@ -138,7 +132,8 @@ export async function POST(req: Request) {
                 audioIncluded: true,
                 duration: durationNum,
                 tokensUsed: cost,
-                generation,
+                generationId,
+                sessionId,
                 provider: "veo-3.1",
                 tier: "premium",
             });
@@ -173,15 +168,15 @@ function enhancePromptForVeo(prompt: string): string {
         "cinematic", "film", "movie", "professional", "high quality",
         "4k", "hdr", "dramatic", "smooth motion"
     ];
-    
+
     const hasQualityKeywords = cinematicKeywords.some(
         keyword => prompt.toLowerCase().includes(keyword)
     );
-    
+
     if (hasQualityKeywords) {
         return prompt;
     }
-    
+
     // Add quality enhancers for Veo 3.1
     return `${prompt}, cinematic quality, smooth camera motion, professional lighting, high detail`;
 }

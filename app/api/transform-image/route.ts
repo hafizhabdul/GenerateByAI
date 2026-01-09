@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
 import { transformImage, getImageTransformCost, isFalConfigured } from "@/lib/fal";
 import { persistExternalImage } from "@/lib/storage-utils";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
+import { createGenerationWithSession } from "@/lib/session-utils";
 
 const TransformImageSchema = z.object({
     imageUrl: z.string().url("Valid image URL required"),
@@ -87,32 +87,23 @@ export async function POST(req: Request) {
             // Persist the result to Supabase storage
             const permanentUrl = await persistExternalImage(result.imageUrl, user.id);
 
-            // Save to database
-            const adminClient = createAdminClient();
-            const { data: generation, error: dbError } = await adminClient
-                .from("generations")
-                .insert({
-                    user_id: user.id,
-                    type: "image",
-                    prompt: prompt,
-                    file_url: permanentUrl,
-                    status: "completed",
-                    tokens_used: cost,
-                    metadata: {
-                        provider: "fal-gpt-image-1.5-edit",
-                        sourceImage: imageUrl,
-                        size,
-                        quality,
-                        requestId: result.requestId,
-                        transformType: "image-to-image",
-                    },
-                })
-                .select()
-                .single();
-
-            if (dbError) {
-                console.error("[Transform] DB error:", dbError);
-            }
+            // Save to database with session
+            const { generationId, sessionId } = await createGenerationWithSession({
+                userId: user.id,
+                type: "image",
+                prompt: prompt,
+                fileUrl: permanentUrl,
+                status: "completed",
+                tokensUsed: cost,
+                metadata: {
+                    provider: "fal-gpt-image-1.5-edit",
+                    sourceImage: imageUrl,
+                    size,
+                    quality,
+                    requestId: result.requestId,
+                    generationType: "image-to-image",
+                },
+            });
 
             // Commit token charge
             await tokenCharge.commit();
@@ -123,14 +114,16 @@ export async function POST(req: Request) {
             console.log(`[Transform] Transformation complete for user ${user.id}:`, {
                 outputUrl: permanentUrl,
                 tokensUsed: cost,
-                generationId: generation?.id,
+                generationId,
+                sessionId,
             });
 
             return NextResponse.json({
                 success: true,
                 imageUrl: permanentUrl,
                 tokensUsed: cost,
-                generation,
+                generationId,
+                sessionId,
             });
 
         } catch (generationError) {

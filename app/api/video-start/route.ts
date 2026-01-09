@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
@@ -13,6 +12,7 @@ import {
     type WanResolution,
     type WanAspectRatio,
 } from "@/lib/fal-wan";
+import { createGenerationWithSession } from "@/lib/session-utils";
 
 const StartVideoSchema = z.object({
     imageUrl: z.string().url().optional(),
@@ -123,34 +123,25 @@ export async function POST(req: Request) {
 
             console.log(`[Video] Started async task: ${requestId}`);
 
-            // Save pending generation record
-            const adminClient = createAdminClient();
-            const { data: generation, error: insertError } = await adminClient
-                .from("generations")
-                .insert({
-                    user_id: user.id,
-                    type: "video",
-                    prompt: prompt,
-                    file_url: null, // Will be filled when complete
-                    tokens_used: cost,
-                    status: "processing",
-                    metadata: {
-                        requestId,
-                        duration: durationNum,
-                        resolution,
-                        aspectRatio,
-                        sourceType: type,
-                        sourceImage: imageUrl || null,
-                        provider: "fal-wan-v2.6",
-                        tier: "standard",
-                    },
-                })
-                .select("id")
-                .single();
-
-            if (insertError) {
-                console.error("Failed to create generation record:", insertError);
-            }
+            // Save pending generation record with session
+            const { generationId, sessionId } = await createGenerationWithSession({
+                userId: user.id,
+                type: "video",
+                prompt: prompt,
+                fileUrl: null, // Will be filled when complete
+                status: "processing",
+                tokensUsed: cost,
+                metadata: {
+                    requestId,
+                    duration: durationNum,
+                    resolution,
+                    aspectRatio,
+                    sourceType: type,
+                    sourceImage: imageUrl || null,
+                    provider: "fal-wan-v2.6",
+                    tier: "standard",
+                },
+            });
 
             // Commit token charge - task started successfully
             await tokenCharge.commit();
@@ -161,7 +152,8 @@ export async function POST(req: Request) {
             return NextResponse.json({
                 success: true,
                 requestId,
-                generationId: generation?.id,
+                generationId,
+                sessionId,
                 type,
                 duration: durationNum,
                 resolution,
