@@ -9,6 +9,7 @@ import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import type { Generation } from "@/lib/supabase/types";
+import { MascotLoading } from "@/components/mascot";
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -59,12 +60,10 @@ function HomeContent() {
   if (authLoading) {
     return (
       <div className="flex min-h-screen w-full bg-background items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-16 h-16 relative">
-            <img src="/mascot.png" alt="Loading..." className="w-full h-full animate-pulse" />
-          </div>
-          <p className="text-muted-foreground animate-pulse font-medium">Loading your profile...</p>
-        </div>
+        <MascotLoading
+          message="🐿️ Squirrel sedang memuat dashboard..."
+          submessage="Tunggu sebentar ya!"
+        />
       </div>
     );
   }
@@ -85,32 +84,34 @@ function HomeContent() {
         <main className="flex-1 flex flex-col relative w-full pl-0 md:pl-28 pb-20 md:pb-0">
           <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 lg:p-10 max-w-4xl mx-auto w-full">
             {/* Welcome Hero */}
-            <div className="text-center space-y-6 w-full">
-              <div className="w-24 h-24 mx-auto mb-6">
-                <img src="/mascot.png" alt="SquirrAI" className="w-full h-full drop-shadow-2xl" />
-              </div>
-              <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight">
-                Selamat datang di <span className="text-primary">SquirrAI</span>
-              </h1>
-              <p className="text-muted-foreground text-lg md:text-xl max-w-xl mx-auto">
-                Platform AI untuk generate gambar dan video berkualitas tinggi. Login untuk mulai berkreasi!
-              </p>
+             <div className="text-center space-y-8 w-full">
+               <div className="w-28 h-28 mx-auto mb-8 animate-bounce">
+                 <img src="/mascot.png" alt="SquirrAI" className="w-full h-full drop-shadow-2xl" />
+               </div>
+               <div className="space-y-3">
+                 <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight">
+                   Selamat datang di <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">SquirrAI</span>
+                 </h1>
+                 <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                   Platform AI terdepan untuk generate gambar dan video berkualitas tinggi. Buat konten amazing bersama Squirrel! 🐿️
+                 </p>
+               </div>
 
-              {/* CTA Buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-                <Link href="/login">
-                  <button className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-primary text-white font-bold text-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 shadow-lg shadow-primary/30">
-                    <Icon icon="mingcute:login-fill" className="w-6 h-6" />
-                    Login
-                  </button>
-                </Link>
-                <Link href="/register">
-                  <button className="w-full sm:w-auto px-10 py-4 rounded-2xl bg-surface-2 border border-border text-foreground font-bold text-lg hover:bg-surface-3 transition-all flex items-center justify-center gap-2">
-                    <Icon icon="mingcute:user-add-fill" className="w-6 h-6" />
-                    Daftar Gratis
-                  </button>
-                </Link>
-              </div>
+               {/* CTA Buttons */}
+               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+                 <Link href="/login">
+                   <button className="w-full sm:w-auto px-10 py-4 rounded-2xl btn-primary text-lg flex items-center justify-center gap-2">
+                     <Icon icon="mingcute:login-fill" className="w-6 h-6" />
+                     Login
+                   </button>
+                 </Link>
+                 <Link href="/register">
+                   <button className="w-full sm:w-auto px-10 py-4 rounded-2xl btn-secondary text-lg flex items-center justify-center gap-2">
+                     <Icon icon="mingcute:user-add-fill" className="w-6 h-6" />
+                     Daftar Gratis
+                   </button>
+                 </Link>
+               </div>
 
               {/* Free Credits Banner */}
               <div className="mt-10 p-5 rounded-2xl bg-primary/10 border border-primary/20 max-w-md mx-auto">
@@ -182,10 +183,10 @@ function HomeContent() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 auto-rows-[140px] md:auto-rows-[160px] lg:auto-rows-[180px]">
 
               {/* Main Action: Create Image */}
-              <Link
-                href="/?view=create&new=true"
-                className="group col-span-2 row-span-2 relative overflow-hidden rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-primary text-primary-foreground p-4 md:p-6 lg:p-8 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-xl"
-              >
+               <Link
+                 href="/?view=create&new=true"
+                 className="group col-span-2 row-span-2 relative overflow-hidden rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-gradient-to-br from-primary via-primary to-primary-dark text-primary-foreground p-4 md:p-6 lg:p-8 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/30"
+               >
                 <div className="absolute -right-4 md:-right-8 -bottom-8 md:-bottom-16 w-40 md:w-56 lg:w-64 h-48 md:h-64 lg:h-72 opacity-90 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
                   <img src="/maskot.png" alt="SquirrAI Mascot" className="w-full h-auto object-cover object-top drop-shadow-2xl" style={{ marginBottom: '-60px' }} />
                 </div>

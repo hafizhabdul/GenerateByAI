@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import type { Generation } from "@/lib/supabase/types";
+import { MascotLoading } from "@/components/mascot";
 
 interface Stats {
     imagesGenerated: number;
@@ -151,7 +152,10 @@ export default function DashboardPage() {
 
                     {loading ? (
                         <div className="flex items-center justify-center py-20">
-                            <Icon icon="mingcute:loading-fill" className="w-8 h-8 animate-spin text-primary" />
+                            <MascotLoading
+                                message="📊 Squirrel sedang memuat dashboard..."
+                                submessage="Tunggu sebentar ya!"
+                            />
                         </div>
                     ) : (
                         <>

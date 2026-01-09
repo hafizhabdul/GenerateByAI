@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
+import { GenerationLoading } from "./loading-states";
+import { Mascot } from "./mascot";
 
 type VideoTier = "standard" | "premium";
 
@@ -247,6 +249,7 @@ export function VideoGenerator() {
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [feed, setFeed] = useState<VideoFeedItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
     const [loadingHistory, setLoadingHistory] = useState(true);
     const [isHero, setIsHero] = useState(true);
@@ -756,6 +759,7 @@ export function VideoGenerator() {
         const currentMode = generationMode;
 
         // Clear input immediately after clicking Generate
+        setError(null); // Clear previous errors
         setPrompt("");
         if (currentMode === "image2video") {
             removeImage();
@@ -902,6 +906,7 @@ export function VideoGenerator() {
         } catch (err) {
             console.error(err);
             const errorMessage = err instanceof Error ? err.message : "Failed to generate video";
+            setError(errorMessage);
             showToast(errorMessage, "error");
 
             setFeed((prev) => {
@@ -1310,10 +1315,10 @@ export function VideoGenerator() {
                                     ))}
                                 </div>
                             ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                                    <Icon icon="mingcute:movie-line" className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                                    <p className="text-muted-foreground">No video history yet</p>
-                                    <p className="text-xs text-muted-foreground/70 mt-1">Your generated videos will appear here</p>
+                                <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+                                    <Mascot expression="confused" size="large" />
+                                    <p className="text-muted-foreground mt-6 font-semibold">Belum ada video</p>
+                                    <p className="text-xs text-muted-foreground/70 mt-2">Video yang kamu buat akan muncul di sini</p>
                                 </div>
                             )}
                         </div>
@@ -1494,8 +1499,33 @@ export function VideoGenerator() {
                     </div>
                 )}
 
+                {/* Loading State with Mascot */}
+                {loading && (
+                    <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-2xl">
+                        <GenerationLoading type="video" />
+                    </div>
+                )}
+
+                {/* Error State with Mascot */}
+                {error && !loading && (
+                    <div className="w-full max-w-2xl mx-auto mb-8 p-6 rounded-2xl bg-destructive/10 border border-destructive/20 animate-fade-in">
+                        <div className="flex items-center gap-4">
+                            <Icon icon="mingcute:alert-circle-fill" className="w-6 h-6 text-destructive shrink-0" />
+                            <div className="flex-1">
+                                <p className="font-semibold text-destructive mb-3">{error}</p>
+                                <button 
+                                    onClick={() => setError(null)}
+                                    className="text-sm text-destructive hover:underline font-medium"
+                                >
+                                    Dismiss Error
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Feed Items */}
-                {!isHero && !loadingHistory && (
+                {!isHero && !loadingHistory && !loading && (
                     <div className="w-full max-w-3xl mx-auto space-y-12">
                         {feed.map((item) => (
                             <VideoFeedCard

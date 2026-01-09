@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import { useAuth } from "@/lib/auth-context";
 import { Icon } from "@iconify/react";
+import { MascotLoading } from "@/components/mascot";
 
 interface Stats {
     imagesGenerated: number;
@@ -141,7 +142,10 @@ export default function ProfilePage() {
     if (loading || authLoading) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-background">
-                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <MascotLoading
+                    message="👤 Squirrel sedang memuat profile..."
+                    submessage="Tunggu sebentar ya!"
+                />
             </div>
         );
     }

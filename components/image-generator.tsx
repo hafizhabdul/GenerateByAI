@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth-context";
+import { GenerationLoading } from "./loading-states";
 import type { Generation } from "@/lib/supabase/types";
 
 // Extended Generation type to handle "optimistic" pending state
@@ -189,6 +190,7 @@ export function ImageGenerator() {
     const [prompt, setPrompt] = useState("");
     const [feed, setFeed] = useState<FeedItem[]>([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
     const [mode, setMode] = useState<"generate" | "transform">("generate");
     const [transformImage, setTransformImage] = useState<string | null>(null);
     const [transformFile, setTransformFile] = useState<File | null>(null);
@@ -537,6 +539,7 @@ export function ImageGenerator() {
         const currentTransformFile = transformFile;
         const currentTransformImage = transformImage;
 
+        setError(null); // Clear previous errors
         setPrompt(""); // Clear immediately
         setIsHero(false);
         setLoading(true);
@@ -632,7 +635,9 @@ export function ImageGenerator() {
             await refreshProfile();
         } catch (err) {
             console.error(err);
-            showToast(err instanceof Error ? err.message : "Failed to generate image", "error");
+            const errorMessage = err instanceof Error ? err.message : "Failed to generate image";
+            setError(errorMessage);
+            showToast(errorMessage, "error");
 
             // Mark item as failed
             setFeed(prev => prev.map(item =>
@@ -812,8 +817,33 @@ export function ImageGenerator() {
                     </h1>
                 </div>
 
+                {/* Loading State with Mascot */}
+                {loading && (
+                    <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-2xl">
+                        <GenerationLoading type={mode === "transform" ? "video" : "image"} />
+                    </div>
+                )}
+
+                {/* Error State with Mascot */}
+                {error && !loading && (
+                    <div className="w-full max-w-2xl mx-auto mb-8 p-6 rounded-2xl bg-destructive/10 border border-destructive/20 animate-fade-in">
+                        <div className="flex items-center gap-4">
+                            <Icon icon="mingcute:alert-circle-fill" className="w-6 h-6 text-destructive shrink-0" />
+                            <div className="flex-1">
+                                <p className="font-semibold text-destructive mb-3">{error}</p>
+                                <button 
+                                    onClick={() => setError(null)}
+                                    className="text-sm text-destructive hover:underline font-medium"
+                                >
+                                    Dismiss Error
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
                 {/* Feed Items (Chat Style) */}
-                {!isHero && (
+                {!isHero && !loading && (
                     <div className="w-full max-w-3xl mx-auto space-y-12">
                         {feed.map((item) => (
                             <FeedItemCard key={item.id} item={item} />

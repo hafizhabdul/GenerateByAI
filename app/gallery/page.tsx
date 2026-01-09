@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
+import { Mascot } from "@/components/mascot";
 import type { Generation } from "@/lib/supabase/types";
 
 type FilterType = "all" | "image" | "video";
@@ -582,25 +583,25 @@ export default function GalleryPage() {
 
                     {/* Empty State */}
                     {!loading && filteredItems.length === 0 && (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                        <div className="flex flex-col items-center justify-center py-20 text-center">
                             {searchQuery || filterType !== "all" ? (
                                 <>
-                                    <Icon icon="mingcute:search-line" className="w-12 h-12 text-muted-foreground/30 mb-4" />
-                                    <h3 className="font-semibold text-lg mb-2">No items found</h3>
-                                    <p className="text-muted-foreground text-sm mb-4">Try adjusting your search or filters</p>
-                                    <Button variant="ghost" onClick={() => { setSearchQuery(""); setFilterType("all"); }}>
-                                        Clear Filters
+                                    <Mascot expression="confused" size="large" />
+                                    <h3 className="font-semibold text-lg mb-2 mt-6">Tidak ada hasil</h3>
+                                    <p className="text-muted-foreground text-sm mb-6">Coba ubah pencarian atau filter Anda</p>
+                                    <Button variant="primary" onClick={() => { setSearchQuery(""); setFilterType("all"); }}>
+                                        Hapus Filter
                                     </Button>
                                 </>
                             ) : (
                                 <>
-                                    <Icon icon="mingcute:pic-line" className="w-12 h-12 text-muted-foreground/30 mb-4" />
-                                    <h3 className="font-semibold text-lg mb-2">Gallery is empty</h3>
+                                    <Mascot expression="confused" size="large" />
+                                    <h3 className="font-semibold text-lg mb-2 mt-6">Galeri kosong</h3>
                                     <p className="text-muted-foreground text-sm mb-6">
-                                        Your generated creations will appear here.
+                                        Hasil kreasi Anda akan muncul di sini!
                                     </p>
                                     <Button variant="primary" onClick={() => router.push("/?view=create")}>
-                                        Generate Your First Creation
+                                        Buat Kreasi Pertama
                                     </Button>
                                 </>
                             )}

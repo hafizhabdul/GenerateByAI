@@ -3,11 +3,15 @@
 import { Suspense } from "react";
 import { Sidebar } from "@/components/sidebar";
 import { VideoGenerator } from "@/components/video-generator";
+import { MascotLoading } from "@/components/mascot";
 
 function VideoGeneratorFallback() {
     return (
-        <div className="flex items-center justify-center h-full">
-            <div className="animate-pulse text-muted-foreground">Loading...</div>
+        <div className="flex items-center justify-center min-h-screen">
+            <MascotLoading
+                message="🎬 Squirrel sedang mempersiapkan generator video..."
+                submessage="Tunggu sebentar ya!"
+            />
         </div>
     );
 }

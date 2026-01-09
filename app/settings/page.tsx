@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { useToast } from "@/components/ui/toast";
 import { Icon } from "@iconify/react";
 import { useTheme } from "next-themes";
+import { MascotLoading } from "@/components/mascot";
 
 export default function SettingsPage() {
     const { showToast } = useToast();
@@ -22,7 +23,19 @@ export default function SettingsPage() {
         }
     }, []);
 
-    if (!mounted) return null;
+    if (!mounted) {
+        return (
+            <div className="flex min-h-screen min-h-[100dvh] w-full bg-background text-foreground">
+                <Sidebar />
+                <main className="flex-1 pl-0 md:pl-28 flex items-center justify-center">
+                    <MascotLoading
+                        message="⚙️ Squirrel sedang menyiapkan settings..."
+                        submessage="Tunggu sebentar ya!"
+                    />
+                </main>
+            </div>
+        );
+    }
 
     const handleNotificationToggle = (newValue: boolean) => {
         setNotifications(newValue);
