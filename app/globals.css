@@ -1,78 +1,87 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Geist&display=swap');
 @import "tailwindcss";
 
 :root {
   /* ═══════════════════════════════════════════════════════════════
-     PREMIUM DARK THEME - Playful But Elegant (Notion + Slack Inspired)
+     MODERN NUSANTARA THEME - Earth, Copper, & Craftsmanship
+     Option B: Deep Warm Charcoal + Copper/Terracotta
      ═══════════════════════════════════════════════════════════════ */
 
-  /* Core Colors - Deep & Sophisticated */
-  --background: #0f0f11; /* Notion-style deep black */
-  --foreground: #ffffff;
+  /* Core Palette - Warm Earth Tones */
+  --background: #1c1917;
+  /* Deep Warm Charcoal (Stone/Jati) */
+  --foreground: #fafaf9;
+  /* Warm White (Stone) */
 
-  /* Surface Hierarchy - Premium Gradient Feel */
-  --surface-1: #18181b;
-  --surface-2: #27272a;
+  /* Surface Hierarchy - Flat & Solid */
+  --surface-1: #292524;
+  /* Lighter Charcoal */
+  --surface-2: #44403c;
+  /* Stone Grey */
+  --surface-3: #57534e;
+  --surface-4: #78716c;
 
-  /* Gradients - Warm & Welcoming */
-  --gradient-text-from: #ffffff;
-  --gradient-text-to: #ffffff;
-  --surface-3: #3f3f46;
-  --surface-4: #52525b;
+  /* Primary - Copper / Terracotta (Batik Dye) */
+  --primary: #c2410c;
+  /* Burnt Orange/Copper - Bold & Earthy */
+  --primary-dark: #9a3412;
+  /* Deep Rust */
+  --primary-hover: #ea580c;
+  /* Brighter Copper */
+  --primary-light: #ffedd5;
+  /* Very light copper tint */
+  --primary-foreground: #ffffff;
+  --primary-glow: rgba(194, 65, 12, 0.2);
+  /* Subtle warm glow */
 
-  /* Card & Popover - High Contrast Borders */
-  --card: #18181b;
-  --card-foreground: #ffffff;
-  --popover: #27272a;
-  --popover-foreground: #ffffff;
+  /* Secondary - Stone/Neutral */
+  --secondary: #292524;
+  --secondary-foreground: #e7e5e4;
 
-  /* Primary - Bold Orange (Slack Confidence) */
-  --primary: #fb923c; /* Orange-400 - BOLD and confident */
-  --primary-dark: #ea580c; /* Orange-600 - darker variant */
-  --primary-hover: #f97316; /* Orange-500 */
-  --primary-light: #fde5cc; /* Orange-50 - soft warm accent */
-  --primary-foreground: #000000;
-  --primary-glow: rgba(251, 146, 60, 0.3); /* Orange glow for premium feel */
-
-  /* Secondary - Soft & Elegant (Notion Style) */
-  --secondary: #2e2e33;
-  --secondary-foreground: #e4e4e7;
+  /* Accents - Gold & Nature */
+  --accent: #d97706;
+  /* Muted Gold (Brass/Jewelry) */
+  --accent-foreground: #ffffff;
+  --accent-gold: #d97706;
+  --accent-gold-light: #fef3c7;
+  --accent-green: #15803d;
+  /* Foliage Green - Rare accent */
 
   /* Muted */
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-
-  /* Accent Colors - Playful & Premium */
-  --accent: #3f3f46;
-  --accent-foreground: #ffffff;
-  --accent-blue: #3b82f6; /* Helpful, trustworthy blue */
-  --accent-indigo: #4f46e5; /* Premium playful indigo - pairs with orange */
-  --accent-indigo-dark: #4338ca; /* Darker indigo for hover */
-  --accent-indigo-light: #e0e7ff; /* Light indigo for backgrounds */
-  --accent-gold: #d4af37; /* Premium accent - use sparingly */
-
-  /* Semantic Colors */
-  --success: #10b981; /* More refined green */
-  --success-foreground: #ffffff;
-  --warning: #f59e0b;
-  --warning-foreground: #000000;
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-  --info: #3b82f6;
-  --info-foreground: #ffffff;
+  --muted: #292524;
+  --muted-foreground: #a8a29e;
 
   /* Borders & Inputs */
-  --border: rgba(255, 255, 255, 0.08);
-  --border-hover: rgba(255, 255, 255, 0.15);
+  --border: #44403c;
+  /* Stone border */
+  --border-hover: #57534e;
   --input: #292524;
-  --ring: #f97316;
+  --ring: #c2410c;
+  /* Copper ring */
 
-  /* Radius System - Cute & Bubbly */
-  --radius-sm: 0.75rem;
-  --radius-md: 1rem;
-  --radius-lg: 1.5rem;
-  --radius-xl: 2rem;
-  --radius-2xl: 2.5rem;
+  /* Semantic Colors */
+  --success: #15803d;
+  /* Deep Natural Green */
+  --success-foreground: #ffffff;
+  --warning: #b45309;
+  /* Amber/Ochre */
+  --warning-foreground: #ffffff;
+  --destructive: #be123c;
+  /* Deep Red (Batik/Blood) */
+  --destructive-foreground: #ffffff;
+  --info: #0369a1;
+  /* Deep Ocean Blue */
+  --info-foreground: #ffffff;
+
+  /* Radius System - Sophisticated & Tighter */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  /* Standard button/input */
+  --radius-lg: 0.75rem;
+  /* Card */
+  --radius-xl: 1rem;
+  /* Modal */
+  --radius-2xl: 1.5rem;
   --radius-full: 9999px;
 
   /* Spacing Scale */
@@ -100,27 +109,28 @@
   --text-6xl: clamp(2.5rem, 2rem + 4vw, 3.75rem);
   --text-7xl: clamp(3rem, 2.5rem + 5vw, 4.5rem);
 
-  /* Shadows - Flatter/Cleaner */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+  /* Shadows - Minimal/Flat */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.4);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
   --shadow-glow: none;
-  --shadow-glow-lg: 0 0 40px var(--primary-glow);
+  /* Removed generic glow */
+  --shadow-glow-lg: none;
 
   /* Transitions */
-  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-base: 200ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slow: 300ms cubic-bezier(0.4, 0, 0.2, 1);
-  --transition-slower: 500ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-fast: 150ms ease-out;
+  --transition-base: 200ms ease-out;
+  --transition-slow: 300ms ease-out;
 
-  /* Z-Index Scale */
+  /* Z-Index */
   --z-toast: 800;
 
-  /* Glass Variables (Dark Default) */
-  --glass-bg: rgba(15, 15, 15, 0.6);
-  --glass-subtle-bg: rgba(10, 10, 10, 0.4);
-  --glass-panel-bg: rgba(8, 8, 8, 0.8);
+  /* Glass Variables (More Solid/Stone-like) */
+  --glass-bg: rgba(28, 25, 23, 0.95);
+  /* Nearly solid charcoal */
+  --glass-subtle-bg: rgba(28, 25, 23, 0.8);
+  --glass-panel-bg: #1c1917;
   --glass-border: var(--border);
 }
 
@@ -191,8 +201,8 @@
   /* Re-define standard border for Light Mode consistency if needed, but --border is mostly fine */
 }
 
-/* Tailwind Theme Integration */
-@theme inline {
+/* Tailwind Theme Integration (v4) */
+@theme {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -229,6 +239,8 @@
   --font-display: "Poppins", var(--font-sans);
 }
 
+
+
 /* ═══════════════════════════════════════════════════════════════
     BASE STYLES
     ═══════════════════════════════════════════════════════════════ */
@@ -256,7 +268,12 @@ body {
 }
 
 /* Playful Typography - Display Font for Headings */
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-display);
   letter-spacing: -0.02em;
 }
@@ -265,7 +282,8 @@ h1 {
   font-weight: 800;
 }
 
-h2, h3 {
+h2,
+h3 {
   font-weight: 700;
 }
 
@@ -378,10 +396,10 @@ body::before {
    ═══════════════════════════════════════════════════════════════ */
 
 .gradient-text {
-  background: linear-gradient(180deg, var(--gradient-text-from) 0%, var(--gradient-text-to) 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
+  color: var(--foreground);
+  /* Flattened */
+  background: none;
+  -webkit-text-fill-color: initial;
 }
 
 .gradient-primary {
@@ -552,39 +570,52 @@ body::before {
    ═══════════════════════════════════════════════════════════════ */
 
 @keyframes tilt {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: rotate(-2deg);
   }
+
   50% {
     transform: rotate(2deg);
   }
 }
 
 @keyframes headScratch {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0);
   }
+
   25% {
     transform: translateY(-4px) rotateZ(-5deg);
   }
+
   75% {
     transform: translateY(-4px) rotateZ(5deg);
   }
 }
 
 @keyframes wobble {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) scaleY(1);
   }
+
   50% {
     transform: translateY(2px) scaleY(0.95);
   }
 }
 
 @keyframes jump {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) scale(1);
   }
+
   50% {
     transform: translateY(-16px) scale(1.1);
   }
@@ -595,6 +626,7 @@ body::before {
     transform: scale(0) rotate(-30deg);
     opacity: 0;
   }
+
   100% {
     transform: scale(1) rotate(0);
     opacity: 1;
@@ -631,6 +663,7 @@ body::before {
     transform: translateY(0) rotateZ(0deg);
     opacity: 1;
   }
+
   100% {
     transform: translateY(-100px) rotateZ(720deg);
     opacity: 0;
@@ -642,6 +675,7 @@ body::before {
   0% {
     background-position: -1000px 0;
   }
+
   100% {
     background-position: 1000px 0;
   }
@@ -649,9 +683,12 @@ body::before {
 
 /* Glow pulse animation */
 @keyframes glowPulse {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(79, 70, 229, 0.3), 0 0 40px rgba(251, 146, 60, 0.1);
   }
+
   50% {
     box-shadow: 0 0 40px rgba(79, 70, 229, 0.5), 0 0 60px rgba(251, 146, 60, 0.2);
   }
@@ -663,6 +700,7 @@ body::before {
     transform: translateY(-20px);
     opacity: 0;
   }
+
   to {
     transform: translateY(0);
     opacity: 1;
@@ -671,9 +709,12 @@ body::before {
 
 /* Subtle rotate on hover */
 @keyframes subtleRotate {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: rotate(0deg);
   }
+
   50% {
     transform: rotate(2deg);
   }
@@ -857,31 +898,36 @@ body::before {
     BUTTON STYLES - Premium & Playful
     ═══════════════════════════════════════════════════════════════ */
 
-/* Primary Button - Bold Orange with Gradient */
+/* Primary Button - Solid Copper, No Gradient */
 .btn-primary,
 button[data-variant="primary"],
 [role="button"][data-variant="primary"] {
-  background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+  background: var(--primary);
   color: var(--primary-foreground);
-  box-shadow: 0 8px 24px rgba(251, 146, 60, 0.25);
-  transition: all var(--transition-base) cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 4px 0 var(--primary-dark);
+  /* Solid shadow for clicky feel */
+  transition: all var(--transition-fast);
   font-family: var(--font-display);
   font-weight: 600;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.1);
 }
 
 .btn-primary:hover,
 button[data-variant="primary"]:hover,
 [role="button"][data-variant="primary"]:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 32px rgba(251, 146, 60, 0.35);
+  transform: translateY(-2px);
+  background: var(--primary-hover);
+  box-shadow: 0 6px 0 var(--primary-dark);
 }
 
 .btn-primary:active,
 button[data-variant="primary"]:active,
 [role="button"][data-variant="primary"]:active {
-  transform: scale(0.98);
-  box-shadow: 0 4px 12px rgba(251, 146, 60, 0.25);
+  transform: translateY(2px);
+  box-shadow: 0 0 0 var(--primary-dark);
 }
+
+
 
 /* Secondary Button - Elegant with Border */
 .btn-secondary,

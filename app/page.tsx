@@ -10,6 +10,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import type { Generation } from "@/lib/supabase/types";
 import { MascotLoading } from "@/components/mascot";
+import { BatikPattern } from "@/components/ui/batik-pattern";
 
 function HomeContent() {
   const searchParams = useSearchParams();
@@ -83,35 +84,43 @@ function HomeContent() {
         <Sidebar />
         <main className="flex-1 flex flex-col relative w-full pl-0 md:pl-28 pb-20 md:pb-0">
           <div className="flex-1 flex flex-col items-center justify-center p-4 md:p-8 lg:p-10 max-w-4xl mx-auto w-full">
-            {/* Welcome Hero */}
-             <div className="text-center space-y-8 w-full">
-               <div className="w-28 h-28 mx-auto mb-8 animate-bounce">
-                 <img src="/mascot.png" alt="SquirrAI" className="w-full h-full drop-shadow-2xl" />
-               </div>
-               <div className="space-y-3">
-                 <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight">
-                   Selamat datang di <span className="bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">SquirrAI</span>
-                 </h1>
-                 <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
-                   Platform AI terdepan untuk generate gambar dan video berkualitas tinggi. Buat konten amazing bersama Squirrel! 🐿️
-                 </p>
-               </div>
+            {/* Welcome Hero - Modern Nusantara */}
+            <div className="text-center space-y-8 w-full relative z-10">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] -z-10 opacity-20 pointer-events-none">
+                <BatikPattern color="currentColor" />
+              </div>
 
-               {/* CTA Buttons */}
-               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
-                 <Link href="/login">
-                   <button className="w-full sm:w-auto px-10 py-4 rounded-2xl btn-primary text-lg flex items-center justify-center gap-2">
-                     <Icon icon="mingcute:login-fill" className="w-6 h-6" />
-                     Login
-                   </button>
-                 </Link>
-                 <Link href="/register">
-                   <button className="w-full sm:w-auto px-10 py-4 rounded-2xl btn-secondary text-lg flex items-center justify-center gap-2">
-                     <Icon icon="mingcute:user-add-fill" className="w-6 h-6" />
-                     Daftar Gratis
-                   </button>
-                 </Link>
-               </div>
+              <div className="w-24 h-24 mx-auto mb-8 relative">
+                <div className="absolute inset-0 bg-primary/20 blur-2xl rounded-full"></div>
+                <img src="/mascot.png" alt="SquirrAI" className="w-full h-full drop-shadow-lg relative z-10" />
+              </div>
+              <div className="space-y-4">
+                <h1 className="text-4xl md:text-5xl lg:text-7xl font-bold tracking-tight text-foreground">
+                  Selamat datang di <span className="text-primary relative inline-block">
+                    SquirrAI
+                    <span className="absolute -bottom-2 left-0 w-full h-1 bg-primary/20 rounded-full"></span>
+                  </span>
+                </h1>
+                <p className="text-muted-foreground text-lg md:text-xl max-w-2xl mx-auto leading-relaxed">
+                  Platform AI kreatif buatan lokal. Ciptakan gambar dan video berkualitas tinggi dengan sentuhan Nusantara.
+                </p>
+              </div>
+
+              {/* CTA Buttons - Flat & Solid */}
+              <div className="flex flex-col sm:flex-row gap-4 justify-center pt-8">
+                <Link href="/login">
+                  <button className="w-full sm:w-auto px-10 py-4 rounded-xl btn-primary text-lg flex items-center justify-center gap-2 shadow-none border-b-4 border-primary-dark active:border-b-0 active:translate-y-1 transition-all">
+                    <Icon icon="mingcute:login-fill" className="w-6 h-6" />
+                    Masuk
+                  </button>
+                </Link>
+                <Link href="/register">
+                  <button className="w-full sm:w-auto px-10 py-4 rounded-xl btn-secondary text-lg flex items-center justify-center gap-2 border-b-4 border-border-hover active:border-b-0 active:translate-y-1 transition-all">
+                    <Icon icon="mingcute:user-add-fill" className="w-6 h-6" />
+                    Daftar Gratis
+                  </button>
+                </Link>
+              </div>
 
               {/* Free Credits Banner */}
               <div className="mt-10 p-5 rounded-2xl bg-primary/10 border border-primary/20 max-w-md mx-auto">
@@ -182,40 +191,38 @@ function HomeContent() {
             {/* Bento Grid Layout */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4 lg:gap-6 auto-rows-[140px] md:auto-rows-[160px] lg:auto-rows-[180px]">
 
-              {/* Main Action: Create Image */}
-               <Link
-                 href="/?view=create&new=true"
-                 className="group col-span-2 row-span-2 relative overflow-hidden rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-gradient-to-br from-primary via-primary to-primary-dark text-primary-foreground p-4 md:p-6 lg:p-8 cursor-pointer transition-all hover:scale-[1.02] hover:shadow-2xl hover:shadow-primary/30"
-               >
-                <div className="absolute -right-4 md:-right-8 -bottom-8 md:-bottom-16 w-40 md:w-56 lg:w-64 h-48 md:h-64 lg:h-72 opacity-90 group-hover:scale-110 transition-transform duration-500 overflow-hidden">
-                  <img src="/maskot.png" alt="SquirrAI Mascot" className="w-full h-auto object-cover object-top drop-shadow-2xl" style={{ marginBottom: '-60px' }} />
+              {/* Main Action: Create Image - Solid Copper */}
+              <Link
+                href="/?view=create&new=true"
+                className="group col-span-2 row-span-2 relative overflow-hidden rounded-xl md:rounded-2xl bg-primary text-primary-foreground p-4 md:p-6 lg:p-8 cursor-pointer transition-all hover:translate-y-[-2px] border-b-4 border-primary-dark active:border-b-0 active:translate-y-0"
+              >
+                <BatikPattern opacity={0.2} color="white" />
+                <div className="absolute -right-4 md:-right-8 -bottom-8 md:-bottom-16 w-40 md:w-56 lg:w-64 h-48 md:h-64 lg:h-72 opacity-90 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
+                  <img src="/maskot.png" alt="SquirrAI Mascot" className="w-full h-auto object-cover object-top drop-shadow-lg" style={{ marginBottom: '-60px' }} />
                 </div>
                 <div className="relative z-10 h-full flex flex-col justify-between">
-                  <div className="p-2 md:p-3 bg-black/10 w-fit rounded-xl md:rounded-2xl backdrop-blur-sm">
+                  <div className="p-2 md:p-3 bg-white/10 w-fit rounded-lg backdrop-blur-sm">
                     <Icon icon="mingcute:ai-fill" className="w-6 h-6 md:w-8 md:h-8" />
                   </div>
                   <div className="max-w-[65%] md:max-w-[60%]">
-                    <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-1 md:mb-2">Generate Images</h2>
-                    <p className="opacity-90 text-sm md:text-base lg:text-lg">Create cute & amazing visuals with our AI.</p>
+                    <h2 className="text-xl md:text-2xl lg:text-3xl font-bold mb-1 md:mb-2 text-white">Buat Gambar</h2>
+                    <p className="opacity-90 text-sm md:text-base lg:text-lg text-white/90">Visual nusantara & modern dalam sekejap.</p>
                   </div>
-                  <div className="flex items-center gap-2 font-bold mt-2 md:mt-4 text-sm md:text-base group-hover:translate-x-2 transition-transform">
-                    Start Creating <Icon icon="mingcute:arrow-right-fill" />
+                  <div className="flex items-center gap-2 font-bold mt-2 md:mt-4 text-sm md:text-base group-hover:gap-3 transition-all text-white">
+                    Mulai Sekarang <Icon icon="mingcute:arrow-right-fill" />
                   </div>
                 </div>
               </Link>
 
-              {/* Secondary Action: Video */}
-              <Link href="/videos?new=true" className="group col-span-1 row-span-2 relative overflow-hidden rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-surface-2 border border-border p-4 md:p-6 transition-all hover:scale-[1.02] hover:border-primary/50">
-                <div className="absolute -right-4 -bottom-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Icon icon="mingcute:movie-fill" className="w-28 md:w-40 h-28 md:h-40 -rotate-12" />
-                </div>
+              {/* Secondary Action: Video - Solid Surface */}
+              <Link href="/videos?new=true" className="group col-span-1 row-span-2 relative overflow-hidden rounded-xl md:rounded-2xl bg-surface-2 border border-border p-4 md:p-6 transition-all hover:border-primary/50">
                 <div className="relative z-10 h-full flex flex-col justify-between">
-                  <div className="p-2 md:p-3 bg-surface-3 w-fit rounded-xl md:rounded-2xl">
-                    <Icon icon="mingcute:video-fill" className="w-5 h-5 md:w-6 md:h-6 text-blue-400" />
+                  <div className="p-2 md:p-3 bg-surface-3 w-fit rounded-lg">
+                    <Icon icon="mingcute:video-fill" className="w-5 h-5 md:w-6 md:h-6 text-primary" />
                   </div>
                   <div>
-                    <h3 className="text-lg md:text-xl font-bold mb-1">AI Video</h3>
-                    <p className="text-muted-foreground text-xs md:text-sm">Animate your stories.</p>
+                    <h3 className="text-lg md:text-xl font-bold mb-1">Video AI</h3>
+                    <p className="text-muted-foreground text-xs md:text-sm">Animasi dari gambar.</p>
                   </div>
                 </div>
               </Link>
