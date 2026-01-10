@@ -359,8 +359,11 @@ export async function checkImageGenerationStatus(requestId: string): Promise<{
         logs: true
     });
 
-    if (status.status === "COMPLETED") {
-        const data = status.data as {
+    // Cast to any to handle type discrepancies in the SDK
+    const anyStatus = status as any;
+
+    if (anyStatus.status === "COMPLETED") {
+        const data = anyStatus.data as {
             images?: Array<{ url: string }>;
             image?: { url: string };
             url?: string;
@@ -373,10 +376,7 @@ export async function checkImageGenerationStatus(requestId: string): Promise<{
         };
     }
 
-    if (status.status === "FAILED") { // Note: 'FAILED' might not be the exact string from SDK, usually 'COMPLETED' with error or 'IN_PROGRESS'
-        // Actually fal.queue.status returns { status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'OC_ERROR' | ... }
-        // We'll treat checking logs or error field if needed.
-        // But purely based on types, if it failed, it might throw or return generic error.
+    if (anyStatus.status === "FAILED") {
         return {
             status: "FAILED",
             error: "Generation failed"
