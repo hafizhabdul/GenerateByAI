@@ -375,633 +375,637 @@ export function ImageGenerator() {
         if (!pendingGenerationId || !user) return;
 
         const checkPendingResult = async () => {
-            try {
-                // Check if the generation completed in the database
-                const res = await fetch(`/api/generations?limit=5`);
-                if (res.ok) {
-                    const data = await res.json();
-                    const generations = data.generations || [];
-
-                    // Find pending item in feed
-                    const pendingItem = feed.find(item => item.id === pendingGenerationId);
-                    if (!pendingItem) {
-                        setLoading(false);
-                        setPendingGenerationId(null);
-                        return;
-                    }
-
-                    // Look for matching completed generation by prompt
-                    const matchedGeneration = generations.find((g: Generation) =>
-                        g.prompt === pendingItem.prompt &&
-                        g.status === "completed" &&
-                        g.file_url
-                    );
-
-                    if (matchedGeneration) {
-                        // Update feed with the result
-                        setFeed(prev => prev.map(item =>
-                            item.id === pendingGenerationId
-                                ? { ...item, id: matchedGeneration.id, status: "completed", file_url: matchedGeneration.file_url }
-                                : item
-                        ));
-                        setLoading(false);
-                        setPendingGenerationId(null);
-                        clearPendingGeneration(user.id);
-                        showToast("Image generation completed!", "success");
-                    }
-                }
-            } catch (error) {
-                console.error("Error checking pending:", error);
-            }
-        };
-
-        // Poll every 3 seconds while there's a pending generation
-        const interval = setInterval(checkPendingResult, 3000);
-        checkPendingResult(); // Check immediately
-
-        return () => clearInterval(interval);
-    }, [pendingGenerationId, user, feed]);
-
-    // Save session whenever feed changes (after initial load)
-    useEffect(() => {
-        if (sessionLoaded && user) {
-            saveSession(user.id, feed, isHero);
-        }
-    }, [feed, isHero, sessionLoaded, user]);
-
-    // Auto-scroll to bottom when feed updates
-    useEffect(() => {
-        if (scrollRef.current && feed.length > 0) {
-            // Use setTimeout to ensure DOM has updated
-            setTimeout(() => {
-                if (scrollRef.current) {
-                    scrollRef.current.scrollTo({
-                        top: scrollRef.current.scrollHeight,
-                        behavior: 'smooth'
-                    });
-                }
-            }, 100);
-        }
-    }, [feed]);
-
-    // Fetch history when panel opens
-    useEffect(() => {
-        if (showHistory && user) {
-            fetchHistory();
-        }
-    }, [showHistory, user]);
-
-    const fetchHistory = async () => {
-        setLoadingHistory(true);
-        try {
-            // Fetch sessions from database API
-            const res = await fetch("/api/sessions?type=image&limit=50");
-            if (res.ok) {
-                const data = await res.json();
-                setHistorySessions(data.sessions || []);
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setLoadingHistory(false);
-        }
-    };
-
-    // Helper to format session date like ChatGPT
-    const formatSessionDate = (dateStr: string): string => {
-        const date = new Date(dateStr);
-        const now = new Date();
-        const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 0) return "Today";
-        if (diffDays === 1) return "Yesterday";
-        if (diffDays < 7) return date.toLocaleDateString("en-US", { weekday: "long" });
-        return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
-    };
-
-    // Upload image for transform mode
-    const uploadTransformImage = async (file: File): Promise<string> => {
-        const formData = new FormData();
-        formData.append("file", file);
-
-        const res = await fetch("/api/upload", {
-            method: "POST",
-            body: formData,
-        });
-
-        if (!res.ok) {
-            const data = await res.json();
-            throw new Error(data.error || "Failed to upload image");
-        }
-
-        const data = await res.json();
-        return data.url;
-    };
-
-    // Handle transform image selection
-    const handleTransformImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            if (!file.type.startsWith("image/")) {
-                showToast("Please upload an image file", "error");
-                return;
-            }
-            if (file.size > 10 * 1024 * 1024) {
-                showToast("Image must be less than 10MB", "error");
-                return;
-            }
-            setTransformFile(file);
-            const reader = new FileReader();
-            reader.onload = (e) => setTransformImage(e.target?.result as string);
-            reader.readAsDataURL(file);
-        }
-    };
-
-    // Remove transform image
-    const removeTransformImage = () => {
-        setTransformImage(null);
-        setTransformFile(null);
-        if (transformInputRef.current) transformInputRef.current.value = "";
-    };
-
-    const handleGenerate = useCallback(async () => {
-        if (!prompt.trim()) {
-            showToast("Please enter a prompt to generate", "warning");
-            return;
-        }
-
-        // For transform mode, require an image
-        if (mode === "transform" && !transformImage && !transformFile) {
-            showToast("Please upload an image to transform", "warning");
-            return;
-        }
-
-        const currentPrompt = prompt;
-        const currentTransformFile = transformFile;
-        const currentTransformImage = transformImage;
-
-        setError(null); // Clear previous errors
-        setPrompt(""); // Clear immediately
-        setIsHero(false);
-        setLoading(true);
-        setShowHistory(false);
-
-        // Clear transform image after starting
-        if (mode === "transform") {
-            setTransformImage(null);
-            setTransformFile(null);
-            if (transformInputRef.current) transformInputRef.current.value = "";
-        }
-
-        // Clear draft since generation has started
-        if (user) clearDraft(user.id);
-
-        // Optimistic Update: Add pending item to feed
-        const tempId = Date.now().toString();
-        const optimisticItem: FeedItem = {
-            id: tempId,
-            type: "image",
-            prompt: currentPrompt,
-            status: "pending",
-            created_at: new Date().toISOString()
-        };
-
-        setFeed(prev => [...prev, optimisticItem]);
-        setPendingGenerationId(tempId);
-        if (user) savePendingGeneration(user.id, tempId, currentPrompt);
-
-        try {
-            if (mode === "transform") {
-                // Upload the image first if it's a file
-                let imageUrl: string;
-                if (currentTransformFile) {
-                    imageUrl = await uploadTransformImage(currentTransformFile);
-                } else if (currentTransformImage) {
-                    // It's already a URL
-                    imageUrl = currentTransformImage;
-                } else {
-                    throw new Error("No image to transform");
-                }
-
-                // Get quality setting
-                const quality = localStorage.getItem("generation_quality") || "high";
-
-                const res = await fetch("/api/transform-image", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        imageUrl,
-                        prompt: currentPrompt,
-                        quality,
-                    }),
-                });
-
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || "Transformation failed");
-
-                // Update optimistic item with result
-                setFeed(prev => prev.map(item =>
-                    item.id === tempId
-                        ? { ...item, id: data.generation?.id || tempId, status: "completed", file_url: data.imageUrl }
-                        : item
-                ));
-
-                showToast("Image transformed successfully!", "success");
-            } else {
-                // Standard generation mode
-                const quality = localStorage.getItem("generation_quality") || "high";
-
-                const res = await fetch("/api/generate-image", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ prompt: currentPrompt, quality }),
-                });
-
-                const data = await res.json();
-                if (!res.ok) throw new Error(data.error || "Generation failed");
-
-                // Update optimistic item with result
-                setFeed(prev => prev.map(item =>
-                    item.id === tempId
-                        ? { ...item, id: data.generationId || tempId, status: "completed", file_url: data.url }
-                        : item
-                ));
-
-                showToast("Image generated successfully!", "success");
+            // Trigger explicit check which will update DB if Fal completed
+            if (pendingGenerationId) {
+                await fetch(`/api/generations/${pendingGenerationId}/check`);
             }
 
-            if (user) clearPendingGeneration(user.id);
-
-            // Refresh profile to update credits immediately
-            await refreshProfile();
-        } catch (err) {
-            console.error(err);
-            const errorMessage = err instanceof Error ? err.message : "Failed to generate image";
-            setError(errorMessage);
-            showToast(errorMessage, "error");
-
-            // Mark item as failed
-            setFeed(prev => prev.map(item =>
-                item.id === tempId
-                    ? { ...item, status: "failed" }
-                    : item
-            ));
-            if (user) clearPendingGeneration(user.id);
-        } finally {
-            setLoading(false);
-            setPendingGenerationId(null);
-        }
-    }, [prompt, mode, transformFile, transformImage, user, showToast, refreshProfile]);
-
-    const handleSelectFromHistory = useCallback(async (session: HistorySession) => {
-        // Fetch generations for this session from API
-        try {
-            const res = await fetch(`/api/sessions/${session.id}`);
+            // Check if the generation completed in the database
+            const res = await fetch(`/api/generations?limit=5`);
             if (res.ok) {
                 const data = await res.json();
                 const generations = data.generations || [];
 
-                const feedItems: FeedItem[] = generations.map((item: any) => ({
-                    id: item.id,
-                    type: item.type,
-                    prompt: item.prompt,
-                    file_url: item.file_url || undefined,
-                    status: item.status,
-                    created_at: item.created_at
-                }));
+                // Find pending item in feed
+                const pendingItem = feed.find(item => item.id === pendingGenerationId);
+                if (!pendingItem) {
+                    setLoading(false);
+                    setPendingGenerationId(null);
+                    return;
+                }
 
-                setFeed(feedItems);
-                setCurrentSessionId(session.id);
-                setIsHero(false);
-                setShowHistory(false);
-                showToast(`Loaded session with ${session.generation_count} generation${session.generation_count > 1 ? 's' : ''}`, "info");
+                // Look for matching completed generation by prompt
+                const matchedGeneration = generations.find((g: Generation) =>
+                    g.prompt === pendingItem.prompt &&
+                    g.status === "completed" &&
+                    g.file_url
+                );
+
+                if (matchedGeneration) {
+                    // Update feed with the result
+                    setFeed(prev => prev.map(item =>
+                        item.id === pendingGenerationId
+                            ? { ...item, id: matchedGeneration.id, status: "completed", file_url: matchedGeneration.file_url }
+                            : item
+                    ));
+                    setLoading(false);
+                    setPendingGenerationId(null);
+                    clearPendingGeneration(user.id);
+                    showToast("Image generation completed!", "success");
+                }
             }
         } catch (error) {
-            console.error(error);
-            showToast("Failed to load session", "error");
+            console.error("Error checking pending:", error);
         }
-    }, [showToast]);
+    };
+
+    // Poll every 3 seconds while there's a pending generation
+    const interval = setInterval(checkPendingResult, 3000);
+    checkPendingResult(); // Check immediately
+
+    return () => clearInterval(interval);
+}, [pendingGenerationId, user, feed]);
+
+// Save session whenever feed changes (after initial load)
+useEffect(() => {
+    if (sessionLoaded && user) {
+        saveSession(user.id, feed, isHero);
+    }
+}, [feed, isHero, sessionLoaded, user]);
+
+// Auto-scroll to bottom when feed updates
+useEffect(() => {
+    if (scrollRef.current && feed.length > 0) {
+        // Use setTimeout to ensure DOM has updated
+        setTimeout(() => {
+            if (scrollRef.current) {
+                scrollRef.current.scrollTo({
+                    top: scrollRef.current.scrollHeight,
+                    behavior: 'smooth'
+                });
+            }
+        }, 100);
+    }
+}, [feed]);
+
+// Fetch history when panel opens
+useEffect(() => {
+    if (showHistory && user) {
+        fetchHistory();
+    }
+}, [showHistory, user]);
+
+const fetchHistory = async () => {
+    setLoadingHistory(true);
+    try {
+        // Fetch sessions from database API
+        const res = await fetch("/api/sessions?type=image&limit=50");
+        if (res.ok) {
+            const data = await res.json();
+            setHistorySessions(data.sessions || []);
+        }
+    } catch (error) {
+        console.error(error);
+    } finally {
+        setLoadingHistory(false);
+    }
+};
+
+// Helper to format session date like ChatGPT
+const formatSessionDate = (dateStr: string): string => {
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return date.toLocaleDateString("en-US", { weekday: "long" });
+    return date.toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" });
+};
+
+// Upload image for transform mode
+const uploadTransformImage = async (file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+    });
+
+    if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Failed to upload image");
+    }
+
+    const data = await res.json();
+    return data.url;
+};
+
+// Handle transform image selection
+const handleTransformImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        if (!file.type.startsWith("image/")) {
+            showToast("Please upload an image file", "error");
+            return;
+        }
+        if (file.size > 10 * 1024 * 1024) {
+            showToast("Image must be less than 10MB", "error");
+            return;
+        }
+        setTransformFile(file);
+        const reader = new FileReader();
+        reader.onload = (e) => setTransformImage(e.target?.result as string);
+        reader.readAsDataURL(file);
+    }
+};
+
+// Remove transform image
+const removeTransformImage = () => {
+    setTransformImage(null);
+    setTransformFile(null);
+    if (transformInputRef.current) transformInputRef.current.value = "";
+};
+
+const handleGenerate = useCallback(async () => {
+    if (!prompt.trim()) {
+        showToast("Please enter a prompt to generate", "warning");
+        return;
+    }
+
+    // For transform mode, require an image
+    if (mode === "transform" && !transformImage && !transformFile) {
+        showToast("Please upload an image to transform", "warning");
+        return;
+    }
+
+    const currentPrompt = prompt;
+    const currentTransformFile = transformFile;
+    const currentTransformImage = transformImage;
+
+    setError(null); // Clear previous errors
+    setPrompt(""); // Clear immediately
+    setIsHero(false);
+    setLoading(true);
+    setShowHistory(false);
+
+    // Clear transform image after starting
+    if (mode === "transform") {
+        setTransformImage(null);
+        setTransformFile(null);
+        if (transformInputRef.current) transformInputRef.current.value = "";
+    }
+
+    // Clear draft since generation has started
+    if (user) clearDraft(user.id);
+
+    // Optimistic Update: Add pending item to feed
+    const tempId = Date.now().toString();
+    const optimisticItem: FeedItem = {
+        id: tempId,
+        type: "image",
+        prompt: currentPrompt,
+        status: "pending",
+        created_at: new Date().toISOString()
+    };
+
+    setFeed(prev => [...prev, optimisticItem]);
+    setPendingGenerationId(tempId);
+    if (user) savePendingGeneration(user.id, tempId, currentPrompt);
+
+    try {
+        if (mode === "transform") {
+            // Upload the image first if it's a file
+            let imageUrl: string;
+            if (currentTransformFile) {
+                imageUrl = await uploadTransformImage(currentTransformFile);
+            } else if (currentTransformImage) {
+                // It's already a URL
+                imageUrl = currentTransformImage;
+            } else {
+                throw new Error("No image to transform");
+            }
+
+            // Get quality setting
+            const quality = localStorage.getItem("generation_quality") || "high";
+
+            const res = await fetch("/api/transform-image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    imageUrl,
+                    prompt: currentPrompt,
+                    quality,
+                }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Transformation failed");
+
+            // Update optimistic item with result
+            setFeed(prev => prev.map(item =>
+                item.id === tempId
+                    ? { ...item, id: data.generation?.id || tempId, status: "completed", file_url: data.imageUrl }
+                    : item
+            ));
+
+            showToast("Image transformed successfully!", "success");
+        } else {
+            // Standard generation mode
+            const quality = localStorage.getItem("generation_quality") || "high";
+
+            const res = await fetch("/api/generate-image", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ prompt: currentPrompt, quality }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || "Generation failed");
+
+            // Update optimistic item with result
+            setFeed(prev => prev.map(item =>
+                item.id === tempId
+                    ? { ...item, id: data.generationId || tempId, status: "completed", file_url: data.url }
+                    : item
+            ));
+
+            showToast("Image generated successfully!", "success");
+        }
+
+        if (user) clearPendingGeneration(user.id);
+
+        // Refresh profile to update credits immediately
+        await refreshProfile();
+    } catch (err) {
+        console.error(err);
+        const errorMessage = err instanceof Error ? err.message : "Failed to generate image";
+        setError(errorMessage);
+        showToast(errorMessage, "error");
+
+        // Mark item as failed
+        setFeed(prev => prev.map(item =>
+            item.id === tempId
+                ? { ...item, status: "failed" }
+                : item
+        ));
+        if (user) clearPendingGeneration(user.id);
+    } finally {
+        setLoading(false);
+        setPendingGenerationId(null);
+    }
+}, [prompt, mode, transformFile, transformImage, user, showToast, refreshProfile]);
+
+const handleSelectFromHistory = useCallback(async (session: HistorySession) => {
+    // Fetch generations for this session from API
+    try {
+        const res = await fetch(`/api/sessions/${session.id}`);
+        if (res.ok) {
+            const data = await res.json();
+            const generations = data.generations || [];
+
+            const feedItems: FeedItem[] = generations.map((item: any) => ({
+                id: item.id,
+                type: item.type,
+                prompt: item.prompt,
+                file_url: item.file_url || undefined,
+                status: item.status,
+                created_at: item.created_at
+            }));
+
+            setFeed(feedItems);
+            setCurrentSessionId(session.id);
+            setIsHero(false);
+            setShowHistory(false);
+            showToast(`Loaded session with ${session.generation_count} generation${session.generation_count > 1 ? 's' : ''}`, "info");
+        }
+    } catch (error) {
+        console.error(error);
+        showToast("Failed to load session", "error");
+    }
+}, [showToast]);
 
 
 
-    return (
-        <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
-            {/* Sticky Header - Unified with Back to Dashboard */}
-            <div className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-xl border-b border-border/50">
-                <div className="w-full px-4 md:px-6 py-3">
-                    <div className="max-w-5xl mx-auto flex items-center justify-between md:pl-24">
-                        {/* Left: Back + Title */}
-                        <div className="flex items-center gap-3">
+return (
+    <div className="flex flex-col h-full min-h-[calc(100vh-80px)] md:min-h-screen w-full relative overflow-hidden">
+        {/* Sticky Header - Unified with Back to Dashboard */}
+        <div className="sticky top-0 z-50 w-full bg-background/95 backdrop-blur-xl border-b border-border/50">
+            <div className="w-full px-4 md:px-6 py-3">
+                <div className="max-w-5xl mx-auto flex items-center justify-between md:pl-24">
+                    {/* Left: Back + Title */}
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => router.push("/")}
+                            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                            <Icon icon="mingcute:arrow-left-line" className="w-4 h-4" />
+                            <span className="hidden sm:inline">Dashboard</span>
+                        </button>
+                        <div className="w-px h-4 bg-border hidden sm:block" />
+                        <span className="font-semibold text-foreground">Image Studio</span>
+                    </div>
+
+                    {/* Right: Actions */}
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={() => setShowHistory(true)}
+                            className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-all text-sm flex items-center gap-1.5"
+                        >
+                            <Icon icon="mingcute:history-line" className="w-4 h-4" />
+                            <span className="hidden sm:inline">History</span>
+                        </button>
+                        <Button
+                            variant="glass"
+                            size="sm"
+                            onClick={handleNewSession}
+                            className="gap-1.5"
+                        >
+                            <Icon icon="mingcute:add-line" className="w-4 h-4" />
+                            <span>New</span>
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {/* History Panel */}
+        {showHistory && (
+            <div
+                className="fixed inset-0 z-50 bg-black/80 animate-fade-in"
+                onClick={() => setShowHistory(false)}
+            >
+                <div
+                    className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-card border-l border-border animate-slide-in-right overflow-hidden flex flex-col"
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between p-4 border-b border-border">
+                        <h2 className="font-semibold">History</h2>
+                        <button
+                            onClick={() => setShowHistory(false)}
+                            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-muted-foreground hover:text-foreground"
+                        >
+                            ✕
+                        </button>
+                    </div>
+                    {/* History List - Sessions like ChatGPT */}
+                    <div ref={historyListRef} className="flex-1 overflow-y-auto">
+                        {loadingHistory ? (
+                            <div className="flex items-center justify-center py-12">
+                                <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                            </div>
+                        ) : historySessions.length > 0 ? (
+                            <div className="divide-y divide-border">
+                                {historySessions.map((session) => (
+                                    <button
+                                        key={session.id}
+                                        onClick={() => handleSelectFromHistory(session)}
+                                        className="w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3"
+                                    >
+                                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-2 shrink-0">
+                                            {session.preview_image ? (
+                                                <img src={session.preview_image} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                                                    <Icon icon="mingcute:pic-line" className="w-6 h-6 opacity-30" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm line-clamp-2 mb-1.5 text-foreground/90">{session.title || session.first_prompt || "Untitled"}</p>
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-xs text-muted-foreground">{formatSessionDate(session.updated_at)}</span>
+                                                {session.generation_count > 1 && (
+                                                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-muted-foreground">
+                                                        {session.generation_count} images
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center py-12 text-center px-4">
+                                <Icon icon="mingcute:pic-line" className="w-10 h-10 text-muted-foreground/30 mb-3" />
+                                <p className="text-muted-foreground">No image history yet</p>
+                                <p className="text-xs text-muted-foreground/70 mt-1">Your generated images will appear here</p>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        {/* Main Stage (Feed) */}
+        <div
+            ref={scrollRef}
+            className={cn(
+                "flex-1 overflow-y-auto overflow-x-hidden scroll-smooth",
+                isHero ? "flex items-center justify-center p-4" : "p-4 md:p-8 pb-72 md:pb-80"
+            )}
+        >
+            {/* Hero Content - Moved Up Significantly */}
+            <div className={cn(
+                "text-center space-y-4 md:space-y-6 transition-all duration-700 max-w-2xl mx-auto px-4",
+                isHero ? "opacity-100 translate-y-[-100px] md:translate-y-[-120px]" : "hidden"
+            )}>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
+                    <Icon icon="mingcute:palette-fill" className="w-4 h-4" />
+                    SquirrAI
+                </div>
+                <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
+                    Dream it. <br className="md:hidden" />
+                    <span className="text-muted-foreground/50">Create it.</span>
+                </h1>
+            </div>
+
+            {/* Loading State with Mascot */}
+            {loading && (
+                <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-2xl">
+                    <GenerationLoading type={mode === "transform" ? "video" : "image"} />
+                </div>
+            )}
+
+            {/* Error State with Mascot */}
+            {error && !loading && (
+                <div className="w-full max-w-2xl mx-auto mb-8 p-6 rounded-2xl bg-destructive/10 border border-destructive/20 animate-fade-in">
+                    <div className="flex items-center gap-4">
+                        <Icon icon="mingcute:alert-circle-fill" className="w-6 h-6 text-destructive shrink-0" />
+                        <div className="flex-1">
+                            <p className="font-semibold text-destructive mb-3">{error}</p>
                             <button
-                                onClick={() => router.push("/")}
-                                className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+                                onClick={() => setError(null)}
+                                className="text-sm text-destructive hover:underline font-medium"
                             >
-                                <Icon icon="mingcute:arrow-left-line" className="w-4 h-4" />
-                                <span className="hidden sm:inline">Dashboard</span>
+                                Dismiss Error
                             </button>
-                            <div className="w-px h-4 bg-border hidden sm:block" />
-                            <span className="font-semibold text-foreground">Image Studio</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Feed Items (Chat Style) */}
+            {!isHero && !loading && (
+                <div className="w-full max-w-3xl mx-auto space-y-12">
+                    {feed.map((item) => (
+                        <FeedItemCard key={item.id} item={item} />
+                    ))}
+                </div>
+            )}
+        </div>
+
+        {/* Hidden file input for transform mode */}
+        <input
+            ref={transformInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleTransformImageSelect}
+            className="hidden"
+        />
+
+        {/* Floating Input Bar - Unified Premium Design */}
+        <div className={cn(
+            "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
+            isHero
+                ? "bottom-1/2 translate-y-[calc(50%+60px)] md:translate-y-[calc(50%+80px)]"
+                : "bottom-20 md:bottom-8"
+        )}
+            style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
+        >
+            <div className="w-full max-w-2xl mx-auto md:pl-24">
+                {/* Clean Solid Container with Batik Touch - Crafted Stone Style */}
+                <div className="relative rounded-xl overflow-hidden shadow-2xl transition-all duration-300 group/container border-2 border-primary/20 bg-surface-2 focus-within:border-primary">
+                    {/* Subtle Batik Pattern Watermark - Visible on empty or focus */}
+                    <div className="absolute inset-0 pointer-events-none">
+                        <BatikPattern color="currentColor" opacity={0.05} />
+                    </div>
+
+                    {/* No more glow border, using solid border in parent */}
+
+                    {/* Inner Content */}
+                    <div className="relative bg-transparent">
+                        {/* Mode Toggle - Minimal Top Bar */}
+                        <div className="flex items-center gap-4 px-4 py-3">
+                            <button
+                                onClick={() => setMode("generate")}
+                                className={cn(
+                                    "relative flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5",
+                                    mode === "generate"
+                                        ? "text-foreground"
+                                        : "text-muted-foreground hover:text-foreground/70"
+                                )}
+                            >
+                                <span>Generate</span>
+                                {mode === "generate" && (
+                                    <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
+                                )}
+                            </button>
+                            <button
+                                onClick={() => setMode("transform")}
+                                className={cn(
+                                    "relative flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5",
+                                    mode === "transform"
+                                        ? "text-foreground"
+                                        : "text-muted-foreground hover:text-foreground/70"
+                                )}
+                            >
+                                <span>Transform</span>
+                                {mode === "transform" && (
+                                    <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
+                                )}
+                            </button>
                         </div>
 
-                        {/* Right: Actions */}
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setShowHistory(true)}
-                                className="px-3 py-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-2 transition-all text-sm flex items-center gap-1.5"
-                            >
-                                <Icon icon="mingcute:history-line" className="w-4 h-4" />
-                                <span className="hidden sm:inline">History</span>
-                            </button>
+                        {/* Transform Image Preview - Compact */}
+                        {mode === "transform" && (
+                            <div className="px-4 pb-2">
+                                {transformImage ? (
+                                    <div className="relative group/img w-fit">
+                                        <div className="w-14 h-14 rounded-lg overflow-hidden border border-border/30">
+                                            <img src={transformImage} alt="Source" className="w-full h-full object-cover" />
+                                        </div>
+                                        <button
+                                            onClick={removeTransformImage}
+                                            className="absolute -top-1.5 -right-1.5 p-1 rounded-full bg-background/90 border border-border/50 opacity-0 group-hover/img:opacity-100 transition-opacity"
+                                        >
+                                            <Icon icon="mingcute:close-line" className="w-2.5 h-2.5 text-muted-foreground" />
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => transformInputRef.current?.click()}
+                                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:border-border rounded-lg transition-all"
+                                    >
+                                        <Icon icon="mingcute:upload-3-line" className="w-3.5 h-3.5" />
+                                        <span>Upload image</span>
+                                    </button>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Textarea - Clean & Minimal */}
+                        <div className="px-4 pb-3">
+                            <textarea
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                placeholder={mode === "transform" ? "Describe how to transform the image..." : "Describe what you want to create..."}
+                                className="w-full bg-transparent border-none focus:ring-0 focus:outline-none min-h-[48px] max-h-[100px] resize-none placeholder:text-muted-foreground/50 text-foreground text-sm leading-relaxed"
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter" && !e.shiftKey) {
+                                        e.preventDefault();
+                                        handleGenerate();
+                                    }
+                                }}
+                            />
+                        </div>
+
+                        {/* Bottom Actions - Sleek Bar */}
+                        <div className="flex items-center justify-between px-4 pb-3">
+                            {/* Quality Selector - Clean Pills */}
+                            <div className="hidden sm:flex items-center gap-1">
+                                {([
+                                    { key: "low", label: "Fast", tokens: "10" },
+                                    { key: "medium", label: "Balanced", tokens: "25" },
+                                    { key: "high", label: "Quality", tokens: "40" }
+                                ] as const).map((q) => (
+                                    <button
+                                        key={q.key}
+                                        onClick={() => {
+                                            setQualitySetting(q.key);
+                                            localStorage.setItem("generation_quality", q.key);
+                                        }}
+                                        className={cn(
+                                            "flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all",
+                                            qualitySetting === q.key
+                                                ? "bg-foreground/10 text-foreground"
+                                                : "text-muted-foreground/70 hover:text-muted-foreground"
+                                        )}
+                                    >
+                                        <span>{q.label}</span>
+                                        <span className="text-[10px] opacity-60">{q.tokens}</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Generate Button - Premium Pill */}
                             <Button
-                                variant="glass"
-                                size="sm"
-                                onClick={handleNewSession}
-                                className="gap-1.5"
+                                onClick={handleGenerate}
+                                disabled={loading || !prompt.trim() || (mode === "transform" && !transformImage)}
+                                loading={loading}
+                                className="rounded-full px-5"
                             >
-                                <Icon icon="mingcute:add-line" className="w-4 h-4" />
-                                <span>New</span>
+                                <span>{mode === "transform" ? "Transform" : "Generate"}</span>
                             </Button>
                         </div>
                     </div>
                 </div>
             </div>
-
-            {/* History Panel */}
-            {showHistory && (
-                <div
-                    className="fixed inset-0 z-50 bg-black/80 animate-fade-in"
-                    onClick={() => setShowHistory(false)}
-                >
-                    <div
-                        className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-card border-l border-border animate-slide-in-right overflow-hidden flex flex-col"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-border">
-                            <h2 className="font-semibold">History</h2>
-                            <button
-                                onClick={() => setShowHistory(false)}
-                                className="p-2 rounded-lg hover:bg-white/5 transition-colors text-muted-foreground hover:text-foreground"
-                            >
-                                ✕
-                            </button>
-                        </div>
-                        {/* History List - Sessions like ChatGPT */}
-                        <div ref={historyListRef} className="flex-1 overflow-y-auto">
-                            {loadingHistory ? (
-                                <div className="flex items-center justify-center py-12">
-                                    <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
-                                </div>
-                            ) : historySessions.length > 0 ? (
-                                <div className="divide-y divide-border">
-                                    {historySessions.map((session) => (
-                                        <button
-                                            key={session.id}
-                                            onClick={() => handleSelectFromHistory(session)}
-                                            className="w-full p-4 text-left hover:bg-white/5 transition-colors flex gap-3"
-                                        >
-                                            <div className="w-14 h-14 rounded-xl overflow-hidden bg-surface-2 shrink-0">
-                                                {session.preview_image ? (
-                                                    <img src={session.preview_image} alt="" className="w-full h-full object-cover" />
-                                                ) : (
-                                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
-                                                        <Icon icon="mingcute:pic-line" className="w-6 h-6 opacity-30" />
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-sm line-clamp-2 mb-1.5 text-foreground/90">{session.title || session.first_prompt || "Untitled"}</p>
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-xs text-muted-foreground">{formatSessionDate(session.updated_at)}</span>
-                                                    {session.generation_count > 1 && (
-                                                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-2 text-muted-foreground">
-                                                            {session.generation_count} images
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="flex flex-col items-center justify-center py-12 text-center px-4">
-                                    <Icon icon="mingcute:pic-line" className="w-10 h-10 text-muted-foreground/30 mb-3" />
-                                    <p className="text-muted-foreground">No image history yet</p>
-                                    <p className="text-xs text-muted-foreground/70 mt-1">Your generated images will appear here</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            {/* Main Stage (Feed) */}
-            <div
-                ref={scrollRef}
-                className={cn(
-                    "flex-1 overflow-y-auto overflow-x-hidden scroll-smooth",
-                    isHero ? "flex items-center justify-center p-4" : "p-4 md:p-8 pb-72 md:pb-80"
-                )}
-            >
-                {/* Hero Content - Moved Up Significantly */}
-                <div className={cn(
-                    "text-center space-y-4 md:space-y-6 transition-all duration-700 max-w-2xl mx-auto px-4",
-                    isHero ? "opacity-100 translate-y-[-100px] md:translate-y-[-120px]" : "hidden"
-                )}>
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
-                        <Icon icon="mingcute:palette-fill" className="w-4 h-4" />
-                        SquirrAI
-                    </div>
-                    <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
-                        Dream it. <br className="md:hidden" />
-                        <span className="text-muted-foreground/50">Create it.</span>
-                    </h1>
-                </div>
-
-                {/* Loading State with Mascot */}
-                {loading && (
-                    <div className="absolute inset-0 z-40 flex items-center justify-center bg-background/50 backdrop-blur-sm rounded-2xl">
-                        <GenerationLoading type={mode === "transform" ? "video" : "image"} />
-                    </div>
-                )}
-
-                {/* Error State with Mascot */}
-                {error && !loading && (
-                    <div className="w-full max-w-2xl mx-auto mb-8 p-6 rounded-2xl bg-destructive/10 border border-destructive/20 animate-fade-in">
-                        <div className="flex items-center gap-4">
-                            <Icon icon="mingcute:alert-circle-fill" className="w-6 h-6 text-destructive shrink-0" />
-                            <div className="flex-1">
-                                <p className="font-semibold text-destructive mb-3">{error}</p>
-                                <button
-                                    onClick={() => setError(null)}
-                                    className="text-sm text-destructive hover:underline font-medium"
-                                >
-                                    Dismiss Error
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Feed Items (Chat Style) */}
-                {!isHero && !loading && (
-                    <div className="w-full max-w-3xl mx-auto space-y-12">
-                        {feed.map((item) => (
-                            <FeedItemCard key={item.id} item={item} />
-                        ))}
-                    </div>
-                )}
-            </div>
-
-            {/* Hidden file input for transform mode */}
-            <input
-                ref={transformInputRef}
-                type="file"
-                accept="image/*"
-                onChange={handleTransformImageSelect}
-                className="hidden"
-            />
-
-            {/* Floating Input Bar - Unified Premium Design */}
-            <div className={cn(
-                "fixed left-0 right-0 px-4 transition-all duration-700 ease-out z-40",
-                isHero
-                    ? "bottom-1/2 translate-y-[calc(50%+60px)] md:translate-y-[calc(50%+80px)]"
-                    : "bottom-20 md:bottom-8"
-            )}
-                style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
-            >
-                <div className="w-full max-w-2xl mx-auto md:pl-24">
-                    {/* Clean Solid Container with Batik Touch - Crafted Stone Style */}
-                    <div className="relative rounded-xl overflow-hidden shadow-2xl transition-all duration-300 group/container border-2 border-primary/20 bg-surface-2 focus-within:border-primary">
-                        {/* Subtle Batik Pattern Watermark - Visible on empty or focus */}
-                        <div className="absolute inset-0 pointer-events-none">
-                            <BatikPattern color="currentColor" opacity={0.05} />
-                        </div>
-
-                        {/* No more glow border, using solid border in parent */}
-
-                        {/* Inner Content */}
-                        <div className="relative bg-transparent">
-                            {/* Mode Toggle - Minimal Top Bar */}
-                            <div className="flex items-center gap-4 px-4 py-3">
-                                <button
-                                    onClick={() => setMode("generate")}
-                                    className={cn(
-                                        "relative flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5",
-                                        mode === "generate"
-                                            ? "text-foreground"
-                                            : "text-muted-foreground hover:text-foreground/70"
-                                    )}
-                                >
-                                    <span>Generate</span>
-                                    {mode === "generate" && (
-                                        <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
-                                    )}
-                                </button>
-                                <button
-                                    onClick={() => setMode("transform")}
-                                    className={cn(
-                                        "relative flex items-center gap-1.5 text-sm font-medium transition-colors pb-0.5",
-                                        mode === "transform"
-                                            ? "text-foreground"
-                                            : "text-muted-foreground hover:text-foreground/70"
-                                    )}
-                                >
-                                    <span>Transform</span>
-                                    {mode === "transform" && (
-                                        <span className="absolute bottom-0 left-0 right-0 h-px bg-foreground/60 rounded-full" />
-                                    )}
-                                </button>
-                            </div>
-
-                            {/* Transform Image Preview - Compact */}
-                            {mode === "transform" && (
-                                <div className="px-4 pb-2">
-                                    {transformImage ? (
-                                        <div className="relative group/img w-fit">
-                                            <div className="w-14 h-14 rounded-lg overflow-hidden border border-border/30">
-                                                <img src={transformImage} alt="Source" className="w-full h-full object-cover" />
-                                            </div>
-                                            <button
-                                                onClick={removeTransformImage}
-                                                className="absolute -top-1.5 -right-1.5 p-1 rounded-full bg-background/90 border border-border/50 opacity-0 group-hover/img:opacity-100 transition-opacity"
-                                            >
-                                                <Icon icon="mingcute:close-line" className="w-2.5 h-2.5 text-muted-foreground" />
-                                            </button>
-                                        </div>
-                                    ) : (
-                                        <button
-                                            onClick={() => transformInputRef.current?.click()}
-                                            className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-muted-foreground hover:text-foreground border border-dashed border-border/50 hover:border-border rounded-lg transition-all"
-                                        >
-                                            <Icon icon="mingcute:upload-3-line" className="w-3.5 h-3.5" />
-                                            <span>Upload image</span>
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-
-                            {/* Textarea - Clean & Minimal */}
-                            <div className="px-4 pb-3">
-                                <textarea
-                                    value={prompt}
-                                    onChange={(e) => setPrompt(e.target.value)}
-                                    placeholder={mode === "transform" ? "Describe how to transform the image..." : "Describe what you want to create..."}
-                                    className="w-full bg-transparent border-none focus:ring-0 focus:outline-none min-h-[48px] max-h-[100px] resize-none placeholder:text-muted-foreground/50 text-foreground text-sm leading-relaxed"
-                                    onKeyDown={(e) => {
-                                        if (e.key === "Enter" && !e.shiftKey) {
-                                            e.preventDefault();
-                                            handleGenerate();
-                                        }
-                                    }}
-                                />
-                            </div>
-
-                            {/* Bottom Actions - Sleek Bar */}
-                            <div className="flex items-center justify-between px-4 pb-3">
-                                {/* Quality Selector - Clean Pills */}
-                                <div className="hidden sm:flex items-center gap-1">
-                                    {([
-                                        { key: "low", label: "Fast", tokens: "10" },
-                                        { key: "medium", label: "Balanced", tokens: "25" },
-                                        { key: "high", label: "Quality", tokens: "40" }
-                                    ] as const).map((q) => (
-                                        <button
-                                            key={q.key}
-                                            onClick={() => {
-                                                setQualitySetting(q.key);
-                                                localStorage.setItem("generation_quality", q.key);
-                                            }}
-                                            className={cn(
-                                                "flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-medium transition-all",
-                                                qualitySetting === q.key
-                                                    ? "bg-foreground/10 text-foreground"
-                                                    : "text-muted-foreground/70 hover:text-muted-foreground"
-                                            )}
-                                        >
-                                            <span>{q.label}</span>
-                                            <span className="text-[10px] opacity-60">{q.tokens}</span>
-                                        </button>
-                                    ))}
-                                </div>
-
-                                {/* Generate Button - Premium Pill */}
-                                <Button
-                                    onClick={handleGenerate}
-                                    disabled={loading || !prompt.trim() || (mode === "transform" && !transformImage)}
-                                    loading={loading}
-                                    className="rounded-full px-5"
-                                >
-                                    <span>{mode === "transform" ? "Transform" : "Generate"}</span>
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
         </div>
-    );
+    </div>
+);
 }
 
 const FeedItemCard = memo(function FeedItemCard({ item }: { item: FeedItem }) {

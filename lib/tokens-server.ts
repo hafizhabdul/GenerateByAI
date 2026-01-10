@@ -10,6 +10,45 @@ export interface TokenChargeResult {
 }
 
 /**
+ * Commit a token charge by reservation ID.
+ */
+export async function commitTokenCharge(reservationId: string): Promise<{ success: boolean; message: string }> {
+    const adminClient = createAdminClient();
+    const { data: commitData, error: commitError } = await adminClient.rpc('commit_token_charge', {
+        p_reservation_id: reservationId
+    });
+
+    if (commitError) {
+        console.error("[Token] Commit charge RPC error:", commitError);
+        return { success: false, message: commitError.message };
+    }
+
+    const commitResult = commitData as { success: boolean; message?: string };
+    if (!commitResult.success) {
+        console.error("[Token] Commit failed:", commitResult.message);
+    }
+
+    return {
+        success: commitResult.success,
+        message: commitResult.message || (commitResult.success ? "Committed" : "Commit failed")
+    };
+}
+
+/**
+ * Cancel a token reservation by reservation ID.
+ */
+export async function cancelTokenReservation(reservationId: string): Promise<void> {
+    const adminClient = createAdminClient();
+    const { error: cancelError } = await adminClient.rpc('cancel_token_reservation', {
+        p_reservation_id: reservationId
+    });
+
+    if (cancelError) {
+        console.error("[Token] Cancel reservation RPC error:", cancelError);
+    }
+}
+
+/**
  * Shared logic for checking balance and reserving tokens atomically.
  * Uses database-level locking to prevent race conditions.
  * This should be used across all generation APIs (Server-side ONLY).
@@ -48,30 +87,12 @@ export async function processTokenCharge(userId: string, cost: number): Promise<
 
         // Commit: deduct tokens after successful generation
         commit: async () => {
-            const { data: commitData, error: commitError } = await adminClient.rpc('commit_token_charge', {
-                p_reservation_id: reservationId
-            });
-
-            if (commitError) {
-                console.error("[Token] Commit charge RPC error:", commitError);
-                // Log but don't throw - the generation succeeded
-            } else {
-                const commitResult = commitData as { success: boolean; message?: string };
-                if (!commitResult.success) {
-                    console.error("[Token] Commit failed:", commitResult.message);
-                }
-            }
+            await commitTokenCharge(reservationId);
         },
 
         // Cancel: release reservation if generation failed
         cancel: async () => {
-            const { error: cancelError } = await adminClient.rpc('cancel_token_reservation', {
-                p_reservation_id: reservationId
-            });
-
-            if (cancelError) {
-                console.error("[Token] Cancel reservation RPC error:", cancelError);
-            }
+            await cancelTokenReservation(reservationId);
         }
     };
 }

@@ -6,7 +6,7 @@ import { getTokenCost, QualityTier } from "@/lib/tokens";
 import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
-import { generateImage, isFalConfigured } from "@/lib/fal";
+import { generateImage, isFalConfigured, submitImageGeneration } from "@/lib/fal";
 import { createGenerationWithSession } from "@/lib/session-utils";
 
 const GenerateSchema = z.object({
@@ -73,51 +73,46 @@ export async function POST(req: Request) {
             }
             // For "low" quality, use prompt as-is for faster generation
 
-            // --- 3. Generate Image using fal.ai GPT-Image-1.5 ---
-            console.log(`[Generate Image] Using fal.ai GPT-Image-1.5 with quality: ${quality}`);
+            // --- 3. Submit Image Generation (Async) ---
+            // Use async submission to prevent Vercel/Netlify timeouts (LIMIT: 10s)
+            console.log(`[Generate Image] Submitting async job to fal.ai GPT-Image-1.5`);
 
-            const result = await generateImage({
+            const { requestId } = await submitImageGeneration({
                 prompt: enhancedPrompt,
                 size: size as "1024x1024" | "512x512" | "1024x1536" | "1536x1024",
                 quality: quality as "low" | "medium" | "high",
                 outputFormat: "png",
             });
 
-            const tempImageUrl = result.imageUrl;
-
-            if (!tempImageUrl) {
-                throw new Error("Failed to generate image - no URL returned from fal.ai");
-            }
-
-            // --- 4. Persist to Storage (Prevent Expiration) ---
-            const permanentUrl = await persistExternalImage(tempImageUrl, user.id);
-
-            // --- 5. Save Record with Session & Commit Token Charge ---
+            // --- 4. Create Pending Record ---
+            // We create the record immediately with "pending" status
+            // The frontend will poll /api/generations/[id]/check to update it
             const { generationId, sessionId } = await createGenerationWithSession({
                 userId: user.id,
                 type: "image",
                 prompt: prompt,
-                fileUrl: permanentUrl,
-                status: "completed",
+                fileUrl: "", // No URL yet
+                status: "pending",
                 tokensUsed: cost,
                 metadata: {
                     provider: "fal-gpt-image-1.5",
                     quality,
                     size,
                     generationType: "text-to-image",
+                    fal_request_id: requestId,
+                    token_reservation_id: tokenCharge.reservationId
                 },
             });
 
-            // Commit the token charge after successful generation
-            await tokenCharge.commit();
-
-            // Increment daily generation count
-            await incrementDailyGeneration(user.id);
+            // NOTE: We do NOT commit tokens yet. They remain reserved.
+            // They will be committed in the check-status route when generation completes.
 
             return NextResponse.json({
-                url: permanentUrl,
+                success: true,
                 generationId,
                 sessionId,
+                requestId,
+                status: "pending"
             });
 
         } catch (generationError: any) {

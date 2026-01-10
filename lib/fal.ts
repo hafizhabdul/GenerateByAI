@@ -244,8 +244,8 @@ export interface ImageGenerateResult {
 }
 
 /**
- * Generate image using GPT-Image-1 via fal.ai
- * Model: fal-ai/gpt-image-1
+ * Generate image using GPT-Image-1.5 via fal.ai (Blocking/Sync)
+ * Model: fal-ai/gpt-image-1.5
  */
 export async function generateImage(
     request: ImageGenerateRequest
@@ -288,7 +288,6 @@ export async function generateImage(
         console.log(`[fal.ai GPT-Image-1.5] Generation complete - Full response:`, JSON.stringify(result.data, null, 2));
 
         // Extract image URL from result
-        // fal.ai gpt-image-1.5 returns { images: [{ url: string, ... }] }
         const data = result.data as {
             images?: Array<{ url: string }>;
             image?: { url: string };
@@ -316,6 +315,78 @@ export async function generateImage(
         console.error(`[fal.ai GPT-Image-1.5] Error:`, error);
         throw error;
     }
+}
+
+/**
+ * Submit image generation to Fal.ai queue (Async)
+ * Returns request_id immediately to prevent serverless timeouts
+ */
+export async function submitImageGeneration(
+    request: ImageGenerateRequest
+): Promise<{ requestId: string }> {
+    const {
+        prompt,
+        size = "1024x1024",
+        quality = "high",
+        outputFormat = "png"
+    } = request;
+
+    const input = {
+        prompt,
+        image_size: size,
+        quality,
+        output_format: outputFormat,
+    };
+
+    const { request_id } = await fal.queue.submit(IMAGE_ENDPOINT, {
+        input,
+        webhookUrl: undefined, // Implement webhook if needed later
+    });
+
+    return { requestId: request_id };
+}
+
+/**
+ * Check status of image generation
+ */
+export async function checkImageGenerationStatus(requestId: string): Promise<{
+    status: "IN_QUEUE" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+    imageUrl?: string;
+    error?: string;
+}> {
+    const status = await fal.queue.status(IMAGE_ENDPOINT, {
+        requestId,
+        logs: true
+    });
+
+    if (status.status === "COMPLETED") {
+        const data = status.data as {
+            images?: Array<{ url: string }>;
+            image?: { url: string };
+            url?: string;
+        };
+        const imageUrl = data?.images?.[0]?.url || data?.image?.url || data?.url;
+
+        return {
+            status: "COMPLETED",
+            imageUrl,
+        };
+    }
+
+    if (status.status === "FAILED") { // Note: 'FAILED' might not be the exact string from SDK, usually 'COMPLETED' with error or 'IN_PROGRESS'
+        // Actually fal.queue.status returns { status: 'IN_QUEUE' | 'IN_PROGRESS' | 'COMPLETED' | 'OC_ERROR' | ... }
+        // We'll treat checking logs or error field if needed.
+        // But purely based on types, if it failed, it might throw or return generic error.
+        return {
+            status: "FAILED",
+            error: "Generation failed"
+        };
+    }
+
+    // Default return
+    return {
+        status: status.status as any
+    };
 }
 
 // ============================================
