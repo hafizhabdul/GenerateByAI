@@ -232,7 +232,7 @@ export default function TermsPage() {
                         </p>
                         <div className="mt-4 p-4 bg-surface-1 rounded-lg border border-border">
                             <p className="text-foreground font-medium">SquirrAI</p>
-                            <p className="text-muted-foreground">Email: support@cronicle.my.id</p>
+                            <p className="text-muted-foreground">Email: abdulhafizhsaenal@gmail.com</p>
                         </div>
                     </section>
                 </div>

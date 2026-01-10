@@ -12,22 +12,18 @@ export default function NotFound() {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-4">
             <div className="max-w-md w-full text-center">
-                {/* Mascot with confused expression */}
+                {/* Mascot */}
                 <div className="relative w-48 h-48 mx-auto mb-8">
                     <Image
-                        src="/squirrel-confused.png"
-                        alt="Confused mascot"
+                        src="/maskot.png"
+                        alt="SquirrAI mascot"
                         fill
                         className="object-contain"
                         priority
-                        onError={(e) => {
-                            // Fallback if image doesn't exist
-                            e.currentTarget.style.display = "none";
-                        }}
                     />
-                    {/* Fallback with 404 text */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-7xl font-bold text-primary/20">404</span>
+                    {/* Background fallback/decoration with 404 text */}
+                    <div className="absolute inset-0 flex items-center justify-center -z-10">
+                        <span className="text-7xl font-bold text-primary/10">404</span>
                     </div>
                 </div>
 
