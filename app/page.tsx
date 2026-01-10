@@ -58,9 +58,31 @@ function HomeContent() {
   }, [user]);
 
   const hasAuthCode = searchParams.get("code") !== null;
+  const [showLoadingFix, setShowLoadingFix] = useState(true);
+
+  // Safety fallback: if stuck in loading for too long with an auth code, show the landing page
+  useEffect(() => {
+    if (hasAuthCode && !user) {
+      const timer = setTimeout(() => {
+        setShowLoadingFix(false);
+      }, 5000); // 5 seconds timeout
+      return () => clearTimeout(timer);
+    }
+  }, [hasAuthCode, user]);
+
+  // If we land on root with a code, try to help the process by refreshing
+  useEffect(() => {
+    if (hasAuthCode && !user && !authLoading) {
+      // Just a small delay to let onAuthStateChange have a chance
+      const timer = setTimeout(() => {
+        router.refresh();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [hasAuthCode, user, authLoading, router]);
 
   // Show a clean loading state while auth is still processing
-  if (authLoading || (hasAuthCode && !user)) {
+  if (authLoading || (hasAuthCode && !user && showLoadingFix)) {
     return (
       <div className="flex min-h-screen w-full bg-background items-center justify-center">
         <MascotLoading
