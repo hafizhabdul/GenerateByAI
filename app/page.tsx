@@ -161,6 +161,17 @@ function HomeContent() {
               <span className="font-grotesque text-[11px] text-white/50">Image • Video • Style</span>
             </div>
 
+            {/* Center - Legal Links */}
+            <div className="flex items-center gap-3 md:gap-4">
+              <Link href="/privacy" className="font-grotesque text-[10px] md:text-[11px] text-white/40 hover:text-white/70 transition-colors">
+                Privasi
+              </Link>
+              <span className="text-white/20">•</span>
+              <Link href="/terms" className="font-grotesque text-[10px] md:text-[11px] text-white/40 hover:text-white/70 transition-colors">
+                Ketentuan
+              </Link>
+            </div>
+
             {/* Right */}
             <div className="flex flex-col items-end gap-0.5">
               <span className="font-grotesque text-[9px] text-white/40 uppercase tracking-[0.15em]">Platform</span>
