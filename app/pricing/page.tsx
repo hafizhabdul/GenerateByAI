@@ -166,8 +166,8 @@ export default function PricingPage() {
                 </span>
             </div>
 
-            {/* Pricing Grid - 3 cards with hero pop-out */}
-            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-4 max-w-5xl w-full px-4 mx-auto items-center">
+            {/* Pricing Grid - Responsive 1/2/3 columns */}
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-5 lg:gap-4 max-w-5xl w-full px-4 mx-auto items-start lg:items-center">
                 {TOKEN_PACKAGES.map((pkg, index) => (
                     <TokenPackageCard
                         key={pkg.id}
@@ -185,7 +185,7 @@ export default function PricingPage() {
                 <h3 className="font-grotesque text-sm text-white/40 uppercase tracking-widest text-center mb-6">
                     Estimasi penggunaan token
                 </h3>
-                <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-4">
+                <div className="flex flex-wrap items-center justify-center gap-x-6 md:gap-x-8 gap-y-3">
                     {TOKEN_USAGE.map((item, i) => (
                         <div key={i} className="flex items-center gap-3 text-white/60">
                             <Icon icon={item.icon} className="w-5 h-5 text-[#c2410c]" />
@@ -250,7 +250,7 @@ function TokenPackageCard({
             className={cn(
                 "relative flex flex-col p-6 md:p-8 rounded-3xl border transition-all duration-500 animate-fade-in-up",
                 popular
-                    ? "bg-gradient-to-b from-[#c2410c]/20 via-[#1a1a1a] to-[#0f0f0f] border-[#c2410c]/50 lg:scale-110 lg:-my-4 shadow-[0_0_80px_-20px_rgba(194,65,12,0.4)] z-20"
+                    ? "bg-gradient-to-b from-[#c2410c]/20 via-[#1a1a1a] to-[#0f0f0f] border-[#c2410c]/50 lg:scale-105 shadow-[0_0_60px_-20px_rgba(194,65,12,0.4)] z-20 md:col-span-2 lg:col-span-1"
                     : "bg-[#111]/80 border-white/10 hover:border-white/20 z-10"
             )}
             style={{ animationDelay: `${delay}ms` }}
