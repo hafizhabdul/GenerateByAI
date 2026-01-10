@@ -27,10 +27,10 @@ const securityHeaders = [
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.supabase.co https://ai.sumopod.com https://oaidalleapiprodscus.blob.core.windows.net",
+      "img-src 'self' data: blob: https://*.supabase.co https://ai.sumopod.com https://oaidalleapiprodscus.blob.core.windows.net https://*.fal.media https://*.fal.ai https://storage.googleapis.com",
       "font-src 'self'",
       "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://ai.sumopod.com https://api.iconify.design",
-      "media-src 'self' blob: https://*.supabase.co",
+      "media-src 'self' blob: https://*.supabase.co https://*.fal.media https://*.fal.ai https://storage.googleapis.com",
       "frame-ancestors 'none'",
     ].join("; "),
   },
@@ -56,6 +56,28 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "oaidalleapiprodscus.blob.core.windows.net",
+      },
+      // fal.ai CDN for generated images
+      {
+        protocol: "https",
+        hostname: "**.fal.media",
+      },
+      {
+        protocol: "https",
+        hostname: "fal.media",
+      },
+      {
+        protocol: "https",
+        hostname: "v3.fal.media",
+      },
+      {
+        protocol: "https",
+        hostname: "**.fal.ai",
+      },
+      // Google Cloud Storage (Kling AI videos)
+      {
+        protocol: "https",
+        hostname: "storage.googleapis.com",
       },
     ],
     formats: ["image/avif", "image/webp"],

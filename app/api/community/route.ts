@@ -1,23 +1,63 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/server";
+import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
+import { filterBlacklistedContent } from "@/lib/content-filter";
+import crypto from "crypto";
+
+/**
+ * Get client IP from request headers
+ * Works with Vercel, Cloudflare, and other reverse proxies
+ */
+function getClientIP(req: Request): string {
+    // Vercel
+    const xff = req.headers.get("x-forwarded-for");
+    if (xff) {
+        return xff.split(",")[0].trim();
+    }
+    // Cloudflare
+    const cfIP = req.headers.get("cf-connecting-ip");
+    if (cfIP) {
+        return cfIP;
+    }
+    // Nginx
+    const xri = req.headers.get("x-real-ip");
+    if (xri) {
+        return xri;
+    }
+    return "anonymous";
+}
 
 /**
  * GET /api/community
  * Fetch public generations for community showcase
- * - Only completed generations with is_public = true
- * - Includes creator info (anonymized)
- * - Paginated with cursor-based pagination
+ *
+ * Security:
+ * - Rate limited: 30 requests per minute per IP
+ * - Content filtered: Blacklisted keywords hidden
+ *
+ * Performance:
+ * - Cached: 5 minutes with ETag support
+ * - Paginated: Offset-based with configurable limit
  */
 export async function GET(req: Request) {
     try {
+        // === RATE LIMITING ===
+        // 30 requests per minute per IP address
+        const clientIP = getClientIP(req);
+        const rateLimit = checkRateLimit(`community:${clientIP}`, 30, 60000);
+        if (!rateLimit.allowed) {
+            return createRateLimitResponse(rateLimit.resetIn);
+        }
+
+        // === PARSE PARAMS ===
         const url = new URL(req.url);
         const limit = Math.min(parseInt(url.searchParams.get("limit") || "24"), 100);
-        const offset = parseInt(url.searchParams.get("offset") || "0");
+        const offset = Math.max(parseInt(url.searchParams.get("offset") || "0"), 0);
         const type = url.searchParams.get("type"); // 'image' | 'video' | null (all)
 
         const adminClient = createAdminClient();
 
-        // Build query for public generations
+        // === BUILD QUERY ===
         let query = adminClient
             .from("generations")
             .select(`
@@ -57,7 +97,7 @@ export async function GET(req: Request) {
             );
         }
 
-        // Get total count for pagination
+        // === COUNT QUERY ===
         let countQuery = adminClient
             .from("generations")
             .select("id", { count: "exact", head: true })
@@ -71,7 +111,7 @@ export async function GET(req: Request) {
 
         const { count } = await countQuery;
 
-        // Transform data - anonymize creators
+        // === TRANSFORM DATA ===
         const items = (generations || []).map((gen: any) => ({
             id: gen.id,
             type: gen.type,
@@ -84,17 +124,55 @@ export async function GET(req: Request) {
             created_at: gen.created_at,
             metadata: gen.metadata,
             creator: {
-                // Only show first name or "Anonymous"
+                // Only show first name for privacy
                 name: gen.profiles?.name?.split(" ")[0] || "Creator",
                 avatar_url: gen.profiles?.avatar_url || null,
             },
         }));
 
-        return NextResponse.json({
-            items,
+        // === CONTENT MODERATION ===
+        // Filter out items with blacklisted keywords in prompts
+        const safeItems = filterBlacklistedContent(items);
+
+        // === CACHING ===
+        // Generate ETag based on response data
+        const responseData = {
+            items: safeItems,
             total: count || 0,
             hasMore: offset + limit < (count || 0),
             nextOffset: offset + limit,
+        };
+
+        const dataHash = crypto
+            .createHash("md5")
+            .update(JSON.stringify(responseData))
+            .digest("hex");
+        const etag = `"${dataHash}"`;
+
+        // Check If-None-Match for conditional request
+        const ifNoneMatch = req.headers.get("if-none-match");
+        if (ifNoneMatch === etag) {
+            return new NextResponse(null, {
+                status: 304,
+                headers: {
+                    "ETag": etag,
+                    "Cache-Control": "public, max-age=300, stale-while-revalidate=60",
+                },
+            });
+        }
+
+        // === RESPONSE ===
+        return NextResponse.json(responseData, {
+            headers: {
+                // Cache for 5 minutes, allow stale for 1 minute while revalidating
+                "Cache-Control": "public, max-age=300, stale-while-revalidate=60",
+                "ETag": etag,
+                "Vary": "Accept-Encoding",
+                // Rate limit info headers
+                "X-RateLimit-Limit": "30",
+                "X-RateLimit-Remaining": String(rateLimit.remaining),
+                "X-RateLimit-Reset": String(Math.ceil(rateLimit.resetIn / 1000)),
+            },
         });
 
     } catch (error: any) {

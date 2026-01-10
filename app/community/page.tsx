@@ -8,6 +8,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useToast } from "@/components/ui/toast";
 import { Sidebar } from "@/components/sidebar";
 import { Mascot } from "@/components/mascot";
+import { GalleryImage, ModalImage } from "@/components/optimized-image";
 
 interface CommunityItem {
     id: string;
@@ -246,7 +247,7 @@ export default function CommunityPage() {
                                     className="group relative aspect-square rounded-xl overflow-hidden bg-surface-2 border border-border/50 cursor-pointer hover:border-primary/50 transition-all"
                                     onClick={() => setSelectedItem(item)}
                                 >
-                                    {/* Media */}
+                                    {/* Media - Optimized */}
                                     {item.type === "video" && item.file_url ? (
                                         <video
                                             src={getProxiedVideoUrl(item.file_url)}
@@ -258,11 +259,10 @@ export default function CommunityPage() {
                                             onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
                                         />
                                     ) : (
-                                        <img
-                                            src={item.file_url}
+                                        <GalleryImage
+                                            src={item.thumbnail_url || item.file_url}
                                             alt={item.prompt}
-                                            className="w-full h-full object-cover"
-                                            loading="lazy"
+                                            className="w-full h-full"
                                         />
                                     )}
 
@@ -381,7 +381,7 @@ export default function CommunityPage() {
                     </button>
 
                     <div className="flex flex-col lg:flex-row">
-                        {/* Media */}
+                        {/* Media - Optimized */}
                         <div className="flex-1 bg-black min-h-[300px] lg:min-h-[500px] flex items-center justify-center">
                             {selectedItem.type === "video" && selectedItem.file_url ? (
                                 <video
@@ -392,10 +392,10 @@ export default function CommunityPage() {
                                     loop
                                 />
                             ) : (
-                                <img
+                                <ModalImage
                                     src={selectedItem.file_url}
                                     alt={selectedItem.prompt}
-                                    className="w-full h-full object-contain max-h-[70vh]"
+                                    className="max-h-[70vh]"
                                 />
                             )}
                         </div>
