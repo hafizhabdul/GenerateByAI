@@ -1,9 +1,9 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { checkImageGenerationStatus } from "@/lib/fal";
+import { checkImageGenerationStatus, checkVideoGenerationStatus } from "@/lib/fal";
 import { commitTokenCharge, cancelTokenReservation } from "@/lib/tokens-server";
-import { persistExternalImage } from "@/lib/storage-utils";
+import { persistExternalImage, persistExternalVideo } from "@/lib/storage-utils";
 import { incrementDailyGeneration } from "@/lib/daily-limits";
 
 export async function GET(
@@ -43,6 +43,8 @@ export async function GET(
         const metadata = generation.metadata as any;
         const requestId = metadata?.fal_request_id;
         const reservationId = metadata?.token_reservation_id;
+        const generationType = generation.type; // 'image' or 'video'
+        const endpoint = metadata?.fal_endpoint; // Optional, useful if multiple video models
 
         if (!requestId) {
             // Legacy pending item or error? Mark as failed
@@ -50,48 +52,69 @@ export async function GET(
         }
 
         // 2. Check Fal Status
-        const statusResult = await checkImageGenerationStatus(requestId);
+        let statusResult;
 
-        if (statusResult.status === "COMPLETED" && statusResult.imageUrl) {
-            // --- Success Workflow ---
+        if (generationType === "video") {
+            // If we didn't save endpoint, default to text-to-video or guess based on metadata
+            // For now assume image-to-video if sourceImage exists in metadata
+            const defaultEndpoint = metadata.sourceImage ? "fal-ai/veo3.1/fast/image-to-video" : "fal-ai/veo3.1/fast";
+            statusResult = await checkVideoGenerationStatus(requestId, endpoint || defaultEndpoint);
+        } else {
+            statusResult = await checkImageGenerationStatus(requestId);
+        }
 
-            // A. Persist Image
-            let permanentUrl = "";
-            try {
-                permanentUrl = await persistExternalImage(statusResult.imageUrl, user.id);
-            } catch (e) {
-                console.error("Failed to persist image:", e);
-                // Fallback to original URL if persist fails (unlikely but safe)
-                permanentUrl = statusResult.imageUrl;
-            }
+        if (statusResult.status === "COMPLETED") {
+            const resultUrl = generationType === "video"
+                ? (statusResult as any).videoUrl
+                : (statusResult as any).imageUrl;
 
-            // B. Commit Tokens
-            if (reservationId) {
-                await commitTokenCharge(reservationId);
-            }
+            if (resultUrl) {
+                // --- Success Workflow ---
 
-            // C. Increment Daily Limit
-            await incrementDailyGeneration(user.id);
-
-            // D. Update DB
-            const { error: updateError } = await supabase
-                .from("generations")
-                .update({
-                    status: "completed",
-                    file_url: permanentUrl,
-                    metadata: {
-                        ...metadata,
-                        completed_at: new Date().toISOString()
+                // A. Persist Media
+                let permanentUrl = "";
+                try {
+                    if (generationType === "video") {
+                        permanentUrl = await persistExternalVideo(resultUrl, user.id);
+                    } else {
+                        permanentUrl = await persistExternalImage(resultUrl, user.id);
                     }
-                })
-                .eq("id", id);
+                } catch (e) {
+                    console.error("Failed to persist media:", e);
+                    permanentUrl = resultUrl;
+                }
 
-            if (updateError) console.error("Failed to update generation:", updateError);
+                // B. Commit Tokens
+                if (reservationId) {
+                    await commitTokenCharge(reservationId);
+                }
 
-            return NextResponse.json({
-                status: "completed",
-                file_url: permanentUrl
-            });
+                // C. Increment Daily Limit
+                await incrementDailyGeneration(user.id);
+
+                // D. Update DB
+                const { error: updateError } = await supabase
+                    .from("generations")
+                    .update({
+                        status: "completed",
+                        file_url: permanentUrl,
+                        metadata: {
+                            ...metadata,
+                            completed_at: new Date().toISOString()
+                        }
+                    })
+                    .eq("id", id);
+
+                if (updateError) console.error("Failed to update generation:", updateError);
+
+                return NextResponse.json({
+                    status: "completed",
+                    file_url: permanentUrl
+                });
+            } else {
+                // Completed but no URL?
+                return NextResponse.json({ status: "failed", error: "No media URL returned" });
+            }
 
         } else if (statusResult.status === "FAILED") {
             // --- Failure Workflow ---

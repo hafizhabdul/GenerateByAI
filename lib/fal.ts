@@ -105,6 +105,82 @@ export async function generateVeoVideo(
 }
 
 /**
+ * Submit video generation to Fal.ai queue (Async)
+ */
+export async function submitVideoGeneration(
+    request: VeoGenerateRequest
+): Promise<{ requestId: string; endpoint: string }> {
+    const { prompt, imageUrl, duration = 5, aspectRatio = "16:9", enableAudio = true } = request;
+    const endpoint = imageUrl ? VEO_ENDPOINTS.imageToVideo : VEO_ENDPOINTS.textToVideo;
+
+    const baseInput = {
+        prompt,
+        duration_seconds: duration,
+        aspect_ratio: aspectRatio,
+    };
+
+    const input = imageUrl
+        ? { ...baseInput, image_url: imageUrl }
+        : baseInput;
+
+    const { request_id } = await fal.queue.submit(endpoint, {
+        input: input as any,
+        webhookUrl: undefined,
+    });
+
+    return { requestId: request_id, endpoint };
+}
+
+/**
+ * Check status of video generation
+ */
+export async function checkVideoGenerationStatus(requestId: string, endpoint: string): Promise<{
+    status: "IN_QUEUE" | "IN_PROGRESS" | "COMPLETED" | "FAILED";
+    videoUrl?: string;
+    error?: string;
+}> {
+    const status = await fal.queue.status(endpoint, {
+        requestId,
+        logs: true
+    });
+
+    const anyStatus = status as any;
+
+    if (anyStatus.status === "COMPLETED") {
+        try {
+            const result = await fal.queue.result(endpoint, {
+                requestId
+            });
+
+            const data = result.data as { video?: { url: string }; url?: string };
+            const videoUrl = data?.video?.url || data?.url;
+
+            return {
+                status: "COMPLETED",
+                videoUrl,
+            };
+        } catch (e) {
+            console.error("Failed to fetch result for completed video request:", e);
+            return {
+                status: "FAILED",
+                error: "Failed to retrieve video generation result"
+            };
+        }
+    }
+
+    if (anyStatus.status === "FAILED") {
+        return {
+            status: "FAILED",
+            error: anyStatus.error || "Video generation failed"
+        };
+    }
+
+    return {
+        status: anyStatus.status || "IN_PROGRESS"
+    };
+}
+
+/**
  * Calculate token cost for Veo 3.1 video generation
  * Premium tier with native audio - HIGH MARGIN TIER
  * 

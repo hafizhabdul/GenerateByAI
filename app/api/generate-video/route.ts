@@ -5,6 +5,7 @@ import { z } from "zod";
 import { persistExternalVideo } from "@/lib/storage-utils";
 import { processTokenCharge } from "@/lib/tokens-server";
 import { createKlingClient, getVideoCost, getAudioCost } from "@/lib/kling";
+import { submitVideoGeneration } from "@/lib/fal";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
 
@@ -74,125 +75,51 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: e.message }, { status: 403 });
         }
 
-        // --- Create Kling Client ---
-        const kling = createKlingClient();
-
         // --- Generate Marketing Prompt Enhancement ---
         const enhancedPrompt = enhanceMarketingPrompt(prompt, type);
 
-        // Different negative prompts for image2video vs text2video
-        const defaultNegative = type === "image2video"
-            ? "different product, wrong product, changed product, morphing, deformation, blurry, low quality, distorted, ugly, shaky camera, amateur, poorly lit, unnatural colors"
-            : "blurry, low quality, distorted, ugly, shaky camera, amateur, poorly lit";
-        const enhancedNegative = negativePrompt || defaultNegative;
+        // --- Submit to Fal.ai Queue (Async) ---
+        const { requestId, endpoint } = await submitVideoGeneration({
+            prompt: enhancedPrompt,
+            imageUrl: type === "image2video" ? imageUrl : undefined,
+            duration: duration === "10" ? 8 : 5, // Map string duration to Fal supported numbers
+            aspectRatio: aspectRatio as any,
+            enableAudio: sound
+        });
 
-        // --- Step 1: Start Video Generation (without audio) ---
-        let taskResponse;
-        if (type === "image2video" && imageUrl) {
-            taskResponse = await kling.imageToVideo({
-                imageUrl,
-                prompt: enhancedPrompt,
-                negativePrompt: enhancedNegative,
-                mode,
-                duration,
-                aspectRatio,
-            });
-        } else {
-            taskResponse = await kling.textToVideo({
-                prompt: enhancedPrompt,
-                negativePrompt: enhancedNegative,
-                mode,
-                duration,
-                aspectRatio,
-            });
-        }
-
-        if (taskResponse.code !== 0) {
-            throw new Error(`Kling API error: ${taskResponse.message}`);
-        }
-
-        const taskId = taskResponse.data.task_id;
-        console.log(`[Video] Started video task: ${taskId}`);
-
-        // --- Poll for Video Completion ---
-        const videoResult = await kling.waitForCompletion(taskId, type, 120, 5000);
-
-        if (!videoResult.data.task_result?.videos?.[0]?.url) {
-            throw new Error("No video URL in result");
-        }
-
-        let tempVideoUrl = videoResult.data.task_result.videos[0].url;
-        const klingVideoId = videoResult.data.task_result.videos[0].id;
-        console.log(`[Video] Video generation complete: ${klingVideoId}`);
-
-        // --- Step 2: Add Audio (if requested) ---
-        if (sound) {
-            console.log(`[Video] Adding audio to video: ${klingVideoId}`);
-
-            const audioTaskResponse = await kling.videoToAudio(klingVideoId);
-
-            if (audioTaskResponse.code !== 0) {
-                console.error(`[Video] Audio generation failed: ${audioTaskResponse.message}`);
-                // Continue without audio instead of failing completely
-            } else {
-                const audioTaskId = audioTaskResponse.data.task_id;
-                console.log(`[Video] Started audio task: ${audioTaskId}`);
-
-                // Poll for audio completion
-                const audioResult = await kling.waitForCompletion(audioTaskId, 'video2audio', 60, 5000);
-
-                if (audioResult.data.task_result?.videos?.[0]?.url) {
-                    tempVideoUrl = audioResult.data.task_result.videos[0].url;
-                    console.log(`[Video] Audio added successfully`);
-                } else {
-                    console.warn(`[Video] Audio task completed but no video URL, using original video`);
-                }
-            }
-        }
-
-        console.log(`[Video] Generation complete, persisting...`);
-
-        // --- Persist Video to Storage ---
-        const permanentUrl = await persistExternalVideo(tempVideoUrl, user.id);
-
-        // --- Save Record & Deduct Tokens ---
+        // --- Create Pending Generation Record ---
         const adminClient = createAdminClient();
-        const { error: insertError } = await adminClient.from("generations").insert({
+        const { data: generation, error: insertError } = await adminClient.from("generations").insert({
             user_id: user.id,
             type: "video",
             prompt: prompt,
-            file_url: permanentUrl,
-            tokens_used: cost,
-            status: "completed",
+            status: "pending",
             metadata: {
                 duration,
                 mode,
                 aspectRatio,
                 sourceType: type,
                 sourceImage: imageUrl || null,
-                klingVideoId: klingVideoId,
                 hasAudio: sound,
                 videoCost,
                 audioCost,
+                fal_request_id: requestId,
+                fal_endpoint: endpoint,
+                token_reservation_id: tokenCharge.reservationId
             },
-        });
+        }).select().single();
 
         if (insertError) {
-            console.error("[Video] Failed to save generation record:", insertError);
-            // Don't fail the request - video was generated successfully
-            // Just log the error and continue
+            // Cancel token reservation if DB insert fails
+            await tokenCharge.cancel();
+            throw new Error("Failed to create generation record");
         }
 
-        await tokenCharge.commit();
-
-        // --- Increment Daily Generation Count ---
-        await incrementDailyGeneration(user.id);
-
         return NextResponse.json({
-            url: permanentUrl,
-            duration,
-            taskId,
-            hasAudio: sound,
+            success: true,
+            generationId: generation.id,
+            requestId,
+            status: "pending"
         });
 
     } catch (error: any) {

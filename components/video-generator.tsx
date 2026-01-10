@@ -821,7 +821,7 @@ export function VideoGenerator() {
 
             // Use different endpoint based on tier
             if (settings.tier === "premium") {
-                // Premium tier: Use Veo 3.1 via fal.ai (synchronous)
+                // Premium tier: Use Veo 3.1 via fal.ai 
                 const res = await fetch("/api/generate-video-premium", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -837,31 +837,47 @@ export function VideoGenerator() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Premium video generation failed");
 
-                // Premium generation is synchronous - update with result immediately
-                setFeed((prev) => {
-                    const updated = prev.map((item) =>
-                        item.id === tempId
-                            ? {
-                                ...item,
-                                status: "completed" as const,
-                                videoUrl: data.videoUrl,
-                                generationId: data.generation?.id,
-                                tier: "premium" as const,
-                                provider: "fal-veo-3.1",
-                                canExtend: false, // Veo videos cannot be extended
-                            }
-                            : item
-                    );
-                    if (user) savePendingVideos(user.id, updated);
-                    return updated;
-                });
+                if (data.status === "pending") {
+                    // Async started
+                    setFeed((prev) => {
+                        const updated = prev.map((item) =>
+                            item.id === tempId
+                                ? {
+                                    ...item,
+                                    status: "pending" as const,
+                                    requestId: data.requestId,
+                                    generationId: data.generationId
+                                }
+                                : item
+                        );
+                        if (user) savePendingVideos(user.id, updated);
+                        return updated;
+                    });
+                } else {
+                    // Sync fallback
+                    setFeed((prev) => {
+                        const updated = prev.map((item) =>
+                            item.id === tempId
+                                ? {
+                                    ...item,
+                                    status: "completed" as const,
+                                    videoUrl: data.videoUrl,
+                                    generationId: data.generation?.id,
+                                    tier: "premium" as const,
+                                    provider: "fal-veo-3.1",
+                                    canExtend: false,
+                                }
+                                : item
+                        );
+                        if (user) savePendingVideos(user.id, updated);
+                        return updated;
+                    });
+                    showToast("🎬 Premium video generated with native audio!", "success");
+                    if (refreshProfile) refreshProfile();
+                }
 
-                showToast("🎬 Premium video generated with native audio!", "success");
-
-                // Refresh profile to update token balance
-                if (refreshProfile) refreshProfile();
             } else {
-                // Standard tier: Use wan/v2.6 (synchronous - same as premium)
+                // Standard tier: Use wan/v2.6 
                 const res = await fetch("/api/generate-video-standard", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
@@ -878,30 +894,45 @@ export function VideoGenerator() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Video generation failed");
 
-                // Standard generation is now synchronous - update with result immediately
-                setFeed((prev) => {
-                    const updated = prev.map((item) =>
-                        item.id === tempId
-                            ? {
-                                ...item,
-                                status: "completed" as const,
-                                videoUrl: data.videoUrl,
-                                generationId: data.generationId,
-                                resolution: data.resolution || settings.resolution,
-                                tier: "standard" as const,
-                                provider: "fal-wan-v2.6",
-                                canExtend: false,
-                            }
-                            : item
-                    );
-                    if (user) savePendingVideos(user.id, updated);
-                    return updated;
-                });
-
-                showToast("🎬 Video generated successfully!", "success");
-
-                // Refresh profile to update token balance
-                if (refreshProfile) refreshProfile();
+                if (data.status === "pending") {
+                    // Async started
+                    setFeed((prev) => {
+                        const updated = prev.map((item) =>
+                            item.id === tempId
+                                ? {
+                                    ...item,
+                                    status: "pending" as const,
+                                    requestId: data.requestId,
+                                    generationId: data.generationId
+                                }
+                                : item
+                        );
+                        if (user) savePendingVideos(user.id, updated);
+                        return updated;
+                    });
+                } else {
+                    // Sync fallback
+                    setFeed((prev) => {
+                        const updated = prev.map((item) =>
+                            item.id === tempId
+                                ? {
+                                    ...item,
+                                    status: "completed" as const,
+                                    videoUrl: data.videoUrl,
+                                    generationId: data.generationId,
+                                    resolution: data.resolution || settings.resolution,
+                                    tier: "standard" as const,
+                                    provider: "fal-wan-v2.6",
+                                    canExtend: false,
+                                }
+                                : item
+                        );
+                        if (user) savePendingVideos(user.id, updated);
+                        return updated;
+                    });
+                    showToast("Video generated successfully!", "success");
+                    if (refreshProfile) refreshProfile();
+                }
             }
 
         } catch (err) {
