@@ -17,6 +17,7 @@ function HomeContent() {
   const router = useRouter();
   const initialView = searchParams.get("view") === "create" ? "create" : "dashboard";
   const [activeView, setActiveView] = useState<"dashboard" | "create">(initialView);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleBackToDashboard = () => {
     router.push("/");
@@ -134,12 +135,47 @@ function HomeContent() {
               <Link href="/login" className="font-grotesque text-sm text-white/70 hover:text-white transition-colors">login</Link>
             </nav>
 
-            {/* Mobile Menu */}
-            <button className="md:hidden w-9 h-9 flex items-center justify-center text-white">
-              <Icon icon="mingcute:menu-fill" className="w-5 h-5" />
+            {/* Mobile Menu Toggle */}
+            <button
+              className="md:hidden w-9 h-9 flex items-center justify-center text-white relative z-50"
+              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+            >
+              <Icon
+                icon={isMobileMenuOpen ? "mingcute:close-line" : "mingcute:menu-fill"}
+                className="w-5 h-5 transition-transform duration-300"
+                style={{ transform: isMobileMenuOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}
+              />
             </button>
           </div>
         </header>
+
+        {/* Mobile Navigation Overlay */}
+        <div className={cn(
+          "fixed inset-0 z-40 bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center gap-8 transition-all duration-300 md:hidden",
+          isMobileMenuOpen ? "opacity-100 translate-y-0" : "opacity-0 translate-y-[-100%] pointer-events-none"
+        )}>
+          <Link
+            href="/community"
+            className="font-heritage text-3xl text-white hover:text-primary transition-colors"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Community
+          </Link>
+          <Link
+            href="/pricing"
+            className="font-heritage text-3xl text-white hover:text-primary transition-colors"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Pricing
+          </Link>
+          <Link
+            href="/login"
+            className="font-heritage text-3xl text-white hover:text-primary transition-colors"
+            onClick={() => setIsMobileMenuOpen(false)}
+          >
+            Login
+          </Link>
+        </div>
 
         {/* Main Content - Centered & Compact */}
         <main className="h-full flex flex-col items-center justify-center relative z-10 px-6">

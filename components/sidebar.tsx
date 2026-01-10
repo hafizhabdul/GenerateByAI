@@ -121,6 +121,16 @@ export function Sidebar() {
                                 <span className="text-[10px] font-medium">{item.label}</span>
                             </Link>
                         ))}
+                        <Link
+                            href="/settings"
+                            className={cn(
+                                "p-3 rounded-xl transition-all flex flex-col items-center gap-1",
+                                pathname === "/settings" ? "text-primary bg-primary/10" : "text-muted-foreground active:bg-white/5"
+                            )}
+                        >
+                            <Icon icon="mingcute:settings-3-fill" className="w-5 h-5" />
+                            <span className="text-[10px] font-medium">Settings</span>
+                        </Link>
                         {profile ? (
                             <Link href="/pricing" className="p-3 rounded-xl text-primary bg-primary/10 flex flex-col items-center gap-1">
                                 <span className="text-sm font-bold">{creditsLeft}</span>
