@@ -57,12 +57,14 @@ function HomeContent() {
     fetchRecent();
   }, [user]);
 
+  const hasAuthCode = searchParams.get("code") !== null;
+
   // Show a clean loading state while auth is still processing
-  if (authLoading) {
+  if (authLoading || (hasAuthCode && !user)) {
     return (
       <div className="flex min-h-screen w-full bg-background items-center justify-center">
         <MascotLoading
-          message="🐿️ Squirrel sedang memuat dashboard..."
+          message="🐿️ Squirrel sedang memproses login..."
           submessage="Tunggu sebentar ya!"
         />
       </div>

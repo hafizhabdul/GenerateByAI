@@ -1,1 +1,0 @@
-dan coba analisa keseluruhan apakah aplikasi sudah siap untuk go-live atau belum

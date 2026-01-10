@@ -41,7 +41,8 @@
       "mcp__plugin_context7_context7__query-docs",
       "Bash(npx tsc:*)",
       "Bash(cat:*)",
-      "WebFetch(domain:fal.ai)"
+      "WebFetch(domain:fal.ai)",
+      "Bash(wc:*)"
     ]
   },
   "hooks": {
