@@ -77,139 +77,98 @@ function HomeContent() {
     || user?.email?.split("@")[0]?.split(".")[0]?.replace(/^\w/, c => c.toUpperCase())
     || "Creator";
 
-  // Show landing page when not logged in - Neo-Wayang Bold Dark Style (Option B Refined)
+  // Show landing page when not logged in - Editorial Bold Style (No Scroll)
   if (!user) {
     return (
-      <div className="min-h-screen w-full bg-[#0a0a0a] text-white overflow-hidden selection:bg-[#c2410c] selection:text-white relative noise-overlay">
+      <div className="h-screen w-full bg-gradient-to-b from-[#c2410c] via-[#9a3412] to-[#1c1917] text-white overflow-hidden selection:bg-white selection:text-[#c2410c] relative">
 
-        {/* 1. Subtle Batik Pattern Background */}
-        <BatikPattern opacity={0.08} color="#333" className="fixed inset-0 pointer-events-none" />
+        {/* Large Background Typography */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
+          <h1 className="font-wayang text-[40vw] md:text-[30vw] lg:text-[25vw] font-black tracking-tighter text-black/10 select-none whitespace-nowrap leading-none">
+            SQUIRRAI
+          </h1>
+        </div>
 
-        {/* Deep ambient glow */}
-        <div className="fixed top-[-20%] right-[-10%] w-[70%] h-[80%] bg-[#c2410c] rounded-full blur-[180px] opacity-10 pointer-events-none animate-pulse-slow" />
-        <div className="fixed bottom-[-20%] left-[-10%] w-[50%] h-[60%] bg-[#c2410c] rounded-full blur-[150px] opacity-5 pointer-events-none" />
+        {/* Subtle Noise Texture */}
+        <div className="absolute inset-0 pointer-events-none opacity-[0.04] z-[60]" style={{
+          backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")`
+        }} />
 
-        {/* Minimal Header */}
-        <header className="fixed top-0 left-0 right-0 z-50 px-6 md:px-12 py-6 flex justify-between items-center mix-blend-difference text-white">
-          <div className="flex items-center gap-3">
-            <Icon icon="mingcute:squirrel-fill" className="w-8 h-8 text-white/90" />
+        {/* Minimal Navigation */}
+        <header className="absolute top-0 left-0 right-0 z-50 px-6 md:px-10 lg:px-16 py-4 md:py-6">
+          <div className="flex justify-between items-center">
+            {/* Logo */}
+            <div className="flex items-center gap-2">
+              <Icon icon="mingcute:squirrel-fill" className="w-6 h-6 md:w-7 md:h-7 text-white" />
+              <span className="font-wayang text-lg md:text-xl font-semibold tracking-tight text-white">squirrai</span>
+            </div>
+
+            {/* Nav Links */}
+            <nav className="hidden md:flex items-center gap-6 lg:gap-10">
+              <Link href="/gallery" className="font-grotesque text-sm text-white/70 hover:text-white transition-colors">gallery</Link>
+              <Link href="/pricing" className="font-grotesque text-sm text-white/70 hover:text-white transition-colors">pricing</Link>
+              <Link href="/login" className="font-grotesque text-sm text-white/70 hover:text-white transition-colors">login</Link>
+            </nav>
+
+            {/* Mobile Menu */}
+            <button className="md:hidden w-9 h-9 flex items-center justify-center text-white">
+              <Icon icon="mingcute:menu-fill" className="w-5 h-5" />
+            </button>
           </div>
-
-          <Link
-            href="/login"
-            className="group flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-          >
-            <span className="font-grotesque text-sm tracking-widest uppercase font-bold">Login</span>
-            <Icon icon="mingcute:arrow-right-line" className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-          </Link>
         </header>
 
-        {/* Main Content */}
-        <main className="min-h-screen flex items-center relative z-10">
-          <div className="w-full max-w-[1600px] mx-auto px-6 md:px-12 lg:px-20 py-24 md:py-0">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+        {/* Main Content - Centered & Compact */}
+        <main className="h-full flex flex-col items-center justify-center relative z-10 px-6">
 
-              {/* Left - Typography & Copy */}
-              <div className="relative z-20">
-                {/* Pre-title */}
-                <div className="flex items-center gap-4 mb-8 animate-dramatic-enter" style={{ animationDelay: '0.1s' }}>
-                  <span className="w-8 h-[1px] bg-[#c2410c]"></span>
-                  <span className="font-grotesque text-xs tracking-[0.3em] text-[#c2410c] uppercase font-bold">
-                    Generatif AI Nusantara
-                  </span>
-                </div>
+          <div className="flex flex-col items-center text-center">
 
-                {/* Main Title - Characterful & Bold */}
-                <div className="relative mb-8">
-                  <h1 className="animate-dramatic-enter leading-[0.9]" style={{ animationDelay: '0.2s' }}>
-                    <span className="block font-wayang text-[16vw] md:text-[10vw] lg:text-[9vw] font-extrabold tracking-tighter text-white mix-blend-exclusion">
-                      SQUIRR
-                    </span>
-                    <span className="flex items-center gap-4 font-wayang text-[16vw] md:text-[10vw] lg:text-[9vw] font-extrabold tracking-tighter text-white mt-[-2vw] md:mt-[-1vw]">
-                      <span className="block">AI</span>
-                      {/* Stylized 'AI' badge/block */}
-                      <span className="hidden md:flex h-[0.7em] px-4 bg-[#c2410c] text-[#0a0a0a] items-center justify-center text-[0.4em] tracking-normal align-middle rounded-sm transform rotate-3 hover:rotate-6 transition-transform cursor-default">
-                        PRO
-                      </span>
-                    </span>
-                  </h1>
-                </div>
+            {/* Pre-title */}
+            <p className="font-heritage italic text-base md:text-lg lg:text-xl text-white/60 mb-2 md:mb-3 animate-fade-in-down">
+              Generative AI Platform
+            </p>
 
-                {/* Subtitle - Elegant Serif */}
-                <p className="font-heritage text-2xl md:text-3xl lg:text-4xl text-white/80 max-w-lg leading-snug animate-dramatic-enter italic" style={{ animationDelay: '0.4s' }}>
-                  "Wujudkan imajinasi <span className="text-[#c2410c] not-italic">Nusantara</span> dalam hitungan detik."
-                </p>
+            {/* Main Headline */}
+            <h1 className="font-heritage text-[10vw] md:text-[7vw] lg:text-[5vw] font-medium leading-[0.95] tracking-tight text-white mb-4 md:mb-6 animate-scale-in">
+              Imajinasi<br />
+              <span className="italic">Nusantara</span>
+            </h1>
 
-                <p className="mt-6 font-grotesque text-lg text-white/40 max-w-md leading-relaxed animate-dramatic-enter" style={{ animationDelay: '0.5s' }}>
-                  Batik, Wayang, hingga pemandangan tropis. Dibuat oleh AI, dirancang untuk kreator lokal.
-                </p>
+            {/* Mascot - Clickable */}
+            <Link href="/login" className="relative my-4 md:my-6 animate-fade-in-up cursor-pointer group">
+              <div className="absolute inset-0 bg-white/20 blur-[60px] rounded-full scale-75 group-hover:bg-white/30 transition-all" />
+              <img
+                src="/maskot.png"
+                alt="SquirrAI - Click to Login"
+                className="relative w-[140px] md:w-[200px] lg:w-[260px] h-auto object-contain drop-shadow-[0_15px_40px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform duration-500"
+              />
+            </Link>
 
-                {/* CTA Row */}
-                <div className="mt-12 flex flex-col sm:flex-row items-center gap-6 animate-dramatic-enter" style={{ animationDelay: '0.6s' }}>
-                  <Link
-                    href="/register"
-                    className="group relative px-8 py-4 bg-white text-[#0a0a0a] font-grotesque font-bold text-lg tracking-wider rounded-lg overflow-hidden transition-all hover:scale-105 hover:shadow-[0_0_40px_-10px_rgba(255,255,255,0.3)]"
-                  >
-                    <span className="relative z-10 flex items-center gap-3">
-                      MULAI SEKARANG
-                      <Icon icon="mingcute:arrow-right-fill" className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </span>
-                  </Link>
+            {/* Tagline - Compact */}
+            <p className="font-grotesque text-xs md:text-sm text-white/60 max-w-md leading-relaxed tracking-wide uppercase mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+              Visual batik, wayang, arsitektur tradisional.<br className="hidden sm:block" />
+              Dibuat oleh AI untuk kreator Indonesia.
+            </p>
 
-                  <div className="flex items-center gap-4 text-white/40 font-grotesque text-sm tracking-widest">
-                    <span>FREE 100 TOKENS</span>
-                  </div>
-                </div>
-              </div>
 
-              {/* Right - Mascot & Showcase */}
-              <div className="relative flex items-center justify-center lg:justify-end min-h-[50vh] lg:min-h-0">
-
-                {/* Showcase Elements "Floating/Blending" */}
-                <div className="absolute inset-0 z-0">
-                  {/* Abstract Temple / Candi Shape */}
-                  <div className="absolute top-[10%] right-[20%] w-32 h-32 border border-white/5 rotate-45 animate-float-slow backdrop-blur-sm rounded-3xl" style={{ animationDelay: '1s' }} />
-
-                  {/* Fabric Texture Hint */}
-                  <div className="absolute bottom-[20%] left-[10%] w-40 h-40 bg-[url('/batik-pattern.png')] bg-cover opacity-10 rounded-full animate-float-delayed mix-blend-overlay" />
-
-                  {/* Tech Circle */}
-                  <div className="absolute top-[30%] left-[20%] w-24 h-24 border border-[#c2410c]/20 rounded-full animate-pulse-slow" />
-                </div>
-
-                {/* Main Mascot Area */}
-                <div className="relative z-10 animate-dramatic-enter" style={{ animationDelay: '0.4s' }}>
-                  <div className="absolute inset-0 bg-gradient-to-tr from-[#c2410c]/20 to-purple-500/0 blur-[60px] rounded-full animate-breathe" />
-
-                  <img
-                    src="/maskot.png"
-                    alt="SquirrAI"
-                    className="relative w-[300px] md:w-[450px] lg:w-[500px] h-auto object-contain drop-shadow-2xl hover:scale-105 transition-transform duration-700 ease-out"
-                  />
-
-                  {/* Clean Floating Stats (No Boxes) */}
-                  <div className="absolute -left-8 top-1/3 animate-fade-in-up delay-700">
-                    <div className="font-wayang text-5xl md:text-6xl text-white drop-shadow-lg">10K+</div>
-                    <div className="font-grotesque text-sm text-[#c2410c] tracking-[0.2em] uppercase font-bold mt-[-5px]">Kreator</div>
-                  </div>
-
-                  <div className="absolute -right-4 bottom-1/4 animate-fade-in-up delay-1000 text-right">
-                    <div className="font-wayang text-5xl md:text-6xl text-white drop-shadow-lg">50K+</div>
-                    <div className="font-grotesque text-sm text-[#c2410c] tracking-[0.2em] uppercase font-bold mt-[-5px]">Kreasi</div>
-                  </div>
-                </div>
-
-              </div>
-            </div>
           </div>
         </main>
 
-        {/* Footer/Bottom Strip */}
-        <div className="fixed bottom-8 left-6 md:left-12 flex items-center gap-4 z-40">
-          <div className="w-12 h-[1px] bg-white/20" />
-          <span className="font-grotesque text-xs text-white/30 tracking-widest uppercase">© 2026 SquirrAI Tech</span>
-        </div>
+        {/* Bottom Strip - Compact */}
+        <footer className="absolute bottom-0 left-0 right-0 z-40 px-6 md:px-10 lg:px-16 py-4 md:py-5">
+          <div className="flex justify-between items-end">
+            {/* Left */}
+            <div className="hidden md:flex flex-col gap-0.5">
+              <span className="font-grotesque text-[9px] text-white/40 uppercase tracking-[0.15em]">Fitur</span>
+              <span className="font-grotesque text-[11px] text-white/50">Image • Video • Style</span>
+            </div>
 
+            {/* Right */}
+            <div className="flex flex-col items-end gap-0.5">
+              <span className="font-grotesque text-[9px] text-white/40 uppercase tracking-[0.15em]">Platform</span>
+              <span className="font-grotesque text-[11px] text-white/50">© 2026 SquirrAI</span>
+            </div>
+          </div>
+        </footer>
       </div>
     );
   }

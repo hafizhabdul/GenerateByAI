@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Geist&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Space+Mono:wght@400;700&family=Bebas+Neue&family=Darker+Grotesque:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700;800&family=Geist&family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&display=swap');
 @import "tailwindcss";
 
 :root {
@@ -1020,6 +1020,7 @@ button[data-variant="secondary"]:hover,
   from {
     clip-path: inset(0 100% 0 0);
   }
+
   to {
     clip-path: inset(0 0 0 0);
   }
@@ -1029,15 +1030,19 @@ button[data-variant="secondary"]:hover,
   from {
     transform: scaleX(0);
   }
+
   to {
     transform: scaleX(1);
   }
 }
 
 @keyframes floatSubtle {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) rotate(0deg);
   }
+
   50% {
     transform: translateY(-8px) rotate(1deg);
   }
@@ -1047,6 +1052,7 @@ button[data-variant="secondary"]:hover,
   0% {
     transform: translateX(0);
   }
+
   100% {
     transform: translateX(-50%);
   }
@@ -1057,6 +1063,7 @@ button[data-variant="secondary"]:hover,
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -1086,13 +1093,33 @@ button[data-variant="secondary"]:hover,
 }
 
 /* Delay utilities */
-.delay-100 { animation-delay: 100ms; }
-.delay-200 { animation-delay: 200ms; }
-.delay-300 { animation-delay: 300ms; }
-.delay-400 { animation-delay: 400ms; }
-.delay-500 { animation-delay: 500ms; }
-.delay-600 { animation-delay: 600ms; }
-.delay-700 { animation-delay: 700ms; }
+.delay-100 {
+  animation-delay: 100ms;
+}
+
+.delay-200 {
+  animation-delay: 200ms;
+}
+
+.delay-300 {
+  animation-delay: 300ms;
+}
+
+.delay-400 {
+  animation-delay: 400ms;
+}
+
+.delay-500 {
+  animation-delay: 500ms;
+}
+
+.delay-600 {
+  animation-delay: 600ms;
+}
+
+.delay-700 {
+  animation-delay: 700ms;
+}
 
 /* Diagonal line decoration */
 .diagonal-line {
@@ -1137,12 +1164,10 @@ button[data-variant="secondary"]:hover,
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255,255,255,0.1) 50%,
-    transparent 100%
-  );
+  background: linear-gradient(90deg,
+      transparent 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      transparent 100%);
   animation: shimmerGradient 3s infinite;
 }
 
@@ -1203,18 +1228,18 @@ button[data-variant="secondary"]:hover,
    NEO-WAYANG LANDING PAGE - Bold Graphic Dark Style
    ═══════════════════════════════════════════════════════════════ */
 
-/* Wayang-inspired fonts */
+/* Editorial-inspired fonts */
 .font-wayang {
-  font-family: "Syne", sans-serif;
+  font-family: "Playfair Display", Georgia, serif;
   letter-spacing: -0.02em;
 }
 
 .font-heritage {
-  font-family: "Cormorant Garamond", serif;
+  font-family: "Playfair Display", Georgia, serif;
 }
 
 .font-grotesque {
-  font-family: "Outfit", sans-serif;
+  font-family: "Space Grotesk", system-ui, sans-serif;
 }
 
 /* Gunungan pattern - wayang mountain shape */
@@ -1225,13 +1250,11 @@ button[data-variant="secondary"]:hover,
 
 /* Diagonal stripes pattern */
 .diagonal-stripes {
-  background: repeating-linear-gradient(
-    -45deg,
-    transparent,
-    transparent 2px,
-    rgba(194, 65, 12, 0.03) 2px,
-    rgba(194, 65, 12, 0.03) 4px
-  );
+  background: repeating-linear-gradient(-45deg,
+      transparent,
+      transparent 2px,
+      rgba(194, 65, 12, 0.03) 2px,
+      rgba(194, 65, 12, 0.03) 4px);
 }
 
 /* Wayang shadow effect */
@@ -1241,18 +1264,24 @@ button[data-variant="secondary"]:hover,
 
 /* Glitch text effect */
 @keyframes glitch {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translate(0);
   }
+
   20% {
     transform: translate(-2px, 2px);
   }
+
   40% {
     transform: translate(-2px, -2px);
   }
+
   60% {
     transform: translate(2px, 2px);
   }
+
   80% {
     transform: translate(2px, -2px);
   }
@@ -1267,6 +1296,7 @@ button[data-variant="secondary"]:hover,
   0% {
     clip-path: polygon(0 0, 0 0, 0 100%, 0 100%);
   }
+
   100% {
     clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%);
   }
@@ -1283,6 +1313,7 @@ button[data-variant="secondary"]:hover,
     transform: translateY(60px) scale(0.9);
     filter: blur(10px);
   }
+
   100% {
     opacity: 1;
     transform: translateY(0) scale(1);
@@ -1297,9 +1328,12 @@ button[data-variant="secondary"]:hover,
 
 /* Copper glow pulse */
 @keyframes copperGlow {
-  0%, 100% {
+
+  0%,
+  100% {
     box-shadow: 0 0 20px rgba(194, 65, 12, 0.3), 0 0 60px rgba(194, 65, 12, 0.1);
   }
+
   50% {
     box-shadow: 0 0 40px rgba(194, 65, 12, 0.5), 0 0 80px rgba(194, 65, 12, 0.2);
   }
@@ -1314,6 +1348,7 @@ button[data-variant="secondary"]:hover,
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -1325,9 +1360,12 @@ button[data-variant="secondary"]:hover,
 
 /* Scale breathe */
 @keyframes breathe {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: scale(1);
   }
+
   50% {
     transform: scale(1.02);
   }
@@ -1339,9 +1377,12 @@ button[data-variant="secondary"]:hover,
 
 /* Border animation */
 @keyframes borderDance {
-  0%, 100% {
+
+  0%,
+  100% {
     border-color: rgba(194, 65, 12, 0.5);
   }
+
   50% {
     border-color: rgba(194, 65, 12, 1);
   }
@@ -1379,13 +1420,11 @@ button[data-variant="secondary"]:hover,
   content: "";
   position: absolute;
   inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.1) 2px,
-    rgba(0, 0, 0, 0.1) 4px
-  );
+  background: repeating-linear-gradient(0deg,
+      transparent,
+      transparent 2px,
+      rgba(0, 0, 0, 0.1) 2px,
+      rgba(0, 0, 0, 0.1) 4px);
   pointer-events: none;
   opacity: 0.3;
 }
