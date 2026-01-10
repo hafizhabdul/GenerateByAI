@@ -207,7 +207,7 @@ export async function GET(req: NextRequest) {
                     .from("generations")
                     .update({ status: "fetching" })
                     .eq("id", generationId)
-                    .eq("status", "processing")  // Only if still processing
+                    .in("status", ["pending", "processing"])  // Allow pending or processing
                     .select("id")
                     .single();
 

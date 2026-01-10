@@ -4,8 +4,8 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { persistExternalVideo } from "@/lib/storage-utils";
 import { processTokenCharge } from "@/lib/tokens-server";
-import { createKlingClient, getVideoCost, getAudioCost } from "@/lib/kling";
-import { submitVideoGeneration } from "@/lib/fal";
+import { createKlingClient } from "@/lib/kling";
+import { submitVideoGeneration, getVeoCost } from "@/lib/fal";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
 
@@ -43,9 +43,11 @@ export async function POST(req: Request) {
         }
 
         // Calculate cost: video + optional audio (separate API call)
-        const videoCost = getVideoCost(duration, mode);
-        const audioCost = sound ? getAudioCost() : 0;
-        const cost = videoCost + audioCost;
+        // Calculate cost: Veo model pricing
+        const durationNum = duration === "10" ? 8 : 5; // Map 10s to 8s for Veo
+        const videoCost = getVeoCost(durationNum); // 250 (5s) or 400 (8s)
+        const audioCost = 0; // Audio included in Veo Premium
+        const cost = videoCost;
 
         // --- Auth Check ---
         const supabase = await createClient();

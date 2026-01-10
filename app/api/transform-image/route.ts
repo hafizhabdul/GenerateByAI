@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
-import { transformImage, getImageTransformCost, isFalConfigured } from "@/lib/fal";
+import { transformImage, isFalConfigured } from "@/lib/fal";
+import { getTokenCost, QualityTier } from "@/lib/tokens";
 import { persistExternalImage } from "@/lib/storage-utils";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
@@ -41,8 +42,8 @@ export async function POST(req: Request) {
             );
         }
 
-        // Calculate cost
-        const cost = getImageTransformCost();
+        // Calculate cost based on quality tier
+        const cost = getTokenCost('image', quality as QualityTier);
 
         // Auth Check
         const supabase = await createClient();
