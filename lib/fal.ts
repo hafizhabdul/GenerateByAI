@@ -359,33 +359,47 @@ export async function checkImageGenerationStatus(requestId: string): Promise<{
         logs: true
     });
 
-    // Cast to any to handle type discrepancies in the SDK
+    // Cast to any to safely access properties
     const anyStatus = status as any;
 
     if (anyStatus.status === "COMPLETED") {
-        const data = anyStatus.data as {
-            images?: Array<{ url: string }>;
-            image?: { url: string };
-            url?: string;
-        };
-        const imageUrl = data?.images?.[0]?.url || data?.image?.url || data?.url;
+        // When completed, fetch the actual result using the result API
+        // This ensures we get the full output payload
+        try {
+            const result = await fal.queue.result(IMAGE_ENDPOINT, {
+                requestId
+            });
 
-        return {
-            status: "COMPLETED",
-            imageUrl,
-        };
+            const data = result.data as {
+                images?: Array<{ url: string }>;
+                image?: { url: string };
+                url?: string;
+            };
+            const imageUrl = data?.images?.[0]?.url || data?.image?.url || data?.url;
+
+            return {
+                status: "COMPLETED",
+                imageUrl,
+            };
+        } catch (e) {
+            console.error("Failed to fetch result for completed request:", e);
+            return {
+                status: "FAILED",
+                error: "Failed to retireve generation result"
+            };
+        }
     }
 
     if (anyStatus.status === "FAILED") {
         return {
             status: "FAILED",
-            error: "Generation failed"
+            error: anyStatus.error || "Generation failed"
         };
     }
 
-    // Default return
+    // Default return for IN_QUEUE or IN_PROGRESS
     return {
-        status: status.status as any
+        status: anyStatus.status || "IN_PROGRESS"
     };
 }
 

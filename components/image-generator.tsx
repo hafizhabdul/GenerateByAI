@@ -625,17 +625,27 @@ export function ImageGenerator() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Generation failed");
 
-                // Update optimistic item with result
-                setFeed(prev => prev.map(item =>
-                    item.id === tempId
-                        ? { ...item, id: data.generationId || tempId, status: "completed", file_url: data.url }
-                        : item
-                ));
+                if (data.status === "pending") {
+                    // Async generation started
+                    setFeed(prev => prev.map(item =>
+                        item.id === tempId
+                            ? { ...item, id: data.generationId || tempId, status: "pending" }
+                            : item
+                    ));
 
-                showToast("Image generated successfully!", "success");
+                    // Start polling
+                    setPendingGenerationId(data.generationId);
+                    if (user) savePendingGeneration(user.id, data.generationId, currentPrompt);
+                } else {
+                    // Sync generation completed (should not happen with current API but good fallback)
+                    setFeed(prev => prev.map(item =>
+                        item.id === tempId
+                            ? { ...item, id: data.generationId || tempId, status: "completed", file_url: data.url }
+                            : item
+                    ));
+                    showToast("Image generated successfully!", "success");
+                }
             }
-
-            if (user) clearPendingGeneration(user.id);
 
             // Refresh profile to update credits immediately
             await refreshProfile();
@@ -652,9 +662,10 @@ export function ImageGenerator() {
                     : item
             ));
             if (user) clearPendingGeneration(user.id);
+            setPendingGenerationId(null);
         } finally {
             setLoading(false);
-            setPendingGenerationId(null);
+            // Do NOT clear pendingGenerationId here, as we might be polling
         }
     }, [prompt, mode, transformFile, transformImage, user, showToast, refreshProfile]);
 
