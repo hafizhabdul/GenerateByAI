@@ -130,12 +130,29 @@ export async function createGenerationWithSession(params: {
     status: "pending" | "processing" | "completed" | "failed";
     tokensUsed: number;
     metadata?: Record<string, unknown>;
+    isPublic?: boolean; // If true, visible in community. Default based on user's token balance
 }): Promise<{ generationId: string; sessionId: string }> {
-    const { userId, type, prompt, fileUrl, status, tokensUsed, metadata } = params;
+    const { userId, type, prompt, fileUrl, status, tokensUsed, metadata, isPublic } = params;
     const adminClient = createAdminClient();
 
     // Get or create session
     const { sessionId } = await getOrCreateSession({ userId, type, prompt });
+
+    // Determine is_public value
+    // If not explicitly set, we'll determine based on user's purchased tokens
+    let publicValue = isPublic;
+    if (publicValue === undefined) {
+        // Check if user has purchased tokens (tokens_total > 100, since free users get 100)
+        const { data: profile } = await adminClient
+            .from("profiles")
+            .select("tokens_total")
+            .eq("id", userId)
+            .single();
+
+        // Free users (100 tokens) = public, Paid users (>100 tokens) = private
+        const hasPurchasedTokens = (profile?.tokens_total || 0) > 100;
+        publicValue = !hasPurchasedTokens; // Free = public (true), Paid = private (false)
+    }
 
     // Insert generation with session_id
     const { data: generation, error } = await adminClient
@@ -149,6 +166,7 @@ export async function createGenerationWithSession(params: {
             status,
             tokens_used: tokensUsed,
             metadata,
+            is_public: publicValue,
         })
         .select("id")
         .single();

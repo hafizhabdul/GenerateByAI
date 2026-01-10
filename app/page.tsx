@@ -105,7 +105,7 @@ function HomeContent() {
 
             {/* Nav Links */}
             <nav className="hidden md:flex items-center gap-6 lg:gap-10">
-              <Link href="/gallery" className="font-grotesque text-sm text-white/70 hover:text-white transition-colors">gallery</Link>
+              <Link href="/community" className="font-grotesque text-sm text-white/70 hover:text-white transition-colors">community</Link>
               <Link href="/pricing" className="font-grotesque text-sm text-white/70 hover:text-white transition-colors">pricing</Link>
               <Link href="/login" className="font-grotesque text-sm text-white/70 hover:text-white transition-colors">login</Link>
             </nav>
@@ -145,8 +145,7 @@ function HomeContent() {
 
             {/* Tagline - Compact */}
             <p className="font-grotesque text-xs md:text-sm text-white/60 max-w-md leading-relaxed tracking-wide uppercase mb-6 md:mb-8 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-              Visual batik, wayang, arsitektur tradisional.<br className="hidden sm:block" />
-              Dibuat oleh AI untuk kreator Indonesia.
+              Wujudkan narasi lokal dengan kualitas visual kelas dunia. Ruang kreasi tanpa batas bagi kreator Indonesia.
             </p>
 
 
@@ -276,19 +275,19 @@ function HomeContent() {
                 )}
               </Link>
 
-              {/* Community - Minimalist Coming Soon */}
-              <div className="col-span-2 md:col-span-1 row-span-1 rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-surface-1 border border-white/5 p-4 md:p-5 lg:p-7 flex items-center justify-between group hover:border-white/10 transition-all cursor-default overflow-hidden relative">
+              {/* Community - Active Link */}
+              <Link href="/community" className="col-span-2 md:col-span-1 row-span-1 rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-surface-1 border border-border p-4 md:p-5 lg:p-7 flex items-center justify-between group hover:border-primary/50 transition-all cursor-pointer overflow-hidden relative">
                 <div className="relative z-10">
                   <h3 className="font-bold text-sm md:text-base lg:text-lg flex items-center gap-2.5 mb-1">
                     Community
-                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-white/5 border border-white/10 text-muted-foreground/70 font-bold uppercase tracking-[0.05em]">Soon</span>
+                    <span className="text-[9px] px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20 text-primary font-bold uppercase tracking-[0.05em]">New</span>
                   </h3>
-                  <p className="text-[10px] md:text-xs text-muted-foreground/60 font-medium">Coming to SquirrAI very soon.</p>
+                  <p className="text-[10px] md:text-xs text-muted-foreground font-medium">Lihat karya dari komunitas</p>
                 </div>
-                <div className="w-11 h-11 md:w-13 md:h-13 rounded-full bg-white/5 border border-white/10 flex items-center justify-center opacity-30 grayscale group-hover:opacity-40 transition-opacity">
-                  <Icon icon="mingcute:planet-fill" className="w-6 h-6 md:w-7 md:h-7" />
+                <div className="w-11 h-11 md:w-13 md:h-13 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Icon icon="mingcute:planet-fill" className="w-6 h-6 md:w-7 md:h-7 text-primary" />
                 </div>
-              </div>
+              </Link>
 
               {/* Recent Activity List */}
               <div className="col-span-2 md:col-span-3 row-span-1 rounded-2xl md:rounded-[2rem] lg:rounded-[2.5rem] bg-surface-1 border border-border p-3 md:p-4 lg:p-6 flex items-center gap-3 md:gap-4 overflow-x-auto hide-scrollbar">

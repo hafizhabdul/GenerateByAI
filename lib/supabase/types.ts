@@ -95,6 +95,7 @@ export interface Database {
                     status: 'pending' | 'processing' | 'completed' | 'failed';
                     tokens_used: number;
                     is_favorite: boolean;
+                    is_public: boolean;
                     created_at: string;
                     metadata: {
                         taskId?: string;
@@ -126,6 +127,7 @@ export interface Database {
                     status?: 'pending' | 'processing' | 'completed' | 'failed';
                     tokens_used?: number;
                     is_favorite?: boolean;
+                    is_public?: boolean;
                     created_at?: string;
                     metadata?: Json | null;
                 };
@@ -144,6 +146,7 @@ export interface Database {
                     status?: 'pending' | 'processing' | 'completed' | 'failed';
                     tokens_used?: number;
                     is_favorite?: boolean;
+                    is_public?: boolean;
                     created_at?: string;
                     metadata?: Json | null;
                 };
