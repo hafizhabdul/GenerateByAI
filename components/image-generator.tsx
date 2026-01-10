@@ -377,8 +377,15 @@ export function ImageGenerator() {
         const checkPendingResult = async () => {
             try {
                 // Trigger explicit check which will update DB if Fal completed
+                let dailyRemaining: number | undefined;
                 if (pendingGenerationId) {
-                    await fetch(`/api/generations/${pendingGenerationId}/check`);
+                    const checkRes = await fetch(`/api/generations/${pendingGenerationId}/check`);
+                    if (checkRes.ok) {
+                        const checkData = await checkRes.json();
+                        if (checkData.status === "completed") {
+                            dailyRemaining = checkData.dailyRemaining;
+                        }
+                    }
                 }
 
                 // Check if the generation completed in the database
@@ -412,7 +419,21 @@ export function ImageGenerator() {
                         setLoading(false);
                         setPendingGenerationId(null);
                         clearPendingGeneration(user.id);
-                        showToast("Image generation completed!", "success");
+
+                        const notificationsEnabled = localStorage.getItem("notifications_enabled") !== "false";
+                        if (notificationsEnabled) {
+                            showToast("Image generation completed!", "success");
+                        }
+
+                        // Check daily limit warning
+                        if (dailyRemaining !== undefined && dailyRemaining <= 2) {
+                            showToast(
+                                dailyRemaining === 0
+                                    ? "⚠️ Daily limit reached! Upgrade to continue."
+                                    : `⚠️ running low! ${dailyRemaining} generations left today.`,
+                                "warning"
+                            );
+                        }
                     }
                 }
             } catch (error) {
@@ -611,7 +632,19 @@ export function ImageGenerator() {
                         : item
                 ));
 
-                showToast("Image transformed successfully!", "success");
+                const notificationsEnabled = localStorage.getItem("notifications_enabled") !== "false";
+                if (notificationsEnabled) {
+                    showToast("Image transformed successfully!", "success");
+                }
+
+                if (data.dailyRemaining !== undefined && data.dailyRemaining <= 2) {
+                    showToast(
+                        data.dailyRemaining === 0
+                            ? "⚠️ Daily limit reached! Upgrade to continue."
+                            : `⚠️ running low! ${data.dailyRemaining} generations left today.`,
+                        "warning"
+                    );
+                }
             } else {
                 // Standard generation mode
                 const quality = localStorage.getItem("generation_quality") || "high";

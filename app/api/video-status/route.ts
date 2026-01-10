@@ -5,7 +5,7 @@ import { z } from "zod";
 import { checkWanVideoStatus, getWanVideoResult } from "@/lib/fal-wan";
 import { persistExternalVideo } from "@/lib/storage-utils";
 import { refundTokens, commitTokenCharge } from "@/lib/tokens-server";
-import { decrementDailyGeneration } from "@/lib/daily-limits";
+import { decrementDailyGeneration, incrementDailyGeneration, getDailyLimitInfo } from "@/lib/daily-limits";
 
 // UUID validation helper
 const uuidSchema = z.string().uuid();
@@ -311,7 +311,11 @@ export async function GET(req: NextRequest) {
                     }
                 }
 
-                console.log(`[Video] Completed and persisted: ${requestId}`);
+                // Increment daily generation count
+                await incrementDailyGeneration(user.id);
+                const dailyLimitInfo = await getDailyLimitInfo(user.id);
+
+                console.log(`[Video] Completed and persisted: ${requestId}, Daily remaining: ${dailyLimitInfo?.remaining}`);
 
                 return NextResponse.json({
                     status: "completed",
@@ -319,6 +323,7 @@ export async function GET(req: NextRequest) {
                     url: permanentUrl,
                     duration: result.duration,
                     resolution: result.resolution,
+                    dailyRemaining: dailyLimitInfo?.remaining
                 });
             } catch (resultError: any) {
                 // Handle 404 - result already consumed or expired

@@ -519,7 +519,21 @@ export function VideoGenerator() {
                             if (user) savePendingVideos(user.id, updated);
                             return updated;
                         });
-                        showToast("Video generated successfully!", "success");
+                        const notificationsEnabled = localStorage.getItem("notifications_enabled") !== "false";
+                        if (notificationsEnabled) {
+                            showToast("Video generated successfully!", "success");
+                        }
+
+                        // Check daily limit warning
+                        if (data.dailyRemaining !== undefined && data.dailyRemaining <= 2) {
+                            showToast(
+                                data.dailyRemaining === 0
+                                    ? "⚠️ Daily limit reached! Upgrade to continue."
+                                    : `⚠️ running low! ${data.dailyRemaining} generations left today.`,
+                                "warning"
+                            );
+                        }
+
                         await refreshProfile();
                     } else if (data.status === "failed") {
                         setFeed(prev => {

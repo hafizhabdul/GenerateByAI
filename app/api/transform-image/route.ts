@@ -6,7 +6,7 @@ import { transformImage, isFalConfigured } from "@/lib/fal";
 import { getTokenCost, QualityTier } from "@/lib/tokens";
 import { persistExternalImage } from "@/lib/storage-utils";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
-import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
+import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse, getDailyLimitInfo } from "@/lib/daily-limits";
 import { createGenerationWithSession } from "@/lib/session-utils";
 
 const TransformImageSchema = z.object({
@@ -111,6 +111,7 @@ export async function POST(req: Request) {
 
             // Increment daily generation count
             await incrementDailyGeneration(user.id);
+            const dailyLimitInfo = await getDailyLimitInfo(user.id);
 
             console.log(`[Transform] Transformation complete for user ${user.id}:`, {
                 outputUrl: permanentUrl,
@@ -125,6 +126,7 @@ export async function POST(req: Request) {
                 tokensUsed: cost,
                 generationId,
                 sessionId,
+                dailyRemaining: dailyLimitInfo?.remaining
             });
 
         } catch (generationError) {

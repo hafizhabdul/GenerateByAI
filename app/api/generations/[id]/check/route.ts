@@ -5,7 +5,7 @@ import { checkImageGenerationStatus, checkVideoGenerationStatus } from "@/lib/fa
 import { checkWanVideoStatus } from "@/lib/fal-wan";
 import { commitTokenCharge, cancelTokenReservation } from "@/lib/tokens-server";
 import { persistExternalImage, persistExternalVideo } from "@/lib/storage-utils";
-import { incrementDailyGeneration } from "@/lib/daily-limits";
+import { incrementDailyGeneration, getDailyLimitInfo } from "@/lib/daily-limits";
 
 export async function GET(
     req: Request,
@@ -124,6 +124,7 @@ export async function GET(
 
                 // C. Increment Daily Limit
                 await incrementDailyGeneration(user.id);
+                const dailyLimitInfo = await getDailyLimitInfo(user.id);
 
                 // D. Update DB
                 const { error: updateError } = await supabase
@@ -142,7 +143,8 @@ export async function GET(
 
                 return NextResponse.json({
                     status: "completed",
-                    file_url: permanentUrl
+                    file_url: permanentUrl,
+                    dailyRemaining: dailyLimitInfo?.remaining
                 });
             } else {
                 // Completed but no URL?
