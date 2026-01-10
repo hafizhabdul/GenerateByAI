@@ -5,12 +5,13 @@ import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server"
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
 import {
-    generateWanVideoSync,
+    startWanVideoGeneration,
     getWanVideoCost,
     isWanConfigured,
     type WanDuration,
     type WanResolution,
     type WanAspectRatio,
+    type WanVideoInput,
 } from "@/lib/fal-wan";
 import { createGenerationWithSession } from "@/lib/session-utils";
 import { persistExternalVideo } from "@/lib/storage-utils";
@@ -113,8 +114,8 @@ export async function POST(req: Request) {
             console.log(`[Video-Standard] Original prompt: ${prompt}`);
             console.log(`[Video-Standard] Enhanced prompt: ${enhancedPrompt}`);
 
-            // Generate video synchronously (waits for completion)
-            const result = await generateWanVideoSync({
+            // Start video generation asynchronously
+            const { requestId } = await startWanVideoGeneration({
                 prompt: enhancedPrompt,
                 imageUrl: type === "image2video" ? imageUrl : undefined,
                 duration: durationNum,
@@ -123,55 +124,54 @@ export async function POST(req: Request) {
                 negativePrompt: enhancedNegative,
             });
 
-            console.log(`[Video-Standard] Generation completed, persisting video...`);
+            console.log(`[Video-Standard] Async generation started, requestId: ${requestId}`);
 
-            // Persist video to storage
-            const permanentUrl = await persistExternalVideo(result.videoUrl, user.id);
-
-            console.log(`[Video-Standard] Video persisted: ${permanentUrl}`);
-
-            // Save completed generation record with session
+            // Create pending generation record with session
             const { generationId, sessionId } = await createGenerationWithSession({
                 userId: user.id,
                 type: "video",
                 prompt: prompt,
-                fileUrl: permanentUrl,
-                status: "completed",
+                // No fileUrl yet
+                status: "pending",
                 tokensUsed: cost,
                 metadata: {
-                    requestId: result.requestId,
-                    duration: result.duration || durationNum,
-                    resolution: result.resolution || resolution,
+                    requestId: requestId, // Important for polling
+                    duration: durationNum,
+                    resolution: resolution as WanResolution,
                     aspectRatio,
                     sourceType: type,
                     sourceImage: imageUrl || null,
                     provider: "fal-wan-v2.6",
                     tier: "standard",
+                    tokenReservationId: tokenCharge.reservationId
                 },
             });
 
-            // Commit token charge - generation completed successfully
-            await tokenCharge.commit();
+            // We do NOT commit tokens here. We rely on the check/webhook to commit.
+            // But verify: does createRateLimitResponse logic handle "pending"? 
+            // Rate limit was already checked.
 
-            // Increment daily generation count
-            await incrementDailyGeneration(user.id);
-
-            console.log(`[Video-Standard] Success: ${generationId}`);
+            // Increment daily generation count (optimistic? or wait?)
+            // Usually we increment on success. But to prevent abuse we might increment now 
+            // and decrement on failure? 
+            // The existing synchronous code incremented at the end. 
+            // Let's stick to incrementing at the end (in the check route) to be safe/fair, 
+            // OR increment now and risk over-counting. 
+            // The previous async implementation in generate-video (Veo) did increment in check route (actually generate-video had it commented out or handled differently).
+            // Let's NOT increment here. The check route should handle it.
 
             return NextResponse.json({
                 success: true,
                 generationId,
+                requestId,
                 sessionId,
-                type,
-                duration: result.duration || durationNum,
-                resolution: result.resolution || resolution,
-                tokensUsed: cost,
-                videoUrl: permanentUrl,
+                status: "pending",
+                type
             });
 
         } catch (generationError: any) {
-            // Cancel the token reservation if generation fails
-            console.error("[Video-Standard] Generation failed:", generationError);
+            // Cancel the token reservation if SUBMISSION fails
+            console.error("[Video-Standard] Submission failed:", generationError);
             await tokenCharge.cancel();
             throw generationError;
         }

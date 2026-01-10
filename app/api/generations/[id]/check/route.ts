@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { checkImageGenerationStatus, checkVideoGenerationStatus } from "@/lib/fal";
+import { checkWanVideoStatus } from "@/lib/fal-wan";
 import { commitTokenCharge, cancelTokenReservation } from "@/lib/tokens-server";
 import { persistExternalImage, persistExternalVideo } from "@/lib/storage-utils";
 import { incrementDailyGeneration } from "@/lib/daily-limits";
@@ -41,10 +42,12 @@ export async function GET(
         }
 
         const metadata = generation.metadata as any;
-        const requestId = metadata?.fal_request_id;
-        const reservationId = metadata?.token_reservation_id;
+        const requestId = metadata?.requestId || metadata?.fal_request_id; // Support both naming conventions
+        const reservationId = metadata?.token_reservation_id || metadata?.tokenReservationId;
         const generationType = generation.type; // 'image' or 'video'
         const endpoint = metadata?.fal_endpoint; // Optional, useful if multiple video models
+        const provider = metadata?.provider; // 'fal-wan-v2.6' or 'fal-veo-3.1'
+        const sourceType = metadata?.sourceType || "text2video"; // 'image2video' or 'text2video'
 
         if (!requestId) {
             // Legacy pending item or error? Mark as failed
@@ -55,10 +58,40 @@ export async function GET(
         let statusResult;
 
         if (generationType === "video") {
-            // If we didn't save endpoint, default to text-to-video or guess based on metadata
-            // For now assume image-to-video if sourceImage exists in metadata
-            const defaultEndpoint = metadata.sourceImage ? "fal-ai/veo3.1/fast/image-to-video" : "fal-ai/veo3.1/fast";
-            statusResult = await checkVideoGenerationStatus(requestId, endpoint || defaultEndpoint);
+            if (provider === "fal-wan-v2.6" || !endpoint?.includes("veo")) {
+                // Check Wan Status
+                // Note: checkWanVideoStatus returns { status, requestId, logs, result? }
+                // We might need to adapter getting the URL if it's COMPLETED
+                try {
+                    const wanStatus = await checkWanVideoStatus(requestId, sourceType as "image2video" | "text2video");
+
+                    // Adapter to match expected statusResult shape
+                    statusResult = {
+                        status: wanStatus.status,
+                        error: (wanStatus.status === "FAILED") ? "Generation failed" : undefined,
+                        // Attempt to get URL if completed (checkWanVideoStatus doesn't fetch result automatically like checkVideoGenerationStatus might)
+                        // Actually checkWanVideoStatus implementation in lib/fal-wan.ts only calls queue/status. 
+                        // We need to call getWanVideoResult if COMPLETED.
+                    };
+
+                    if (wanStatus.status === "COMPLETED") {
+                        // Import lazy or use another helper? imported getWanVideoResult
+                        const { getWanVideoResult } = await import("@/lib/fal-wan");
+                        const result = await getWanVideoResult(requestId, sourceType as "image2video" | "text2video");
+                        (statusResult as any).videoUrl = result.videoUrl;
+                    }
+                } catch (e: any) {
+                    console.error("Wan check error:", e);
+                    statusResult = { status: "FAILED", error: e.message };
+                }
+
+            } else {
+                // If we didn't save endpoint, default to text-to-video or guess based on metadata
+                // For now assume image-to-video if sourceImage exists in metadata
+                const defaultEndpoint = metadata.sourceImage ? "fal-ai/veo3.1/fast/image-to-video" : "fal-ai/veo3.1/fast";
+                statusResult = await checkVideoGenerationStatus(requestId, endpoint || defaultEndpoint);
+            }
+
         } else {
             statusResult = await checkImageGenerationStatus(requestId);
         }
