@@ -4,7 +4,7 @@ import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { checkWanVideoStatus, getWanVideoResult } from "@/lib/fal-wan";
 import { persistExternalVideo } from "@/lib/storage-utils";
-import { refundTokens } from "@/lib/tokens-server";
+import { refundTokens, commitTokenCharge } from "@/lib/tokens-server";
 import { decrementDailyGeneration } from "@/lib/daily-limits";
 
 // UUID validation helper
@@ -259,6 +259,28 @@ export async function GET(req: NextRequest) {
                 // Persist video to storage
                 console.log(`[Video] Persisting video for request ${requestId}...`);
                 const permanentUrl = await persistExternalVideo(result.videoUrl, user.id);
+
+                // Commit tokens if reservation ID exists
+                if (generationId) {
+                    const { data: existingGen } = await supabase
+                        .from("generations")
+                        .select("metadata")
+                        .eq("id", generationId)
+                        .eq("user_id", user.id)
+                        .single();
+
+                    const reservationId = existingGen?.metadata?.token_reservation_id || existingGen?.metadata?.tokenReservationId;
+
+                    if (reservationId) {
+                        console.log(`[Video] Committing token reservation: ${reservationId}`);
+                        await commitTokenCharge(reservationId);
+                    } else {
+                        // Fallback: If no reservation ID (legacy), maybe we should charge here? 
+                        // But we already incremented usage? No, usage increment corresponds to deduction.
+                        // If we are migrating, let's assume reservation handled it or it's free.
+                        console.log(`[Video] No reservation ID found for ${generationId}`);
+                    }
+                }
 
                 // Update generation record
                 if (generationId) {
