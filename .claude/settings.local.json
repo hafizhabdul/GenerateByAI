@@ -42,7 +42,8 @@
       "Bash(npx tsc:*)",
       "Bash(cat:*)",
       "WebFetch(domain:fal.ai)",
-      "Bash(wc:*)"
+      "Bash(wc:*)",
+      "Bash(ls:*)"
     ]
   },
   "hooks": {

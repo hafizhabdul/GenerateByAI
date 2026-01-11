@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
-import { checkWanVideoStatus, getWanVideoResult } from "@/lib/fal-wan";
+import { checkWanVideoStatus, getWanVideoResult, getWanVideoCost, type WanDuration, type WanResolution } from "@/lib/fal-wan";
 import { persistExternalVideo } from "@/lib/storage-utils";
 import { refundTokens, commitTokenCharge } from "@/lib/tokens-server";
 import { decrementDailyGeneration, incrementDailyGeneration, getDailyLimitInfo } from "@/lib/daily-limits";
@@ -260,11 +260,12 @@ export async function GET(req: NextRequest) {
                 console.log(`[Video] Persisting video for request ${requestId}...`);
                 const permanentUrl = await persistExternalVideo(result.videoUrl, user.id);
 
-                // Commit tokens if reservation ID exists
+                // Commit tokens if reservation ID exists, and handle partial refund if actual duration < requested
+                let tokensRefunded = 0;
                 if (generationId) {
                     const { data: existingGen } = await supabase
                         .from("generations")
-                        .select("metadata")
+                        .select("metadata, tokens_used")
                         .eq("id", generationId)
                         .eq("user_id", user.id)
                         .single();
@@ -275,10 +276,44 @@ export async function GET(req: NextRequest) {
                         console.log(`[Video] Committing token reservation: ${reservationId}`);
                         await commitTokenCharge(reservationId);
                     } else {
-                        // Fallback: If no reservation ID (legacy), maybe we should charge here? 
-                        // But we already incremented usage? No, usage increment corresponds to deduction.
-                        // If we are migrating, let's assume reservation handled it or it's free.
                         console.log(`[Video] No reservation ID found for ${generationId}`);
+                    }
+
+                    // Check if actual duration is less than requested duration
+                    // If so, refund the difference
+                    const requestedDuration = existingGen?.metadata?.duration as WanDuration | undefined;
+                    const resolution = (existingGen?.metadata?.resolution || "720p") as WanResolution;
+                    const actualDuration = result.duration;
+                    const tokensCharged = existingGen?.tokens_used || 0;
+
+                    if (requestedDuration && actualDuration && actualDuration < requestedDuration) {
+                        // Calculate what the cost should have been for the actual duration
+                        // Round actual duration to nearest supported duration (5, 10, or 15)
+                        let effectiveDuration: WanDuration = 5;
+                        if (actualDuration > 7.5) effectiveDuration = 10;
+                        if (actualDuration > 12.5) effectiveDuration = 15;
+
+                        const actualCost = getWanVideoCost(effectiveDuration, resolution);
+                        const refundAmount = tokensCharged - actualCost;
+
+                        if (refundAmount > 0) {
+                            console.log(`[Video] Actual duration (${actualDuration}s) < requested (${requestedDuration}s). Refunding ${refundAmount} tokens.`);
+                            const refundResult = await refundTokens(
+                                user.id,
+                                refundAmount,
+                                generationId,
+                                `Partial refund: video ${actualDuration}s instead of ${requestedDuration}s`
+                            );
+                            if (refundResult.success) {
+                                tokensRefunded = refundAmount;
+                                // Update the tokens_used in generation record to reflect actual cost
+                                const adminClient = createAdminClient();
+                                await adminClient
+                                    .from("generations")
+                                    .update({ tokens_used: actualCost })
+                                    .eq("id", generationId);
+                            }
+                        }
                     }
                 }
 
@@ -291,6 +326,11 @@ export async function GET(req: NextRequest) {
                         .eq("user_id", user.id)
                         .single();
 
+                    // Preserve the requested duration from original metadata
+                    // Only use result.duration for actualDuration field
+                    const requestedDuration = existingGen?.metadata?.duration;
+                    const actualDuration = result.duration || requestedDuration;
+
                     const adminClient = createAdminClient();
                     const { error: updateError } = await adminClient
                         .from("generations")
@@ -299,8 +339,9 @@ export async function GET(req: NextRequest) {
                             file_url: permanentUrl,
                             metadata: {
                                 ...existingGen?.metadata,
-                                duration: result.duration,
-                                resolution: result.resolution,
+                                duration: requestedDuration, // Keep the user's requested duration
+                                actualDuration: actualDuration, // Store actual duration from provider
+                                resolution: result.resolution || existingGen?.metadata?.resolution,
                             },
                         })
                         .eq("id", generationId)
@@ -317,13 +358,25 @@ export async function GET(req: NextRequest) {
 
                 console.log(`[Video] Completed and persisted: ${requestId}, Daily remaining: ${dailyLimitInfo?.remaining}`);
 
+                // Get the final duration to return (prefer requested duration for display)
+                const { data: finalGen } = await supabase
+                    .from("generations")
+                    .select("metadata")
+                    .eq("id", generationId)
+                    .eq("user_id", user.id)
+                    .single();
+                
+                const displayDuration = finalGen?.metadata?.duration || result.duration;
+
                 return NextResponse.json({
                     status: "completed",
                     requestId,
                     url: permanentUrl,
-                    duration: result.duration,
+                    duration: displayDuration,
+                    actualDuration: result.duration || displayDuration,
                     resolution: result.resolution,
-                    dailyRemaining: dailyLimitInfo?.remaining
+                    dailyRemaining: dailyLimitInfo?.remaining,
+                    ...(tokensRefunded > 0 && { tokensRefunded, refundReason: `Video was ${result.duration}s instead of requested duration` })
                 });
             } catch (resultError: any) {
                 // Handle 404 - result already consumed or expired
