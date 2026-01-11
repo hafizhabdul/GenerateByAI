@@ -21,70 +21,48 @@ export async function GET() {
             );
         }
 
-        // Get user profile with token info
-        const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("*")
-            .eq("id", user.id)
-            .single();
+        // Fetch profile and stats in parallel (2 queries instead of 9)
+        const [profileResult, statsResult, dailyLimitInfo] = await Promise.all([
+            // Query 1: Get user profile
+            supabase
+                .from("profiles")
+                .select("*")
+                .eq("id", user.id)
+                .single(),
 
-        if (profileError) throw profileError;
+            // Query 2: Get all stats in one RPC call
+            supabase.rpc("get_user_stats", { p_user_id: user.id }),
 
-        // Get stats
-        const { count: totalImages } = await supabase
-            .from("generations")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("type", "image");
+            // Query 3: Get daily limit info
+            getDailyLimitInfo(user.id),
+        ]);
 
-        const { count: totalVideos } = await supabase
-            .from("generations")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("type", "video");
+        if (profileResult.error) throw profileResult.error;
 
-        const { count: totalFavorites } = await supabase
-            .from("generations")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("is_favorite", true);
-
-        // Get daily limit info
-        const dailyLimitInfo = await getDailyLimitInfo(user.id);
-
-        // Get today's generations count (for more accurate daily stats)
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const { count: todayImages } = await supabase
-            .from("generations")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("type", "image")
-            .gte("created_at", today.toISOString());
-
-        const { count: todayVideos } = await supabase
-            .from("generations")
-            .select("*", { count: "exact", head: true })
-            .eq("user_id", user.id)
-            .eq("type", "video")
-            .gte("created_at", today.toISOString());
+        const profile = profileResult.data;
+        const stats = statsResult.data || {
+            total_images: 0,
+            total_videos: 0,
+            total_favorites: 0,
+            today_images: 0,
+            today_videos: 0,
+        };
 
         return NextResponse.json({
             profile,
             stats: {
-                imagesGenerated: totalImages || 0,
-                videosCreated: totalVideos || 0,
-                favorites: totalFavorites || 0,
+                imagesGenerated: stats.total_images || 0,
+                videosCreated: stats.total_videos || 0,
+                favorites: stats.total_favorites || 0,
                 tokensUsed: profile?.tokens_used || 0,
                 tokensRemaining: (profile?.tokens_total || 0) - (profile?.tokens_used || 0),
                 tokensTotal: profile?.tokens_total || 0,
             },
             dailyStats: {
-                imagesGenerated: todayImages || 0,
-                videosGenerated: todayVideos || 0,
+                imagesGenerated: stats.today_images || 0,
+                videosGenerated: stats.today_videos || 0,
                 imageLimit: dailyLimitInfo?.limit || 50,
-                videoLimit: Math.floor((dailyLimitInfo?.limit || 50) / 5), // Video limit is 1/5 of image limit
+                videoLimit: Math.floor((dailyLimitInfo?.limit || 50) / 5),
                 used: dailyLimitInfo?.used || 0,
                 remaining: dailyLimitInfo?.remaining || 0,
                 resetsAt: dailyLimitInfo?.resetsAt?.toISOString() || getNextMidnight(),

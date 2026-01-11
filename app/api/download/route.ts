@@ -1,5 +1,23 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { safeFetch, validateDownloadUrl, getAllowedDomainsList } from "@/lib/url-validator";
+
+// Extended allowed domains for download
+const DOWNLOAD_ALLOWED_DOMAINS = [
+    "supabase.co",
+    "supabase.in",
+    "storage.googleapis.com",
+    "googleusercontent.com",
+    "fal.media",
+    "v3.fal.media",
+    "fal.ai",
+    "kwai.net",
+    "kwai.com",
+    "cdn.kwai.net",
+    "files.kwai.com",
+    "kling-ai.com",
+    "klingai.com",
+] as const;
 
 export async function GET(req: Request) {
     try {
@@ -18,38 +36,22 @@ export async function GET(req: Request) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
         }
 
-        // Validate URL is from our storage or trusted providers (security check)
-        const allowedDomains = [
-            "supabase.co",
-            "supabase.in",
-            "storage.googleapis.com",
-            "fal.media",           // fal.ai CDN
-            "v3.fal.media",        // fal.ai v3 CDN
-            "fal.ai",              // fal.ai direct
-            "kwai.net",            // Kling AI CDN
-            "kwai.com",            // Kling AI CDN
-            "cdn.kwai.net",        // Kling AI Direct CDN
-            "files.kwai.com",      // Kling AI Direct Files
-        ];
-
-        const urlObj = new URL(fileUrl);
-        // Strict check: hostname must exactly match or end with .domain
-        const isAllowed = allowedDomains.some(domain =>
-            urlObj.hostname === domain || urlObj.hostname.endsWith(`.${domain}`)
-        );
-
-        // Additional security: must be HTTPS
-        if (urlObj.protocol !== "https:") {
-            return NextResponse.json({ error: "Invalid URL protocol" }, { status: 400 });
+        // Validate URL with SSRF protection
+        const validation = validateDownloadUrl(fileUrl);
+        if (!validation.valid) {
+            console.log(`[Download] URL validation failed: ${validation.error}`);
+            return NextResponse.json(
+                { error: "Invalid file URL" },
+                { status: 400 }
+            );
         }
 
-        if (!isAllowed) {
-            console.log(`[Download] Blocked domain: ${urlObj.hostname}`);
-            return NextResponse.json({ error: "Invalid file URL" }, { status: 400 });
-        }
-
-        // Fetch the file from storage
-        const response = await fetch(fileUrl);
+        // Fetch with timeout and size limit (100MB max)
+        const response = await safeFetch(fileUrl, {
+            allowedDomains: DOWNLOAD_ALLOWED_DOMAINS,
+            maxContentLength: 100 * 1024 * 1024, // 100MB
+            timeout: 60000, // 60 seconds for large files
+        });
 
         if (!response.ok) {
             throw new Error(`Failed to fetch file: ${response.status}`);
