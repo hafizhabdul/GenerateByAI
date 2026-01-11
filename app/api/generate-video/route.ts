@@ -8,6 +8,7 @@ import { createKlingClient } from "@/lib/kling";
 import { submitVideoGeneration, getVeoCost } from "@/lib/fal";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
+import { sanitizePrompt, logBlockedPrompt } from "@/lib/prompt-sanitizer";
 
 const GenerateVideoSchema = z.object({
     imageUrl: z.string().url().optional(),
@@ -67,6 +68,16 @@ export async function POST(req: Request) {
         const dailyLimit = await checkDailyLimit(user.id);
         if (!dailyLimit.allowed) {
             return NextResponse.json(createDailyLimitResponse(dailyLimit), { status: 429 });
+        }
+
+        // --- Prompt Sanitization (NSFW/Violence Filter) ---
+        const sanitizeResult = sanitizePrompt(prompt);
+        if (!sanitizeResult.isValid) {
+            logBlockedPrompt(user.id, prompt, sanitizeResult);
+            return NextResponse.json(
+                { error: sanitizeResult.blockedReason || "Prompt tidak diizinkan" },
+                { status: 400 }
+            );
         }
 
         // --- Token Balance Pre-Check & Reserve ---

@@ -8,6 +8,7 @@ import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
 import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
 import { generateImage, isFalConfigured, submitImageGeneration } from "@/lib/fal";
 import { createGenerationWithSession } from "@/lib/session-utils";
+import { sanitizePrompt, logBlockedPrompt } from "@/lib/prompt-sanitizer";
 
 const GenerateSchema = z.object({
     prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt too long (max 2000 chars)"),
@@ -48,6 +49,16 @@ export async function POST(req: Request) {
         const dailyLimit = await checkDailyLimit(user.id);
         if (!dailyLimit.allowed) {
             return NextResponse.json(createDailyLimitResponse(dailyLimit), { status: 429 });
+        }
+
+        // --- Prompt Sanitization (NSFW/Violence Filter) ---
+        const sanitizeResult = sanitizePrompt(prompt);
+        if (!sanitizeResult.isValid) {
+            logBlockedPrompt(user.id, prompt, sanitizeResult);
+            return NextResponse.json(
+                { error: sanitizeResult.blockedReason || "Prompt tidak diizinkan" },
+                { status: 400 }
+            );
         }
 
         // --- Check fal.ai Configuration ---

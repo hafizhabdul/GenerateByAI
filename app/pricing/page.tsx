@@ -6,6 +6,13 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
+import { PromoBanner, DiscountBadge } from "@/components/countdown-timer";
+import {
+    LAUNCH_DISCOUNT,
+    isDiscountActive,
+    getDiscountedPrice,
+    formatIDR as formatIDRDiscount,
+} from "@/lib/discount";
 
 // Token packages with IDR pricing - ANTI-BONCOS PRICING
 // Renamed with Nusantara theme: Pelukis / Dalang / Maestro
@@ -158,26 +165,42 @@ export default function PricingPage() {
                 </div>
             </div>
 
+            {/* Promo Banner - Only shows when discount is active */}
+            {isDiscountActive() && (
+                <div className="relative z-10 w-full max-w-4xl mb-8 md:mb-10">
+                    <PromoBanner discount={LAUNCH_DISCOUNT} />
+                </div>
+            )}
+
             {/* Free Trial Banner */}
-            <div className="relative z-10 w-full max-w-4xl mb-8 md:mb-10 p-4 rounded-2xl bg-gradient-to-r from-[#c2410c]/20 via-[#c2410c]/10 to-[#c2410c]/20 border border-[#c2410c]/30 text-center">
+            <div className="relative z-10 w-full max-w-4xl mb-8 md:mb-10 p-4 rounded-2xl bg-gradient-to-r from-green-500/20 via-green-500/10 to-green-500/20 border border-green-500/30 text-center">
                 <span className="text-white font-grotesque font-medium text-sm md:text-base flex items-center justify-center gap-2">
-                    <span className="text-xl">🎉</span>
-                    User baru dapat <span className="text-[#c2410c] font-bold">100 token GRATIS</span> untuk mencoba!
+                    <span className="text-xl">🎁</span>
+                    User baru dapat <span className="text-green-400 font-bold">100 token GRATIS</span> untuk mencoba!
                 </span>
             </div>
 
             {/* Pricing Grid - Responsive 1/2/3 columns */}
             <div className="relative z-10 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-5 lg:gap-4 max-w-5xl w-full px-4 mx-auto items-start lg:items-center">
-                {TOKEN_PACKAGES.map((pkg, index) => (
-                    <TokenPackageCard
-                        key={pkg.id}
-                        {...pkg}
-                        priceFormatted={formatIDR(pkg.price)}
-                        onPurchase={() => handlePurchase(pkg.id)}
-                        isLoading={loadingPackage === pkg.id}
-                        delay={index * 100}
-                    />
-                ))}
+                {TOKEN_PACKAGES.map((pkg, index) => {
+                    const discountActive = isDiscountActive();
+                    const discountedPrice = discountActive
+                        ? getDiscountedPrice(pkg.price, LAUNCH_DISCOUNT)
+                        : pkg.price;
+
+                    return (
+                        <TokenPackageCard
+                            key={pkg.id}
+                            {...pkg}
+                            priceFormatted={formatIDR(discountedPrice)}
+                            originalPriceFormatted={discountActive ? formatIDR(pkg.price) : undefined}
+                            discountPercentage={discountActive ? LAUNCH_DISCOUNT.percentage : undefined}
+                            onPurchase={() => handlePurchase(pkg.id)}
+                            isLoading={loadingPackage === pkg.id}
+                            delay={index * 100}
+                        />
+                    );
+                })}
             </div>
 
             {/* Token Usage Info - Horizontal List Style */}
@@ -223,6 +246,8 @@ interface TokenPackageCardProps {
     tokens: number;
     price: number;
     priceFormatted: string;
+    originalPriceFormatted?: string;
+    discountPercentage?: number;
     description: string;
     features: { text: string; included: boolean }[];
     popular: boolean;
@@ -237,6 +262,8 @@ function TokenPackageCard({
     subtitle,
     tokens,
     priceFormatted,
+    originalPriceFormatted,
+    discountPercentage,
     description,
     features,
     popular,
@@ -245,6 +272,7 @@ function TokenPackageCard({
     isLoading,
     delay,
 }: TokenPackageCardProps) {
+    const hasDiscount = !!originalPriceFormatted && !!discountPercentage;
     return (
         <div
             className={cn(
@@ -286,9 +314,23 @@ function TokenPackageCard({
 
             {/* Price with Token Coin */}
             <div className="mb-6 pb-6 border-b border-white/10">
-                <div className="flex items-baseline gap-1 mb-2">
+                {/* Discount Badge */}
+                {hasDiscount && (
+                    <div className="mb-2">
+                        <DiscountBadge percentage={discountPercentage} size="sm" />
+                    </div>
+                )}
+
+                <div className="flex items-baseline gap-2 mb-2 flex-wrap">
                     <span className="font-wayang text-3xl md:text-4xl font-bold text-white">{priceFormatted}</span>
+                    {/* Original price - crossed out */}
+                    {hasDiscount && (
+                        <span className="text-lg text-white/40 line-through font-grotesque">
+                            {originalPriceFormatted}
+                        </span>
+                    )}
                 </div>
+
                 <div className="flex items-center gap-2">
                     {/* Token Coin Icon */}
                     <div className={cn(

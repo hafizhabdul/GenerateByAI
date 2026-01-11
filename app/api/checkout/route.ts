@@ -9,6 +9,7 @@ import {
   type TokenPackageId,
 } from "@/lib/pakasir";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
+import { isDiscountActive, getDiscountedPrice, LAUNCH_DISCOUNT } from "@/lib/discount";
 
 /**
  * Create a checkout session for token purchase
@@ -59,15 +60,26 @@ export async function POST(request: NextRequest) {
 
     const tokenPackage = TOKEN_PACKAGES[packageId];
 
+    // Check if discount is active and calculate final price
+    const discountActive = isDiscountActive();
+    const originalPrice = tokenPackage.price;
+    const finalPrice = discountActive
+      ? getDiscountedPrice(originalPrice, LAUNCH_DISCOUNT)
+      : originalPrice;
+
     // Generate unique order ID
     const orderId = generateOrderId(user.id, packageId);
 
     // Create payment record in database (pending status)
+    // Store both original and final price for audit
     const { error: insertError } = await supabase.from("payments").insert({
       user_id: user.id,
       order_id: orderId,
       package_id: packageId,
-      amount: tokenPackage.price,
+      amount: finalPrice, // Actual amount charged
+      original_amount: discountActive ? originalPrice : null, // Original price before discount
+      discount_code: discountActive ? LAUNCH_DISCOUNT.code : null,
+      discount_percentage: discountActive ? LAUNCH_DISCOUNT.percentage : null,
       tokens: tokenPackage.tokens,
       status: "pending",
       created_at: new Date().toISOString(),
@@ -81,13 +93,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate Pakasir payment URL
+    // Generate Pakasir payment URL with discounted price
     const pakasir = getPakasirClient();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
     const paymentUrl = pakasir.generatePaymentUrl({
       orderId,
-      amount: tokenPackage.price,
+      amount: finalPrice, // Use discounted price
       redirectUrl: `${appUrl}/dashboard?payment=success&order=${orderId}`,
     });
 
@@ -99,8 +111,12 @@ export async function POST(request: NextRequest) {
         id: packageId,
         name: tokenPackage.name,
         tokens: tokenPackage.tokens,
-        price: tokenPackage.price,
-        priceFormatted: formatIDR(tokenPackage.price),
+        price: finalPrice,
+        priceFormatted: formatIDR(finalPrice),
+        originalPrice: discountActive ? originalPrice : undefined,
+        originalPriceFormatted: discountActive ? formatIDR(originalPrice) : undefined,
+        discountApplied: discountActive,
+        discountPercentage: discountActive ? LAUNCH_DISCOUNT.percentage : undefined,
       },
     });
   } catch (error) {
@@ -113,18 +129,27 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Get available packages
+ * Get available packages with discount info
  * GET /api/checkout
  */
 export async function GET() {
+  const discountActive = isDiscountActive();
+
   const packages = Object.entries(TOKEN_PACKAGES).map(([id, pkg]) => {
     const tokenPackage = pkg as typeof TOKEN_PACKAGES[keyof typeof TOKEN_PACKAGES];
+    const originalPrice = tokenPackage.price;
+    const finalPrice = discountActive
+      ? getDiscountedPrice(originalPrice, LAUNCH_DISCOUNT)
+      : originalPrice;
+
     return {
       id,
       name: tokenPackage.name,
       tokens: tokenPackage.tokens,
-      price: tokenPackage.price,
-      priceFormatted: formatIDR(tokenPackage.price),
+      price: finalPrice,
+      priceFormatted: formatIDR(finalPrice),
+      originalPrice: discountActive ? originalPrice : undefined,
+      originalPriceFormatted: discountActive ? formatIDR(originalPrice) : undefined,
       description: tokenPackage.description,
       popular: tokenPackage.popular,
     };
@@ -133,5 +158,14 @@ export async function GET() {
   return NextResponse.json({
     packages,
     paymentConfigured: isPakasirConfigured(),
+    discount: discountActive
+      ? {
+          active: true,
+          code: LAUNCH_DISCOUNT.code,
+          percentage: LAUNCH_DISCOUNT.percentage,
+          description: LAUNCH_DISCOUNT.description,
+          endsAt: LAUNCH_DISCOUNT.endDate.toISOString(),
+        }
+      : null,
   });
 }
