@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
-import { persistExternalImage } from "@/lib/storage-utils";
 import { getTokenCost, QualityTier } from "@/lib/tokens";
 import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
-import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
-import { generateImage, isFalConfigured, submitImageGeneration } from "@/lib/fal";
+import { checkDailyLimit, createDailyLimitResponse } from "@/lib/daily-limits";
+import { isFalConfigured, submitImageGeneration } from "@/lib/fal";
 import { createGenerationWithSession } from "@/lib/session-utils";
 import { sanitizePrompt, logBlockedPrompt } from "@/lib/prompt-sanitizer";
 
@@ -70,8 +69,9 @@ export async function POST(req: Request) {
         let tokenCharge: TokenChargeResult;
         try {
             tokenCharge = await processTokenCharge(user.id, cost);
-        } catch (e: any) {
-            return NextResponse.json({ error: e.message }, { status: 403 });
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Failed to process token charge";
+            return NextResponse.json({ error: message }, { status: 403 });
         }
 
         try {
@@ -126,16 +126,16 @@ export async function POST(req: Request) {
                 status: "pending"
             });
 
-        } catch (generationError: any) {
-            // Cancel the token reservation if generation fails
+        } catch (generationError: unknown) {
             await tokenCharge.cancel();
             throw generationError;
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Image generation error:", error);
+        const message = error instanceof Error ? error.message : "Failed to generate image";
         return NextResponse.json(
-            { error: error.message || "Failed to generate image" },
+            { error: message },
             { status: 500 }
         );
     }

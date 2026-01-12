@@ -5,7 +5,7 @@ import { z } from "zod";
 import { checkWanVideoStatus, getWanVideoResult, getWanVideoCost, type WanDuration, type WanResolution } from "@/lib/fal-wan";
 import { persistExternalVideo } from "@/lib/storage-utils";
 import { refundTokens, commitTokenCharge } from "@/lib/tokens-server";
-import { decrementDailyGeneration, incrementDailyGeneration, getDailyLimitInfo } from "@/lib/daily-limits";
+import { incrementDailyGeneration, getDailyLimitInfo } from "@/lib/daily-limits";
 
 // UUID validation helper
 const uuidSchema = z.string().uuid();
@@ -14,12 +14,20 @@ const uuidSchema = z.string().uuid();
  * Helper: Wait for DB to have completed result
  * Used when another request is already fetching the result
  */
+interface DbResult {
+    status: string;
+    file_url?: string;
+    metadata?: Record<string, unknown>;
+}
+
+type SupabaseClient = Awaited<ReturnType<typeof createClient>>;
+
 async function waitForDbResult(
-    supabase: ReturnType<typeof createClient> extends Promise<infer T> ? T : never,
+    supabase: SupabaseClient,
     generationId: string,
     maxAttempts: number = 10,
     intervalMs: number = 2000
-): Promise<{ status: string; file_url?: string; metadata?: Record<string, unknown> } | null> {
+): Promise<DbResult | null> {
     for (let i = 0; i < maxAttempts; i++) {
         await new Promise(resolve => setTimeout(resolve, intervalMs));
 
@@ -134,7 +142,7 @@ export async function GET(req: NextRequest) {
         let queueStatus;
         try {
             queueStatus = await checkWanVideoStatus(requestId, type);
-        } catch (apiError: any) {
+        } catch (apiError: unknown) {
             console.error("fal.ai status check error:", apiError);
             return NextResponse.json({
                 status: "processing",
@@ -378,9 +386,9 @@ export async function GET(req: NextRequest) {
                     dailyRemaining: dailyLimitInfo?.remaining,
                     ...(tokensRefunded > 0 && { tokensRefunded, refundReason: `Video was ${result.duration}s instead of requested duration` })
                 });
-            } catch (resultError: any) {
-                // Handle 404 - result already consumed or expired
-                if (resultError.status === 404) {
+            } catch (resultError: unknown) {
+                const errorWithStatus = resultError as { status?: number };
+                if (errorWithStatus.status === 404) {
                     console.log(`[Video] Result already consumed for ${requestId}, waiting for DB update...`);
 
                     // Another request might be downloading, wait for DB update
@@ -452,10 +460,11 @@ export async function GET(req: NextRequest) {
             rawStatus: queueStatus.status,
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Video status check error:", error);
+        const message = error instanceof Error ? error.message : "Failed to check video status";
         return NextResponse.json(
-            { error: error.message || "Failed to check video status" },
+            { error: message },
             { status: 500 }
         );
     }

@@ -74,10 +74,11 @@ export async function GET(req: NextRequest) {
             summary,
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[TokenHistory] Error:", error);
+        const message = error instanceof Error ? error.message : "Internal server error";
         return NextResponse.json(
-            { error: error.message || "Internal server error" },
+            { error: message },
             { status: 500 }
         );
     }

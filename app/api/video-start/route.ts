@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
-import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
+import { checkDailyLimit, createDailyLimitResponse, incrementDailyGeneration } from "@/lib/daily-limits";
 import {
     startWanVideoGeneration,
     getWanVideoCost,
@@ -86,8 +86,9 @@ export async function POST(req: Request) {
         let tokenCharge: TokenChargeResult;
         try {
             tokenCharge = await processTokenCharge(user.id, cost);
-        } catch (e: any) {
-            return NextResponse.json({ error: e.message }, { status: 403 });
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Failed to process token charge";
+            return NextResponse.json({ error: message }, { status: 403 });
         }
 
         try {
@@ -161,16 +162,16 @@ export async function POST(req: Request) {
                 message: "Video generation started. Check status with /api/video-status",
             });
 
-        } catch (generationError: any) {
-            // Cancel the token reservation if starting the task fails
+        } catch (generationError: unknown) {
             await tokenCharge.cancel();
             throw generationError;
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Video start error:", error);
+        const message = error instanceof Error ? error.message : "Failed to start video generation";
         return NextResponse.json(
-            { error: error.message || "Failed to start video generation" },
+            { error: message },
             { status: 500 }
         );
     }

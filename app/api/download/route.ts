@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { safeFetch, validateDownloadUrl, getAllowedDomainsList } from "@/lib/url-validator";
+import { safeFetch, validateDownloadUrl } from "@/lib/url-validator";
 
 // Extended allowed domains for download
 const DOWNLOAD_ALLOWED_DOMAINS = [
@@ -86,9 +86,8 @@ export async function GET(req: Request) {
             },
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Download error:", error);
-        // Sanitize error - don't leak internal details
         return NextResponse.json(
             { error: "Failed to download file" },
             { status: 500 }

@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
-import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
+import { checkDailyLimit, createDailyLimitResponse } from "@/lib/daily-limits";
 import {
     startWanVideoGeneration,
     getWanVideoCost,
@@ -11,10 +11,8 @@ import {
     type WanDuration,
     type WanResolution,
     type WanAspectRatio,
-    type WanVideoInput,
 } from "@/lib/fal-wan";
 import { createGenerationWithSession } from "@/lib/session-utils";
-import { persistExternalVideo } from "@/lib/storage-utils";
 
 const GenerateVideoSchema = z.object({
     imageUrl: z.string().url().optional(),
@@ -89,8 +87,9 @@ export async function POST(req: Request) {
         let tokenCharge: TokenChargeResult;
         try {
             tokenCharge = await processTokenCharge(user.id, cost);
-        } catch (e: any) {
-            return NextResponse.json({ error: e.message }, { status: 403 });
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Failed to process token charge";
+            return NextResponse.json({ error: message }, { status: 403 });
         }
 
         try {
@@ -169,17 +168,17 @@ export async function POST(req: Request) {
                 type
             });
 
-        } catch (generationError: any) {
-            // Cancel the token reservation if SUBMISSION fails
+        } catch (generationError: unknown) {
             console.error("[Video-Standard] Submission failed:", generationError);
             await tokenCharge.cancel();
             throw generationError;
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[Video-Standard] Error:", error);
+        const message = error instanceof Error ? error.message : "Failed to generate video";
         return NextResponse.json(
-            { error: error.message || "Failed to generate video" },
+            { error: message },
             { status: 500 }
         );
     }

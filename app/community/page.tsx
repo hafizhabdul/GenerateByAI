@@ -131,6 +131,7 @@ export default function CommunityPage() {
     useEffect(() => {
         setOffset(0);
         fetchItems(true);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [filterType]);
 
     // Handle copy prompt

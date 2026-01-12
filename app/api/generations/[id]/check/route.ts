@@ -41,13 +41,26 @@ export async function GET(
             });
         }
 
-        const metadata = generation.metadata as any;
-        const requestId = metadata?.requestId || metadata?.fal_request_id; // Support both naming conventions
+        interface GenerationMetadata {
+            requestId?: string;
+            fal_request_id?: string;
+            token_reservation_id?: string;
+            tokenReservationId?: string;
+            fal_endpoint?: string;
+            provider?: string;
+            sourceType?: string;
+            sourceImage?: string;
+            completed_at?: string;
+            error?: string;
+            failed_at?: string;
+        }
+        const metadata = generation.metadata as GenerationMetadata | null;
+        const requestId = metadata?.requestId || metadata?.fal_request_id;
         const reservationId = metadata?.token_reservation_id || metadata?.tokenReservationId;
-        const generationType = generation.type; // 'image' or 'video'
-        const endpoint = metadata?.fal_endpoint; // Optional, useful if multiple video models
-        const provider = metadata?.provider; // 'fal-wan-v2.6' or 'fal-veo-3.1'
-        const sourceType = metadata?.sourceType || "text2video"; // 'image2video' or 'text2video'
+        const generationType = generation.type;
+        const endpoint = metadata?.fal_endpoint;
+        const provider = metadata?.provider;
+        const sourceType = metadata?.sourceType || "text2video";
 
         if (!requestId) {
             // Legacy pending item or error? Mark as failed
@@ -69,20 +82,18 @@ export async function GET(
                     statusResult = {
                         status: wanStatus.status,
                         error: (wanStatus.status === "FAILED") ? "Generation failed" : undefined,
-                        // Attempt to get URL if completed (checkWanVideoStatus doesn't fetch result automatically like checkVideoGenerationStatus might)
-                        // Actually checkWanVideoStatus implementation in lib/fal-wan.ts only calls queue/status. 
-                        // We need to call getWanVideoResult if COMPLETED.
+
                     };
 
                     if (wanStatus.status === "COMPLETED") {
-                        // Import lazy or use another helper? imported getWanVideoResult
                         const { getWanVideoResult } = await import("@/lib/fal-wan");
                         const result = await getWanVideoResult(requestId, sourceType as "image2video" | "text2video");
-                        (statusResult as any).videoUrl = result.videoUrl;
+                        (statusResult as { status: string; error?: string; videoUrl?: string }).videoUrl = result.videoUrl;
                     }
-                } catch (e: any) {
+                } catch (e: unknown) {
                     console.error("Wan check error:", e);
-                    statusResult = { status: "FAILED", error: e.message };
+                    const errorMessage = e instanceof Error ? e.message : "Unknown error";
+                    statusResult = { status: "FAILED", error: errorMessage };
                 }
 
             } else {
@@ -98,8 +109,8 @@ export async function GET(
 
         if (statusResult.status === "COMPLETED") {
             const resultUrl = generationType === "video"
-                ? (statusResult as any).videoUrl
-                : (statusResult as any).imageUrl;
+                ? (statusResult as { videoUrl?: string }).videoUrl
+                : (statusResult as { imageUrl?: string }).imageUrl;
 
             if (resultUrl) {
                 // --- Success Workflow ---
@@ -181,10 +192,11 @@ export async function GET(
         // Still pending
         return NextResponse.json({ status: "pending" });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Check status error:", error);
+        const message = error instanceof Error ? error.message : "Failed to check status";
         return NextResponse.json(
-            { error: error.message || "Failed to check status" },
+            { error: message },
             { status: 500 }
         );
     }

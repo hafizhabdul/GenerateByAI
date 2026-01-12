@@ -52,8 +52,9 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ success: true, url: publicUrl });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Save image error:", error);
-        return NextResponse.json({ error: error.message || "Server error" }, { status: 500 });
+        const message = error instanceof Error ? error.message : "Server error";
+        return NextResponse.json({ error: message }, { status: 500 });
     }
 }

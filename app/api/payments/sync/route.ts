@@ -107,7 +107,7 @@ export async function POST() {
     }
 
     // Update profile
-    const updateData: Record<string, any> = {
+    const updateData: Record<string, string | number> = {
       updated_at: new Date().toISOString(),
     };
 

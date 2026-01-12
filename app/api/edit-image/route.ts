@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { persistExternalImage, persistBase64Image } from "@/lib/storage-utils";
+import { persistBase64Image } from "@/lib/storage-utils";
 import { getTokenCost } from "@/lib/tokens";
 import { processTokenCharge, type TokenChargeResult } from "@/lib/tokens-server";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
@@ -50,8 +50,9 @@ export async function POST(req: Request) {
         let tokenCharge: TokenChargeResult;
         try {
             tokenCharge = await processTokenCharge(user.id, cost);
-        } catch (e: any) {
-            return NextResponse.json({ error: e.message }, { status: 403 });
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Failed to process token charge";
+            return NextResponse.json({ error: message }, { status: 403 });
         }
 
         try {
@@ -89,8 +90,13 @@ export async function POST(req: Request) {
             let tempUrl = response.data[0].url;
 
             // --- Fallback for Base64 Data ---
-            if (!tempUrl && (response.data[0] as any).b64_json) {
-                const b64 = (response.data[0] as any).b64_json;
+            interface ImageResponseData {
+                url?: string;
+                b64_json?: string;
+            }
+            const responseData = response.data[0] as ImageResponseData;
+            if (!tempUrl && responseData.b64_json) {
+                const b64 = responseData.b64_json;
                 tempUrl = `data:image/png;base64,${b64}`;
             }
 
@@ -99,12 +105,7 @@ export async function POST(req: Request) {
             }
 
             // --- 5. Persist to Storage ---
-            let permanentUrl: string;
-            if (tempUrl.startsWith("data:")) {
-                permanentUrl = await persistBase64Image(tempUrl, user.id);
-            } else {
-                permanentUrl = await persistExternalImage(tempUrl, user.id);
-            }
+            const permanentUrl = await persistBase64Image(tempUrl, user.id);
 
             // --- 6. Save to DB & Commit Token Charge ---
             const adminClient = createAdminClient();
@@ -121,16 +122,16 @@ export async function POST(req: Request) {
 
             return NextResponse.json({ url: permanentUrl });
 
-        } catch (generationError: any) {
-            // Cancel the token reservation if generation fails
+        } catch (generationError: unknown) {
             await tokenCharge.cancel();
             throw generationError;
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Edit Error:", error);
+        const message = error instanceof Error ? error.message : "Failed to edit image";
         return NextResponse.json(
-            { error: error.message || "Failed to edit image" },
+            { error: message },
             { status: 500 }
         );
     }

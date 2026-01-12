@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import type { Session } from "@/lib/supabase/types";
+
 
 // GET: Fetch all sessions for current user
 export async function GET(req: Request) {
@@ -50,10 +50,26 @@ export async function GET(req: Request) {
 
         if (error) throw error;
 
-        // Transform data to include preview and count
-        const sessions = (data || []).map((session: any) => {
+        interface SessionRow {
+            id: string;
+            title: string | null;
+            type: string;
+            created_at: string;
+            updated_at: string;
+            is_archived: boolean;
+            is_pinned: boolean;
+            generations: Array<{
+                id: string;
+                prompt: string;
+                file_url: string | null;
+                thumbnail_url?: string | null;
+                status: string;
+                created_at: string;
+            }>;
+        }
+        const sessions = (data || []).map((session: SessionRow) => {
             const generations = session.generations || [];
-            const completedGen = generations.find((g: any) => g.file_url && g.status === "completed");
+            const completedGen = generations.find((g) => g.file_url && g.status === "completed");
 
             return {
                 id: session.id,
@@ -155,7 +171,7 @@ export async function PATCH(req: Request) {
             );
         }
 
-        const updateData: Record<string, any> = {};
+        const updateData: Record<string, string | boolean> = {};
         if (title !== undefined) updateData.title = title;
         if (is_archived !== undefined) updateData.is_archived = is_archived;
         if (is_pinned !== undefined) updateData.is_pinned = is_pinned;

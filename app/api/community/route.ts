@@ -112,23 +112,42 @@ export async function GET(req: Request) {
         const { count } = await countQuery;
 
         // === TRANSFORM DATA ===
-        const items = (generations || []).map((gen: any) => ({
-            id: gen.id,
-            type: gen.type,
-            prompt: gen.prompt,
-            file_url: gen.file_url,
-            thumbnail_url: gen.thumbnail_url,
-            width: gen.width,
-            height: gen.height,
-            duration: gen.duration,
-            created_at: gen.created_at,
-            metadata: gen.metadata,
-            creator: {
-                // Only show first name for privacy
-                name: gen.profiles?.name?.split(" ")[0] || "Creator",
-                avatar_url: gen.profiles?.avatar_url || null,
-            },
-        }));
+        interface ProfileData {
+            name: string | null;
+            avatar_url: string | null;
+        }
+        interface GenerationRow {
+            id: string;
+            type: string;
+            prompt: string;
+            file_url: string | null;
+            thumbnail_url: string | null;
+            width: number | null;
+            height: number | null;
+            duration: number | null;
+            created_at: string;
+            metadata: Record<string, unknown> | null;
+            profiles: ProfileData | ProfileData[] | null;
+        }
+        const items = (generations || []).map((gen: GenerationRow) => {
+            const profile = Array.isArray(gen.profiles) ? gen.profiles[0] : gen.profiles;
+            return {
+                id: gen.id,
+                type: gen.type,
+                prompt: gen.prompt,
+                file_url: gen.file_url,
+                thumbnail_url: gen.thumbnail_url,
+                width: gen.width,
+                height: gen.height,
+                duration: gen.duration,
+                created_at: gen.created_at,
+                metadata: gen.metadata,
+                creator: {
+                    name: profile?.name?.split(" ")[0] || "Creator",
+                    avatar_url: profile?.avatar_url || null,
+                },
+            };
+        });
 
         // === CONTENT MODERATION ===
         // Filter out items with blacklisted keywords in prompts
@@ -175,10 +194,11 @@ export async function GET(req: Request) {
             },
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("[Community API] Error:", error);
+        const message = error instanceof Error ? error.message : "Internal server error";
         return NextResponse.json(
-            { error: error.message || "Internal server error" },
+            { error: message },
             { status: 500 }
         );
     }

@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { Icon } from "@iconify/react";
 import { cn } from "@/lib/utils";
 import { Mascot } from "@/components/mascot";
+import Image from "next/image";
 import type { Generation } from "@/lib/supabase/types";
 
 type FilterType = "all" | "image" | "video";
@@ -494,7 +495,13 @@ export default function GalleryPage() {
                                                         onMouseLeave={(e) => { e.currentTarget.pause(); e.currentTarget.currentTime = 0; }}
                                                     />
                                                 ) : item.file_url ? (
-                                                    <img src={item.file_url} alt={item.prompt} className="w-full h-full object-cover" />
+                                                    <Image
+                                                        src={item.file_url}
+                                                        alt={item.prompt}
+                                                        fill
+                                                        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                                                        className="object-cover"
+                                                    />
                                                 ) : (
                                                     <div className="w-full h-full flex items-center justify-center bg-surface-2 text-muted-foreground text-xs">
                                                         No media
@@ -651,11 +658,15 @@ export default function GalleryPage() {
                                                 loop
                                             />
                                         ) : selectedItem.file_url ? (
-                                            <img
-                                                src={selectedItem.file_url}
-                                                alt={selectedItem.prompt}
-                                                className="w-full h-64 md:h-[500px] object-contain"
-                                            />
+                                            <div className="relative w-full h-64 md:h-[500px]">
+                                                <Image
+                                                    src={selectedItem.file_url}
+                                                    alt={selectedItem.prompt}
+                                                    fill
+                                                    sizes="(max-width: 768px) 100vw, 50vw"
+                                                    className="object-contain"
+                                                />
+                                            </div>
                                         ) : (
                                             <div className="w-full h-64 md:h-[500px] flex items-center justify-center text-white/40">
                                                 <p>Media not available</p>

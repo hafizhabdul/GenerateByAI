@@ -69,8 +69,9 @@ export async function POST(req: Request) {
         let tokenCharge;
         try {
             tokenCharge = await processTokenCharge(user.id, cost);
-        } catch (e: any) {
-            return NextResponse.json({ error: e.message }, { status: 403 });
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Failed to process token charge";
+            return NextResponse.json({ error: message }, { status: 403 });
         }
 
         // --- Create Kling Client ---
@@ -134,10 +135,11 @@ export async function POST(req: Request) {
             generationId: newGeneration?.id,
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Video extend error:", error);
+        const message = error instanceof Error ? error.message : "Failed to extend video";
         return NextResponse.json(
-            { error: error.message || "Failed to extend video" },
+            { error: message },
             { status: 500 }
         );
     }

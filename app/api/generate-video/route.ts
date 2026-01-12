@@ -2,12 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
-import { persistExternalVideo } from "@/lib/storage-utils";
 import { processTokenCharge } from "@/lib/tokens-server";
 import { createKlingClient } from "@/lib/kling";
 import { submitVideoGeneration, getVeoCost } from "@/lib/fal";
 import { checkRateLimit, createRateLimitResponse } from "@/lib/rate-limit";
-import { checkDailyLimit, incrementDailyGeneration, createDailyLimitResponse } from "@/lib/daily-limits";
+import { checkDailyLimit, createDailyLimitResponse } from "@/lib/daily-limits";
 import { sanitizePrompt, logBlockedPrompt } from "@/lib/prompt-sanitizer";
 
 const GenerateVideoSchema = z.object({
@@ -33,7 +32,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { imageUrl, prompt, negativePrompt, mode, duration, aspectRatio, type, sound } = validation.data;
+        const { imageUrl, prompt, mode, duration, aspectRatio, type, sound } = validation.data;
 
         // Validate image URL for image2video
         if (type === "image2video" && !imageUrl) {
@@ -84,8 +83,9 @@ export async function POST(req: Request) {
         let tokenCharge;
         try {
             tokenCharge = await processTokenCharge(user.id, cost);
-        } catch (e: any) {
-            return NextResponse.json({ error: e.message }, { status: 403 });
+        } catch (e: unknown) {
+            const message = e instanceof Error ? e.message : "Failed to process token charge";
+            return NextResponse.json({ error: message }, { status: 403 });
         }
 
         // --- Generate Marketing Prompt Enhancement ---
@@ -96,7 +96,7 @@ export async function POST(req: Request) {
             prompt: enhancedPrompt,
             imageUrl: type === "image2video" ? imageUrl : undefined,
             duration: duration === "10" ? 8 : 5, // Map string duration to Fal supported numbers
-            aspectRatio: aspectRatio as any,
+            aspectRatio: aspectRatio as "16:9" | "9:16" | "1:1",
             enableAudio: sound
         });
 
@@ -135,19 +135,16 @@ export async function POST(req: Request) {
             status: "pending"
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Video generation error:", error);
+        const message = error instanceof Error ? error.message : "Failed to generate video";
         return NextResponse.json(
-            { error: error.message || "Failed to generate video" },
+            { error: message },
             { status: 500 }
         );
     }
 }
 
-/**
- * Enhance user prompt for better marketing video results
- * Focus on preserving the exact product appearance from the input image
- */
 function enhanceMarketingPrompt(prompt: string, type: string): string {
     // For image-to-video, emphasize keeping the EXACT product from the image
     if (type === "image2video") {
@@ -213,10 +210,11 @@ export async function GET(req: Request) {
             videoUrl: result.data.task_result?.videos?.[0]?.url,
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Task status error:", error);
+        const message = error instanceof Error ? error.message : "Failed to get task status";
         return NextResponse.json(
-            { error: error.message || "Failed to get task status" },
+            { error: message },
             { status: 500 }
         );
     }

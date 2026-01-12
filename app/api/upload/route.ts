@@ -115,7 +115,7 @@ export async function POST(req: Request) {
 
         // Upload to Supabase
         const adminClient = createAdminClient();
-        const { data, error } = await adminClient
+        const { error } = await adminClient
             .storage
             .from("generations")
             .upload(filename, buffer, {
@@ -136,10 +136,11 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ url: publicUrl });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error("Upload error:", error);
+        const message = error instanceof Error ? error.message : "Failed to upload file";
         return NextResponse.json(
-            { error: error.message || "Failed to upload file" },
+            { error: message },
             { status: 500 }
         );
     }
