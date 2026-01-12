@@ -183,7 +183,7 @@ function enhanceMarketingPrompt(prompt: string, type: string): string {
     const userPrompt = prompt.trim();
 
     // Translate common Indonesian terms
-    let translatedPrompt = translateCommonTerms(userPrompt);
+     const translatedPrompt = translateCommonTerms(userPrompt);
 
     // Don't over-enhance if prompt is already detailed
     if (translatedPrompt.length > 300) {
