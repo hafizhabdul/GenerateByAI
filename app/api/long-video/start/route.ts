@@ -114,6 +114,8 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: message }, { status: 403 });
         }
 
+        let createdJobId: string | null = null;
+        
         try {
             // Create long video job record
             const settings: LongVideoSettings = {
@@ -134,6 +136,7 @@ export async function POST(req: Request) {
                     segments: [],
                     tokens_reserved: totalCost,
                     tokens_used: 0,
+                    token_reservation_id: tokenCharge.reservationId,
                 })
                 .select()
                 .single();
@@ -141,6 +144,8 @@ export async function POST(req: Request) {
             if (jobError || !job) {
                 throw new Error("Failed to create job record");
             }
+            
+            createdJobId = job.id;
 
             console.log(`[LongVideo] Created job ${job.id} - ${segmentCount} segments, ${totalCost} tokens`);
 
@@ -212,6 +217,19 @@ export async function POST(req: Request) {
         } catch (error) {
             // Cancel token reservation on failure
             await tokenCharge.cancel();
+            
+            // If job was created, mark as failed
+            if (createdJobId) {
+                await adminClient
+                    .from("long_video_jobs")
+                    .update({
+                        status: "failed",
+                        error: error instanceof Error ? error.message : "Failed to start first segment",
+                        tokens_reserved: 0,
+                    })
+                    .eq("id", createdJobId);
+            }
+            
             throw error;
         }
 

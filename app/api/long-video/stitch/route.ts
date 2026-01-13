@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/server";
 import { z } from "zod";
 import { stitchVideos, isFFmpegAvailable } from "@/lib/video-utils";
-import { commitTokenCharge } from "@/lib/tokens-server";
+import { commitTokenCharge, cancelTokenReservation } from "@/lib/tokens-server";
 import { incrementDailyGeneration } from "@/lib/daily-limits";
 import {
     getSegmentCount,
@@ -132,8 +132,13 @@ export async function POST(req: Request) {
                 .eq("id", jobId);
 
             // Commit the reserved tokens
-            // Note: We already reserved tokens at start, now we commit them
-            // The reservation ID would need to be stored - for now we just mark as used
+            const reservationId = job.token_reservation_id as string | null;
+            if (reservationId) {
+                const { success, message } = await commitTokenCharge(reservationId);
+                if (!success) {
+                    console.error("[LongVideo] Failed to commit token charge:", message);
+                }
+            }
 
             // Increment daily generation count
             await incrementDailyGeneration(user.id);
@@ -150,12 +155,21 @@ export async function POST(req: Request) {
         } catch (stitchError) {
             console.error("[LongVideo] Stitch failed:", stitchError);
 
-            // Update job as failed
+            // Cancel token reservation on failure - refund all tokens
+            const reservationId = job.token_reservation_id as string | null;
+            if (reservationId) {
+                await cancelTokenReservation(reservationId);
+                console.log(`[LongVideo] Token reservation ${reservationId} canceled - tokens refunded`);
+            }
+
+            // Update job as failed with zeroed tokens
             await adminClient
                 .from("long_video_jobs")
                 .update({
                     status: "failed",
                     error: stitchError instanceof Error ? stitchError.message : "Stitching failed",
+                    tokens_used: 0,
+                    tokens_reserved: 0,
                 })
                 .eq("id", jobId);
 
