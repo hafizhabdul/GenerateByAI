@@ -18,7 +18,7 @@ import {
 } from "@/lib/long-video";
 
 const StartLongVideoSchema = z.object({
-    prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt too long"),
+    prompt: z.string().min(1, "Prompt is required"),
     negativePrompt: z.string().max(1000).optional(),
     targetDuration: z.number().refine((d) => d === 60 || d === 90 || d === 120, {
         message: "Duration must be 60, 90, or 120 seconds",
