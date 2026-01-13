@@ -1,331 +1,175 @@
-import { createAdminClient } from "@/lib/supabase/server";
-import { exec } from "child_process";
-import { promisify } from "util";
-import * as fs from "fs/promises";
-import * as path from "path";
-import * as os from "os";
+import { fal } from "@fal-ai/client";
 
-const execAsync = promisify(exec);
+fal.config({
+    credentials: process.env.FAL_KEY,
+});
 
 /**
- * Video Utilities
+ * Video Utilities using fal.ai ffmpeg API
  * 
- * Functions for video processing including:
- * - Extracting frames from videos
- * - Stitching multiple videos together
- * - Video format conversions
+ * Cloud-based video processing - no local ffmpeg required!
+ * Uses fal.ai's serverless ffmpeg endpoints.
  */
 
-/**
- * Download a file from URL to temp directory
- */
-async function downloadToTemp(url: string, filename: string): Promise<string> {
-    const tempDir = os.tmpdir();
-    const filePath = path.join(tempDir, filename);
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Failed to download: ${response.status}`);
-    }
-    
-    const buffer = Buffer.from(await response.arrayBuffer());
-    await fs.writeFile(filePath, buffer);
-    
-    return filePath;
+interface ExtractFrameResult {
+    images: Array<{
+        url: string;
+        content_type?: string;
+        file_name?: string;
+        file_size?: number;
+        width?: number;
+        height?: number;
+    }>;
+}
+
+interface MergeVideosResult {
+    video: {
+        url: string;
+        content_type: string;
+        file_name: string;
+        file_size: number;
+        duration?: number;
+    };
+    metadata?: {
+        duration?: number;
+    };
 }
 
 /**
- * Upload a local file to Supabase Storage
- */
-async function uploadFromLocal(
-    localPath: string,
-    storagePath: string,
-    contentType: string
-): Promise<string> {
-    const adminClient = createAdminClient();
-    const buffer = await fs.readFile(localPath);
-    
-    const { error } = await adminClient
-        .storage
-        .from("generations")
-        .upload(storagePath, buffer, {
-            contentType,
-            upsert: false,
-        });
-    
-    if (error) {
-        throw new Error(`Upload failed: ${error.message}`);
-    }
-    
-    const { data: { publicUrl } } = adminClient
-        .storage
-        .from("generations")
-        .getPublicUrl(storagePath);
-    
-    return publicUrl;
-}
-
-/**
- * Clean up temp files
- */
-async function cleanupTempFiles(files: string[]): Promise<void> {
-    for (const file of files) {
-        try {
-            await fs.unlink(file);
-        } catch {
-            // Ignore cleanup errors
-        }
-    }
-}
-
-/**
- * Check if ffmpeg is available
- */
-export async function isFFmpegAvailable(): Promise<boolean> {
-    try {
-        await execAsync("ffmpeg -version");
-        return true;
-    } catch {
-        return false;
-    }
-}
-
-/**
- * Extract the last frame from a video as an image
+ * Extract a frame from a video using fal.ai ffmpeg API
  * 
  * @param videoUrl - URL of the video
- * @param userId - User ID for storage path
- * @returns Public URL of the extracted frame image
+ * @param frameType - 'first', 'middle', or 'last'
+ * @returns URL of the extracted frame image
+ */
+export async function extractFrame(
+    videoUrl: string,
+    frameType: "first" | "middle" | "last" = "last"
+): Promise<string> {
+    console.log(`[VideoUtils] Extracting ${frameType} frame from video...`);
+
+    try {
+        const result = await fal.subscribe("fal-ai/ffmpeg-api/extract-frame", {
+            input: {
+                video_url: videoUrl,
+                frame_type: frameType,
+            },
+        }) as { data: ExtractFrameResult };
+
+        if (!result.data.images || result.data.images.length === 0) {
+            throw new Error("No frame extracted from video");
+        }
+
+        const frameUrl = result.data.images[0].url;
+        console.log(`[VideoUtils] Frame extracted: ${frameUrl}`);
+
+        return frameUrl;
+    } catch (error) {
+        console.error("[VideoUtils] Frame extraction failed:", error);
+        throw new Error(`Failed to extract frame: ${error instanceof Error ? error.message : "Unknown error"}`);
+    }
+}
+
+/**
+ * Extract the last frame from a video
+ * Convenience wrapper for extractFrame with frameType='last'
+ * 
+ * @param videoUrl - URL of the video
+ * @param _userId - User ID (kept for backward compatibility, not used with fal.ai)
+ * @returns URL of the extracted frame image
  */
 export async function extractLastFrame(
     videoUrl: string,
-    userId: string
+    _userId?: string
 ): Promise<string> {
-    console.log(`[VideoUtils] Extracting last frame for user ${userId.slice(0, 8)}...`);
-    
-    const tempFiles: string[] = [];
-    
-    try {
-        // Generate unique filenames
-        const timestamp = Date.now();
-        const videoFilename = `video-${timestamp}.mp4`;
-        const frameFilename = `frame-${timestamp}.png`;
-        
-        // Download video to temp
-        const videoPath = await downloadToTemp(videoUrl, videoFilename);
-        tempFiles.push(videoPath);
-        
-        const framePath = path.join(os.tmpdir(), frameFilename);
-        tempFiles.push(framePath);
-        
-        // Get video duration first
-        const { stdout: durationOutput } = await execAsync(
-            `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`
-        );
-        const duration = parseFloat(durationOutput.trim());
-        
-        if (isNaN(duration) || duration <= 0) {
-            throw new Error("Could not determine video duration");
-        }
-        
-        // Extract last frame (0.1s before end to ensure we get a frame)
-        const seekTime = Math.max(0, duration - 0.1);
-        
-        await execAsync(
-            `ffmpeg -y -ss ${seekTime} -i "${videoPath}" -frames:v 1 -q:v 2 "${framePath}"`
-        );
-        
-        // Check if frame was created
-        try {
-            await fs.access(framePath);
-        } catch {
-            throw new Error("Failed to extract frame from video");
-        }
-        
-        // Upload to storage
-        const storagePath = `${userId}/frame-${timestamp}-${Math.floor(Math.random() * 10000)}.png`;
-        const publicUrl = await uploadFromLocal(framePath, storagePath, "image/png");
-        
-        console.log(`[VideoUtils] Frame extracted and uploaded: ${storagePath}`);
-        
-        return publicUrl;
-        
-    } finally {
-        // Cleanup temp files
-        await cleanupTempFiles(tempFiles);
-    }
+    return extractFrame(videoUrl, "last");
 }
 
 /**
- * Extract a frame at a specific timestamp
+ * Extract a frame at a specific position
+ * Note: fal.ai only supports first/middle/last, so we approximate
  * 
  * @param videoUrl - URL of the video
- * @param timestampSeconds - Timestamp in seconds
- * @param userId - User ID for storage path
- * @returns Public URL of the extracted frame image
+ * @param position - 'start', 'middle', or 'end'
+ * @param _userId - User ID (kept for backward compatibility)
+ * @returns URL of the extracted frame image
  */
 export async function extractFrameAt(
     videoUrl: string,
-    timestampSeconds: number,
-    userId: string
+    position: "start" | "middle" | "end",
+    _userId?: string
 ): Promise<string> {
-    console.log(`[VideoUtils] Extracting frame at ${timestampSeconds}s for user ${userId.slice(0, 8)}...`);
-    
-    const tempFiles: string[] = [];
-    
-    try {
-        const timestamp = Date.now();
-        const videoFilename = `video-${timestamp}.mp4`;
-        const frameFilename = `frame-${timestamp}.png`;
-        
-        const videoPath = await downloadToTemp(videoUrl, videoFilename);
-        tempFiles.push(videoPath);
-        
-        const framePath = path.join(os.tmpdir(), frameFilename);
-        tempFiles.push(framePath);
-        
-        // Extract frame at timestamp
-        await execAsync(
-            `ffmpeg -y -ss ${timestampSeconds} -i "${videoPath}" -frames:v 1 -q:v 2 "${framePath}"`
-        );
-        
-        try {
-            await fs.access(framePath);
-        } catch {
-            throw new Error("Failed to extract frame from video");
-        }
-        
-        const storagePath = `${userId}/frame-${timestamp}-${Math.floor(Math.random() * 10000)}.png`;
-        const publicUrl = await uploadFromLocal(framePath, storagePath, "image/png");
-        
-        return publicUrl;
-        
-    } finally {
-        await cleanupTempFiles(tempFiles);
-    }
+    const frameType = position === "start" ? "first" : position === "end" ? "last" : "middle";
+    return extractFrame(videoUrl, frameType);
 }
 
 /**
- * Stitch multiple videos together into one
+ * Stitch multiple videos together using fal.ai ffmpeg API
  * 
  * @param videoUrls - Array of video URLs in order
- * @param userId - User ID for storage path
- * @param options - Stitching options
- * @returns Public URL of the stitched video
+ * @param _userId - User ID (kept for backward compatibility)
+ * @param options - Stitching options (resolution supported)
+ * @returns Object with videoUrl and duration
  */
 export async function stitchVideos(
     videoUrls: string[],
-    userId: string,
+    _userId?: string,
     options: {
-        crossfadeDuration?: number; // seconds, 0 = no crossfade
-        outputFormat?: "mp4" | "webm";
+        resolution?: { width: number; height: number };
     } = {}
 ): Promise<{ videoUrl: string; duration: number }> {
-    const { crossfadeDuration = 0, outputFormat = "mp4" } = options;
-    
-    console.log(`[VideoUtils] Stitching ${videoUrls.length} videos for user ${userId.slice(0, 8)}...`);
-    
+    console.log(`[VideoUtils] Stitching ${videoUrls.length} videos...`);
+
     if (videoUrls.length === 0) {
         throw new Error("No videos to stitch");
     }
-    
+
     if (videoUrls.length === 1) {
-        // Single video, just return it
+        console.log("[VideoUtils] Single video, returning as-is");
         return { videoUrl: videoUrls[0], duration: 0 };
     }
-    
-    const tempFiles: string[] = [];
-    
+
     try {
-        const timestamp = Date.now();
-        const tempDir = os.tmpdir();
-        
-        // Download all videos
-        const localPaths: string[] = [];
-        for (let i = 0; i < videoUrls.length; i++) {
-            const filename = `segment-${timestamp}-${i}.mp4`;
-            const localPath = await downloadToTemp(videoUrls[i], filename);
-            localPaths.push(localPath);
-            tempFiles.push(localPath);
+        const input = {
+            video_urls: videoUrls,
+            ...(options.resolution && { resolution: options.resolution }),
+        };
+
+        const result = await fal.subscribe("fal-ai/ffmpeg-api/merge-videos", {
+            input,
+        }) as { data: MergeVideosResult };
+
+        if (!result.data.video || !result.data.video.url) {
+            throw new Error("No merged video in result");
         }
-        
-        // Create concat file for ffmpeg
-        const concatFilePath = path.join(tempDir, `concat-${timestamp}.txt`);
-        const concatContent = localPaths.map(p => `file '${p}'`).join("\n");
-        await fs.writeFile(concatFilePath, concatContent);
-        tempFiles.push(concatFilePath);
-        
-        // Output path
-        const outputFilename = `stitched-${timestamp}.${outputFormat}`;
-        const outputPath = path.join(tempDir, outputFilename);
-        tempFiles.push(outputPath);
-        
-        if (crossfadeDuration > 0) {
-            // Use filter_complex for crossfade transitions
-            // This is more complex but creates smoother transitions
-            const filterParts: string[] = [];
-            const inputs = localPaths.map((p, i) => `-i "${p}"`).join(" ");
-            
-            // Build filter chain for crossfades
-            let filterChain = "";
-            for (let i = 0; i < localPaths.length; i++) {
-                filterChain += `[${i}:v][${i}:a]`;
-            }
-            filterChain += `concat=n=${localPaths.length}:v=1:a=1[outv][outa]`;
-            
-            await execAsync(
-                `ffmpeg -y ${inputs} -filter_complex "${filterChain}" -map "[outv]" -map "[outa]" -c:v libx264 -c:a aac "${outputPath}"`
-            );
-        } else {
-            // Simple concat without transitions
-            await execAsync(
-                `ffmpeg -y -f concat -safe 0 -i "${concatFilePath}" -c copy "${outputPath}"`
-            );
-        }
-        
-        // Get output duration
-        const { stdout: durationOutput } = await execAsync(
-            `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${outputPath}"`
-        );
-        const duration = parseFloat(durationOutput.trim()) || 0;
-        
-        // Upload to storage
-        const storagePath = `${userId}/longvideo-${timestamp}.${outputFormat}`;
-        const publicUrl = await uploadFromLocal(
-            outputPath,
-            storagePath,
-            outputFormat === "mp4" ? "video/mp4" : "video/webm"
-        );
-        
-        console.log(`[VideoUtils] Stitched video uploaded: ${storagePath} (${Math.round(duration)}s)`);
-        
-        return { videoUrl: publicUrl, duration };
-        
-    } finally {
-        await cleanupTempFiles(tempFiles);
+
+        const videoUrl = result.data.video.url;
+        const duration = result.data.video.duration || result.data.metadata?.duration || 0;
+
+        console.log(`[VideoUtils] Videos stitched: ${videoUrl} (${Math.round(duration)}s)`);
+
+        return { videoUrl, duration };
+    } catch (error) {
+        console.error("[VideoUtils] Video stitching failed:", error);
+        throw new Error(`Failed to stitch videos: ${error instanceof Error ? error.message : "Unknown error"}`);
     }
 }
 
 /**
- * Get video duration in seconds
+ * Check if video processing is available
+ * Always returns true since we're using cloud-based fal.ai
  */
-export async function getVideoDuration(videoUrl: string): Promise<number> {
-    const tempFiles: string[] = [];
-    
-    try {
-        const timestamp = Date.now();
-        const videoPath = await downloadToTemp(videoUrl, `probe-${timestamp}.mp4`);
-        tempFiles.push(videoPath);
-        
-        const { stdout } = await execAsync(
-            `ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 "${videoPath}"`
-        );
-        
-        return parseFloat(stdout.trim()) || 0;
-        
-    } finally {
-        await cleanupTempFiles(tempFiles);
-    }
+export async function isFFmpegAvailable(): Promise<boolean> {
+    return true;
+}
+
+/**
+ * Get video duration (not directly available via fal.ai, returns 0)
+ * Consider using metadata endpoint if needed in the future
+ */
+export async function getVideoDuration(_videoUrl: string): Promise<number> {
+    console.log("[VideoUtils] getVideoDuration not implemented for fal.ai, returning 0");
+    return 0;
 }
 
 /**
@@ -333,8 +177,8 @@ export async function getVideoDuration(videoUrl: string): Promise<number> {
  */
 export async function generateThumbnail(
     videoUrl: string,
-    userId: string,
-    timestampSeconds: number = 0
+    _userId?: string,
+    position: "start" | "middle" | "end" = "start"
 ): Promise<string> {
-    return extractFrameAt(videoUrl, timestampSeconds, userId);
+    return extractFrameAt(videoUrl, position, _userId);
 }
