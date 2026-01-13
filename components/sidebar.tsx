@@ -12,6 +12,7 @@ const navItems = [
     // { href: "/studio", icon: "mingcute:brush-3-fill", label: "Studio" },
     { href: "/gallery", icon: "mingcute:pic-fill", label: "Gallery" },
     { href: "/videos", icon: "mingcute:movie-fill", label: "Videos" },
+    { href: "/long-video", icon: "mingcute:video-camera-fill", label: "Long Video", badge: "BETA" },
 ];
 
 export function Sidebar() {
@@ -44,6 +45,7 @@ export function Sidebar() {
                             icon={<Icon icon={item.icon} className="w-6 h-6" />}
                             label={item.label}
                             active={pathname === item.href}
+                            badge={item.badge}
                         />
                     ))}
                 </nav>
@@ -113,12 +115,15 @@ export function Sidebar() {
                                 key={item.href}
                                 href={item.href}
                                 className={cn(
-                                    "p-3 rounded-xl transition-all flex flex-col items-center gap-1",
+                                    "p-3 rounded-xl transition-all flex flex-col items-center gap-1 relative",
                                     pathname === item.href ? "text-primary bg-primary/10" : "text-muted-foreground active:bg-white/5"
                                 )}
                             >
                                 <Icon icon={item.icon} className="w-5 h-5" />
                                 <span className="text-[10px] font-medium">{item.label}</span>
+                                {item.badge && (
+                                    <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-primary rounded-full" />
+                                )}
                             </Link>
                         ))}
                         <Link
@@ -152,12 +157,14 @@ function NavItem({
     href,
     icon,
     label,
-    active
+    active,
+    badge
 }: {
     href: string;
     icon: React.ReactNode;
     label: string;
-    active?: boolean
+    active?: boolean;
+    badge?: string;
 }) {
     return (
         <Link
@@ -170,10 +177,20 @@ function NavItem({
             )}
         >
             {icon}
+            
+            {/* Badge indicator */}
+            {badge && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-primary rounded-full" />
+            )}
 
             {/* Minimal Tooltip */}
-            <div className="absolute left-full ml-5 px-3 py-1.5 bg-surface-2 border border-border rounded-lg text-sm font-medium text-foreground opacity-0 translate-x-[-10px] invisible group-hover:opacity-100 group-hover:visible group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-[400] shadow-xl">
+            <div className="absolute left-full ml-5 px-3 py-1.5 bg-surface-2 border border-border rounded-lg text-sm font-medium text-foreground opacity-0 translate-x-[-10px] invisible group-hover:opacity-100 group-hover:visible group-hover:translate-x-0 transition-all duration-200 whitespace-nowrap z-[400] shadow-xl flex items-center gap-2">
                 {label}
+                {badge && (
+                    <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-primary/10 text-primary rounded">
+                        {badge}
+                    </span>
+                )}
             </div>
         </Link>
     );
