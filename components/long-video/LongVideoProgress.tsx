@@ -48,18 +48,20 @@ interface LongVideoProgressProps {
     jobId: string;
     onComplete: (videoUrl: string) => void;
     onError: (error: string) => void;
+    onCancel?: () => void;
     autoMode?: boolean;
 }
 
 const POLL_INTERVAL = 5000;
 
-export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true }: LongVideoProgressProps) {
+export function LongVideoProgress({ jobId, onComplete, onError, onCancel, autoMode = true }: LongVideoProgressProps) {
     const [status, setStatus] = useState<JobStatus | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isContinuing, setIsContinuing] = useState(false);
     const [isStitching, setIsStitching] = useState(false);
+    const [isCancelling, setIsCancelling] = useState(false);
     const [autoEnabled, setAutoEnabled] = useState(autoMode);
-    
+
     const isAutoProcessingRef = useRef(false);
 
     const fetchStatus = useCallback(async () => {
@@ -78,7 +80,7 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
             } else if (data.status === "failed" && data.error) {
                 onError(data.error);
             }
-            
+
             return data;
         } catch (error) {
             console.error("Status fetch error:", error);
@@ -87,13 +89,13 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
             setIsLoading(false);
         }
     }, [jobId, onComplete, onError]);
-    
+
     const autoContinue = useCallback(async () => {
         if (isAutoProcessingRef.current || !autoEnabled) return;
-        
+
         isAutoProcessingRef.current = true;
         setIsContinuing(true);
-        
+
         try {
             const response = await fetch("/api/long-video/continue", {
                 method: "POST",
@@ -112,13 +114,13 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
             isAutoProcessingRef.current = false;
         }
     }, [jobId, autoEnabled]);
-    
+
     const autoStitch = useCallback(async () => {
         if (isAutoProcessingRef.current || !autoEnabled) return;
-        
+
         isAutoProcessingRef.current = true;
         setIsStitching(true);
-        
+
         try {
             const response = await fetch("/api/long-video/stitch", {
                 method: "POST",
@@ -140,14 +142,19 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
 
     useEffect(() => {
         fetchStatus();
-        
+
         const interval = setInterval(async () => {
             const data = await fetchStatus();
-            
+
             if (!data || data.status === "completed" || data.status === "failed") {
                 return;
             }
-            
+
+            // POLL FIX: Trigger video status check for current segment to ensure DB updates
+            if (data.currentSegmentId) {
+                fetch(`/api/video-status?generationId=${data.currentSegmentId}`).catch(console.error);
+            }
+
             if (autoEnabled && !isAutoProcessingRef.current) {
                 if (data.canContinue) {
                     autoContinue();
@@ -162,7 +169,7 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
 
     const handleContinue = async () => {
         if (!status?.canContinue) return;
-        
+
         setIsContinuing(true);
         try {
             const response = await fetch("/api/long-video/continue", {
@@ -207,6 +214,36 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
             onError(error instanceof Error ? error.message : "Failed to stitch");
         } finally {
             setIsStitching(false);
+        }
+    };
+
+    const handleCancel = async () => {
+        if (!confirm("Are you sure you want to cancel this job? This action cannot be undone.")) return;
+
+        setIsCancelling(true);
+        try {
+            const response = await fetch("/api/long-video/cancel", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ jobId }),
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || "Failed to cancel job");
+            }
+
+            // Notify parent
+            if (onCancel) onCancel();
+
+            // Refresh status to show failed/canceled
+            await fetchStatus();
+
+        } catch (error) {
+            console.error("Cancel error:", error);
+            onError(error instanceof Error ? error.message : "Failed to cancel job");
+        } finally {
+            setIsCancelling(false);
         }
     };
 
@@ -268,7 +305,7 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
                         <span className="font-medium">{status.progress.percentage}%</span>
                     </div>
                     <div className="h-2 bg-surface-3 rounded-full overflow-hidden">
-                        <div 
+                        <div
                             className={cn(
                                 "h-full rounded-full transition-all duration-500",
                                 isCompleted && "bg-green-500",
@@ -291,14 +328,14 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
                             onClick={() => setAutoEnabled(!autoEnabled)}
                             className={cn(
                                 "flex items-center gap-1.5 px-2 py-1 rounded-lg transition-colors",
-                                autoEnabled 
-                                    ? "bg-primary/10 text-primary" 
+                                autoEnabled
+                                    ? "bg-primary/10 text-primary"
                                     : "bg-surface-3 text-muted-foreground hover:text-foreground"
                             )}
                         >
-                            <Icon 
-                                icon={autoEnabled ? "mingcute:flash-fill" : "mingcute:flash-line"} 
-                                className="w-3.5 h-3.5" 
+                            <Icon
+                                icon={autoEnabled ? "mingcute:flash-fill" : "mingcute:flash-line"}
+                                className="w-3.5 h-3.5"
                             />
                             <span>Auto</span>
                         </button>
@@ -311,11 +348,11 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
                 <div className="p-3 bg-primary/5 border border-primary/10 rounded-xl flex items-center gap-2 text-sm">
                     <Icon icon="mingcute:flash-fill" className="w-4 h-4 text-primary animate-pulse" />
                     <span className="text-muted-foreground">
-                        {isContinuing 
-                            ? "Generating next segment..." 
-                            : isStitching 
-                            ? "Stitching video..." 
-                            : "Auto mode enabled - will continue automatically"}
+                        {isContinuing
+                            ? "Generating next segment..."
+                            : isStitching
+                                ? "Stitching video..."
+                                : "Auto mode enabled - will continue automatically"}
                     </span>
                 </div>
             )}
@@ -325,7 +362,7 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
                 <h4 className="text-sm font-medium mb-3">Segments</h4>
                 <div className="grid grid-cols-4 gap-2">
                     {status.segments.map((segment) => (
-                        <div 
+                        <div
                             key={segment.id}
                             className={cn(
                                 "aspect-video rounded-lg overflow-hidden relative border",
@@ -336,8 +373,8 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
                             )}
                         >
                             {segment.thumbnailUrl ? (
-                                <img 
-                                    src={segment.thumbnailUrl} 
+                                <img
+                                    src={segment.thumbnailUrl}
                                     alt={`Segment ${segment.order + 1}`}
                                     className="w-full h-full object-cover"
                                 />
@@ -368,10 +405,10 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
                             </div>
                         </div>
                     ))}
-                    
+
                     {/* Placeholder for remaining segments */}
                     {Array.from({ length: status.progress.totalSegments - status.segments.length }).map((_, i) => (
-                        <div 
+                        <div
                             key={`placeholder-${i}`}
                             className="aspect-video rounded-lg border border-dashed border-border/50 flex items-center justify-center bg-surface-3/30"
                         >
@@ -400,12 +437,12 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
                         <Icon icon="mingcute:video-fill" className="w-4 h-4 text-green-500" />
                         Video Selesai!
                     </h4>
-                    <video 
+                    <video
                         src={status.finalVideoUrl}
                         controls
                         className="w-full rounded-xl"
                     />
-                    <a 
+                    <a
                         href={status.finalVideoUrl}
                         download
                         target="_blank"
@@ -415,6 +452,31 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
                         <Icon icon="mingcute:download-line" className="w-4 h-4" />
                         Download Video
                     </a>
+                </div>
+            )}
+
+            {/* Cancel Button */}
+            {(isProcessing || status.status === "pending") && (
+                <div className="mt-3 pt-3 border-t border-border/50 flex justify-end">
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        className="bg-red-500/10 text-red-500 hover:bg-red-500/20 border-none"
+                    >
+                        {isCancelling ? (
+                            <>
+                                <Icon icon="mingcute:loading-line" className="w-3.5 h-3.5 mr-2 animate-spin" />
+                                Cancelling...
+                            </>
+                        ) : (
+                            <>
+                                <Icon icon="mingcute:close-circle-line" className="w-3.5 h-3.5 mr-2" />
+                                Cancel Job
+                            </>
+                        )}
+                    </Button>
                 </div>
             )}
 
@@ -441,7 +503,7 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
                             )}
                         </Button>
                     )}
-                    
+
                     {status.isReadyForStitching && (
                         <Button
                             variant="primary"
@@ -467,3 +529,4 @@ export function LongVideoProgress({ jobId, onComplete, onError, autoMode = true 
         </div>
     );
 }
+

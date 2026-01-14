@@ -103,7 +103,8 @@ export async function POST(req: Request) {
 
             const actionNegatives = [
                 "frozen pose", "static image", "no movement",
-                "incomplete action", "unrealistic movement", "jerky motion"
+                "incomplete action", "unrealistic movement", "jerky motion",
+                "audio", "sound", "speech", "voice", "talking", "speaking"
             ].join(", ");
 
             const enhancedNegative = negativePrompt || `${baseNegative}, ${actionNegatives}`;
@@ -121,6 +122,7 @@ export async function POST(req: Request) {
                 resolution: resolution as WanResolution,
                 aspectRatio: aspectRatio as WanAspectRatio,
                 negativePrompt: enhancedNegative,
+                sample_audio: false,
             });
 
             console.log(`[Video-Standard] Async generation started, requestId: ${requestId}`);
@@ -191,7 +193,7 @@ function enhanceMarketingPrompt(prompt: string, type: string): string {
     const userPrompt = prompt.trim();
 
     // Translate common Indonesian terms
-     const translatedPrompt = translateCommonTerms(userPrompt);
+    const translatedPrompt = translateCommonTerms(userPrompt);
 
     // Don't over-enhance if prompt is already detailed
     if (translatedPrompt.length > 300) {

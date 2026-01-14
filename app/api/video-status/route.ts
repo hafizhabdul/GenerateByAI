@@ -55,16 +55,9 @@ async function waitForDbResult(
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const requestId = searchParams.get("requestId");
+        let requestId = searchParams.get("requestId");
         const type = (searchParams.get("type") as "image2video" | "text2video") || "image2video";
         const generationId = searchParams.get("generationId");
-
-        if (!requestId) {
-            return NextResponse.json(
-                { error: "Request ID is required" },
-                { status: 400 }
-            );
-        }
 
         // Auth check
         const supabase = await createClient();
@@ -72,6 +65,52 @@ export async function GET(req: NextRequest) {
 
         if (!user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+
+        // If requestId is missing, try to get it from generationId from DB
+        if (!requestId) {
+            if (!generationId) {
+                return NextResponse.json(
+                    { error: "Request ID or Generation ID is required" },
+                    { status: 400 }
+                );
+            }
+
+            const { data: gen } = await supabase
+                .from("generations")
+                .select("metadata")
+                .eq("id", generationId)
+                .eq("user_id", user.id)
+                .single();
+
+            if (gen?.metadata) {
+                const meta = gen.metadata as Record<string, any>;
+                const foundRequestId = meta.requestId || meta.request_id;
+
+                if (foundRequestId) {
+                    requestId = foundRequestId;
+                }
+            }
+
+            // Fallback: If still no request ID, but we have generation ID, check if it's already done
+            if (!requestId) {
+                const { data: existing } = await supabase
+                    .from("generations")
+                    .select("status")
+                    .eq("id", generationId)
+                    .eq("user_id", user.id)
+                    .single();
+
+                // If failed or completed, we can proceed with a dummy ID (logic below checks DB first)
+                if (existing?.status === "completed" || existing?.status === "failed") {
+                    requestId = "db_status_only";
+                } else {
+                    return NextResponse.json(
+                        { error: "Could not retrieve Request ID" },
+                        { status: 404 }
+                    );
+                }
+            }
         }
 
         // Validate generationId if provided
@@ -373,7 +412,7 @@ export async function GET(req: NextRequest) {
                     .eq("id", generationId)
                     .eq("user_id", user.id)
                     .single();
-                
+
                 const displayDuration = finalGen?.metadata?.duration || result.duration;
 
                 return NextResponse.json({

@@ -65,6 +65,7 @@ export interface WanVideoInput {
     resolution: WanResolution;
     aspectRatio?: WanAspectRatio;
     negativePrompt?: string;
+    sample_audio?: boolean;
 }
 
 /**
@@ -102,7 +103,7 @@ export function isWanConfigured(): boolean {
  * Returns request_id for polling
  */
 export async function startWanVideoGeneration(input: WanVideoInput): Promise<{ requestId: string }> {
-    const { prompt, imageUrl, duration, resolution, aspectRatio = "16:9", negativePrompt } = input;
+    const { prompt, imageUrl, duration, resolution, aspectRatio = "16:9", negativePrompt, sample_audio = false } = input;
 
     const endpoint = imageUrl ? WAN_ENDPOINTS.imageToVideo : WAN_ENDPOINTS.textToVideo;
 
@@ -111,9 +112,10 @@ export async function startWanVideoGeneration(input: WanVideoInput): Promise<{ r
 
     const requestInput: Record<string, unknown> = {
         prompt,
-        duration_seconds: duration,
+        duration: duration,
         resolution: resolutionParam,
         aspect_ratio: aspectRatio,
+        sample_audio: sample_audio,
     };
 
     if (negativePrompt) {
@@ -221,16 +223,17 @@ export async function getWanVideoResult(requestId: string, type: "text2video" | 
  * Use this for simpler flow, but be aware of timeout limits
  */
 export async function generateWanVideoSync(input: WanVideoInput): Promise<WanVideoResult> {
-    const { prompt, imageUrl, duration, resolution, aspectRatio = "16:9", negativePrompt } = input;
+    const { prompt, imageUrl, duration, resolution, aspectRatio = "16:9", negativePrompt, sample_audio = false } = input;
 
     const endpoint = imageUrl ? WAN_ENDPOINTS.imageToVideo : WAN_ENDPOINTS.textToVideo;
     const resolutionParam = resolution === "1080p" ? "1080p" : "720p";
 
     const requestInput: Record<string, unknown> = {
         prompt,
-        duration_seconds: duration,
+        duration: duration,
         resolution: resolutionParam,
         aspect_ratio: aspectRatio,
+        sample_audio: sample_audio,
     };
 
     if (negativePrompt) {

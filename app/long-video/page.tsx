@@ -8,6 +8,7 @@ import { useToast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { LongVideoProgress } from "@/components/long-video/LongVideoProgress";
+import { LongVideoHistory } from "@/components/long-video/LongVideoHistory";
 
 type DurationOption = 60 | 90 | 120;
 type ResolutionOption = "720p" | "1080p";
@@ -42,7 +43,7 @@ function calculatePricing(duration: DurationOption, resolution: ResolutionOption
     const segmentCount = Math.ceil(duration / 15);
     const totalCost = segmentCount * costPerSegment;
     const estimatedMinutes = segmentCount * 2.5;
-    
+
     return { segmentCount, costPerSegment, totalCost, estimatedMinutes };
 }
 
@@ -334,8 +335,12 @@ export default function LongVideoPage() {
                             </Button>
                         </div>
                     )}
+
+                    <div className="mt-12 pt-8 border-t border-border">
+                        <LongVideoHistory />
+                    </div>
                 </div>
-            </main>
-        </div>
+            </main >
+        </div >
     );
 }

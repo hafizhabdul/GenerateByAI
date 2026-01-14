@@ -10,6 +10,7 @@ import { useAuth } from "@/lib/auth-context";
 import { GenerationLoading } from "./loading-states";
 import { Mascot } from "./mascot";
 import { BatikPattern } from "@/components/ui/batik-pattern";
+import { LongVideoProgress } from "@/components/long-video/LongVideoProgress";
 
 type VideoTier = "standard" | "premium";
 
@@ -266,6 +267,7 @@ export function VideoGenerator() {
         aspectRatio: "16:9",
         tier: "standard", // Default to wan/v2.6 (standard tier)
     });
+    const [activeLongVideoId, setActiveLongVideoId] = useState<string | null>(null);
 
     const { showToast } = useToast();
     const { user, refreshProfile, loading: authLoading } = useAuth();
@@ -347,6 +349,31 @@ export function VideoGenerator() {
         setSessionLoaded(true);
         setLoadingHistory(false);
     }, [user, authLoading]);
+
+    // Check for active Long Video Job
+    useEffect(() => {
+        if (!user) return;
+
+        const checkLongVideo = async () => {
+            try {
+                const res = await fetch("/api/long-video/history?limit=1");
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.jobs && data.jobs.length > 0) {
+                        const latestJob = data.jobs[0];
+                        if (latestJob.status === "processing" || latestJob.status === "pending") {
+                            setActiveLongVideoId(latestJob.id);
+                            setIsHero(false); // Hide hero to show progress
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error("Failed to check long video status:", e);
+            }
+        };
+
+        checkLongVideo();
+    }, [user]);
 
     // Check for source image from Image Generator (Image-to-Video workflow)
     useEffect(() => {
@@ -1573,6 +1600,31 @@ export function VideoGenerator() {
                 {/* Feed Items */}
                 {!isHero && !loadingHistory && !loading && (
                     <div className="w-full max-w-3xl mx-auto space-y-12">
+                        {/* Active Long Video Job */}
+                        {activeLongVideoId && (
+                            <div className="mb-12 animate-fade-in-up">
+                                <LongVideoProgress
+                                    jobId={activeLongVideoId}
+                                    onComplete={() => {
+                                        showToast("Long video completed!", "success");
+                                        setActiveLongVideoId(null);
+                                        // Refresh history/feed?
+                                        loadHistory();
+                                    }}
+                                    onError={(err) => {
+                                        showToast(err, "error");
+                                        // Don't clear immediately so user can see error? 
+                                        // Or rely on internal error state of component? 
+                                        // The component handles its own error UI.
+                                    }}
+                                    onCancel={() => {
+                                        setActiveLongVideoId(null);
+                                        showToast("Long video job canceled", "default");
+                                    }}
+                                />
+                            </div>
+                        )}
+
                         {feed.map((item) => (
                             <VideoFeedCard
                                 key={item.id}
