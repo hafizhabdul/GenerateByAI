@@ -188,9 +188,9 @@ function HomeContent() {
             </p>
 
             {/* Main Headline */}
-            <h1 className="font-heritage text-[10vw] md:text-[7vw] lg:text-[5vw] font-medium leading-[0.95] tracking-tight text-white mb-4 md:mb-6 animate-scale-in">
+            <h1 className="text-[10vw] md:text-[7vw] lg:text-[5vw] font-bold leading-[0.95] tracking-tight text-white mb-4 md:mb-6 animate-scale-in">
               Imajinasi<br />
-              <span className="italic">Nusantara</span>
+              <span className="text-primary">Nusantara</span>
             </h1>
 
             {/* Mascot - Clickable */}

@@ -179,9 +179,15 @@ export default function LongVideoPage() {
                                     placeholder="Describe your video... e.g., 'A woman applying perfume in a luxury bathroom, soft lighting, elegant movements'"
                                     className="w-full h-32 px-4 py-3 bg-surface-2 border border-border rounded-xl text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 resize-none"
                                 />
-                                <p className="text-xs text-muted-foreground text-right">
-                                    {prompt.length} karakter
-                                </p>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                        <Icon icon="mingcute:information-line" className="w-3.5 h-3.5" />
+                                        Audio bahasa Indonesia belum didukung secara native
+                                    </p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {prompt.length} karakter
+                                    </p>
+                                </div>
                             </div>
 
                             {/* Duration Selection */}

@@ -1619,7 +1619,7 @@ export function VideoGenerator() {
                                     }}
                                     onCancel={() => {
                                         setActiveLongVideoId(null);
-                                        showToast("Long video job canceled", "default");
+                                        showToast("Long video job canceled", "info");
                                     }}
                                 />
                             </div>
