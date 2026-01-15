@@ -190,7 +190,7 @@ function HomeContent() {
             {/* Main Headline */}
             <h1 className="text-[10vw] md:text-[7vw] lg:text-[5vw] font-bold leading-[0.95] tracking-tight text-white mb-4 md:mb-6 animate-scale-in">
               Imajinasi<br />
-              <span className="text-primary">Nusantara</span>
+              <span className="text-amber-300">Nusantara</span>
             </h1>
 
             {/* Mascot - Clickable */}

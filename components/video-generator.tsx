@@ -383,21 +383,25 @@ export function VideoGenerator() {
         const sourcePrompt = sessionStorage.getItem("videoSourcePrompt");
 
         if (sourceImage) {
+            console.log("[VideoGenerator] Source image detected:", sourceImage.slice(0, 100));
+            
             // Set up Image-to-Video mode with the source image
             setGenerationMode("image2video");
             setImagePreview(sourceImage);
             setIsHero(false);
 
-            // Pre-fill prompt if available
+            // Generate cinematic prompt based on original prompt
             if (sourcePrompt) {
-                setPrompt(sourcePrompt);
+                setPrompt(`Cinematic showcase of ${sourcePrompt}, slow elegant camera motion, professional lighting, high-end commercial quality`);
+            } else {
+                setPrompt("Smooth cinematic orbit around the subject, professional lighting with soft shadows, gentle zoom effect, high-end commercial quality");
             }
 
             // Clear sessionStorage to prevent re-loading
             sessionStorage.removeItem("videoSourceImage");
             sessionStorage.removeItem("videoSourcePrompt");
 
-            showToast("Ready to create video from your image!", "success");
+            showToast("📸 Image loaded! Customize the motion and click Generate.", "success");
         }
     }, [sessionLoaded, showToast]);
 
@@ -597,31 +601,7 @@ export function VideoGenerator() {
         };
     }, [feed, showToast, refreshProfile]);
 
-    // Check for pre-filled image from image generator
-    useEffect(() => {
-        const sourceImage = sessionStorage.getItem("videoSourceImage");
-        const sourcePrompt = sessionStorage.getItem("videoSourcePrompt");
 
-        if (sourceImage) {
-            // Set image preview
-            setImagePreview(sourceImage);
-            // Auto-switch to image2video mode
-            setGenerationMode("image2video");
-            // Set a helpful prompt based on whether we have context
-            if (sourcePrompt) {
-                setPrompt(`Cinematic showcase of ${sourcePrompt}, slow elegant rotation, professional studio lighting, subtle reflections, floating particles effect`);
-            } else {
-                setPrompt("Smooth cinematic orbit around the subject, professional lighting with soft shadows, gentle zoom effect, high-end commercial quality");
-            }
-            // Exit hero state to show the input area
-            setIsHero(false);
-            // Clear session storage
-            sessionStorage.removeItem("videoSourceImage");
-            sessionStorage.removeItem("videoSourcePrompt");
-            // Show toast
-            showToast("📸 Image loaded! Customize the motion and click Generate.", "success");
-        }
-    }, [showToast]);
 
     const loadHistory = async () => {
         try {
