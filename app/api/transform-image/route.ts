@@ -12,7 +12,7 @@ import { createGenerationWithSession } from "@/lib/session-utils";
 const TransformImageSchema = z.object({
     imageUrl: z.string().url("Valid image URL required"),
     prompt: z.string().min(1, "Prompt is required").max(2000, "Prompt too long (max 2000 chars)"),
-    size: z.enum(["1024x1024", "512x512", "1024x1536", "1536x1024"]).optional().default("1024x1024"),
+    size: z.enum(["auto", "1024x1024", "1024x1536", "1536x1024"]).optional().default("auto"),
     quality: z.enum(["low", "medium", "high"]).optional().default("high"),
 });
 

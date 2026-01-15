@@ -489,7 +489,7 @@ const IMAGE_EDIT_ENDPOINT = "fal-ai/gpt-image-1.5/edit" as const;
 export interface ImageTransformRequest {
     imageUrl: string;
     prompt: string;
-    size?: "1024x1024" | "512x512" | "1024x1536" | "1536x1024";
+    size?: "auto" | "1024x1024" | "1024x1536" | "1536x1024";
     quality?: "low" | "medium" | "high";
     outputFormat?: "png" | "jpeg" | "webp";
 }
@@ -509,7 +509,7 @@ export async function transformImage(
     const {
         imageUrl,
         prompt,
-        size = "1024x1024",
+        size = "auto",
         quality = "high",
         outputFormat = "png"
     } = request;
