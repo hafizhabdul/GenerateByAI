@@ -6,6 +6,7 @@ import { checkWanVideoStatus } from "@/lib/fal-wan";
 import { commitTokenCharge, cancelTokenReservation } from "@/lib/tokens-server";
 import { persistExternalImage, persistExternalVideo } from "@/lib/storage-utils";
 import { incrementDailyGeneration, getDailyLimitInfo } from "@/lib/daily-limits";
+import { shouldApplyWatermark } from "@/lib/watermark";
 
 export async function GET(
     req: Request,
@@ -115,29 +116,32 @@ export async function GET(
             if (resultUrl) {
                 // --- Success Workflow ---
 
-                // A. Persist Media
+                // A. Check if user needs watermark (free tier)
+                const needsWatermark = await shouldApplyWatermark(user.id);
+
+                // B. Persist Media (with watermark for free users)
                 let permanentUrl = "";
                 try {
                     if (generationType === "video") {
-                        permanentUrl = await persistExternalVideo(resultUrl, user.id);
+                        permanentUrl = await persistExternalVideo(resultUrl, user.id, { applyWatermark: needsWatermark });
                     } else {
-                        permanentUrl = await persistExternalImage(resultUrl, user.id);
+                        permanentUrl = await persistExternalImage(resultUrl, user.id, { applyWatermark: needsWatermark });
                     }
                 } catch (e) {
                     console.error("Failed to persist media:", e);
                     permanentUrl = resultUrl;
                 }
 
-                // B. Commit Tokens
+                // C. Commit Tokens
                 if (reservationId) {
                     await commitTokenCharge(reservationId);
                 }
 
-                // C. Increment Daily Limit
+                // D. Increment Daily Limit
                 await incrementDailyGeneration(user.id);
                 const dailyLimitInfo = await getDailyLimitInfo(user.id);
 
-                // D. Update DB
+                // E. Update DB
                 const { error: updateError } = await supabase
                     .from("generations")
                     .update({
