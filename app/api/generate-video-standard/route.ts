@@ -22,6 +22,7 @@ const GenerateVideoSchema = z.object({
     resolution: z.enum(["720p", "1080p"]).optional().default("720p"),
     aspectRatio: z.enum(["16:9", "9:16", "1:1"]).optional().default("16:9"),
     type: z.enum(["image2video", "text2video"]).optional().default("image2video"),
+    disableSafetyChecker: z.boolean().optional().default(false), // Disable content moderation for falsely flagged images
 });
 
 /**
@@ -41,7 +42,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { imageUrl, prompt, negativePrompt, duration, resolution, aspectRatio, type } = validation.data;
+        const { imageUrl, prompt, negativePrompt, duration, resolution, aspectRatio, type, disableSafetyChecker } = validation.data;
 
         // Validate image URL for image2video
         if (type === "image2video" && !imageUrl) {
@@ -111,6 +112,7 @@ export async function POST(req: Request) {
 
             console.log(`[Video-Standard] Starting wan/v2.6 SYNC generation`);
             console.log(`[Video-Standard] Duration: ${duration}s, Resolution: ${resolution}`);
+            console.log(`[Video-Standard] Safety checker: ${disableSafetyChecker ? 'DISABLED' : 'enabled'}`);
             console.log(`[Video-Standard] Original prompt: ${prompt}`);
             console.log(`[Video-Standard] Enhanced prompt: ${enhancedPrompt}`);
 
@@ -123,6 +125,7 @@ export async function POST(req: Request) {
                 aspectRatio: aspectRatio as WanAspectRatio,
                 negativePrompt: enhancedNegative,
                 sample_audio: false,
+                enableSafetyChecker: !disableSafetyChecker, // Invert: disableSafetyChecker=true means enableSafetyChecker=false
             });
 
             console.log(`[Video-Standard] Async generation started, requestId: ${requestId}`);

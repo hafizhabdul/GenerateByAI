@@ -64,6 +64,7 @@ type VideoSettings = {
     resolution: "720p" | "1080p"; // Only for standard tier (wan/v2.6)
     aspectRatio: "16:9" | "9:16" | "1:1";
     tier: VideoTier; // standard (wan/v2.6) or premium (Veo 3.1)
+    disableSafetyChecker?: boolean; // Bypass content moderation for falsely flagged AI images
 };
 
 type GenerationMode = "image2video" | "text2video";
@@ -266,6 +267,7 @@ export function VideoGenerator() {
         resolution: "720p",
         aspectRatio: "16:9",
         tier: "standard", // Default to wan/v2.6 (standard tier)
+        disableSafetyChecker: false, // Default: safety checker enabled
     });
     const [activeLongVideoId, setActiveLongVideoId] = useState<string | null>(null);
 
@@ -384,7 +386,7 @@ export function VideoGenerator() {
 
         if (sourceImage) {
             console.log("[VideoGenerator] Source image detected:", sourceImage.slice(0, 100));
-            
+
             // Set up Image-to-Video mode with the source image
             setGenerationMode("image2video");
             setImagePreview(sourceImage);
@@ -909,6 +911,7 @@ export function VideoGenerator() {
                         resolution: settings.resolution,
                         aspectRatio: settings.aspectRatio,
                         type: currentMode,
+                        disableSafetyChecker: settings.disableSafetyChecker || false,
                     }),
                 });
 
@@ -1500,6 +1503,44 @@ export function VideoGenerator() {
                                             </button>
                                         ))}
                                     </div>
+                                </div>
+                            )}
+
+                            {/* Safety Checker Toggle - Only for Standard tier */}
+                            {settings.tier === "standard" && (
+                                <div className="space-y-3 pt-2 border-t border-border/20">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-1">
+                                            <label className="text-xs text-muted-foreground">Bypass Safety Check</label>
+                                            <p className="text-[10px] text-muted-foreground/60 max-w-[200px]">
+                                                Enable for AI-generated images that get falsely flagged
+                                            </p>
+                                        </div>
+                                        <button
+                                            onClick={() => setSettings((s) => ({ ...s, disableSafetyChecker: !s.disableSafetyChecker }))}
+                                            className={cn(
+                                                "relative w-11 h-6 rounded-full transition-colors",
+                                                settings.disableSafetyChecker
+                                                    ? "bg-amber-500/80"
+                                                    : "bg-foreground/10"
+                                            )}
+                                        >
+                                            <div
+                                                className={cn(
+                                                    "absolute top-1 w-4 h-4 rounded-full bg-white shadow-sm transition-all",
+                                                    settings.disableSafetyChecker ? "left-6" : "left-1"
+                                                )}
+                                            />
+                                        </button>
+                                    </div>
+                                    {settings.disableSafetyChecker && (
+                                        <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20">
+                                            <Icon icon="mingcute:warning-fill" className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                                            <p className="text-[10px] text-amber-500/90">
+                                                You are responsible for ensuring content complies with terms of service
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

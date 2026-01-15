@@ -66,6 +66,7 @@ export interface WanVideoInput {
     aspectRatio?: WanAspectRatio;
     negativePrompt?: string;
     sample_audio?: boolean;
+    enableSafetyChecker?: boolean; // Set to false to bypass content moderation (use responsibly)
 }
 
 /**
@@ -103,7 +104,16 @@ export function isWanConfigured(): boolean {
  * Returns request_id for polling
  */
 export async function startWanVideoGeneration(input: WanVideoInput): Promise<{ requestId: string }> {
-    const { prompt, imageUrl, duration, resolution, aspectRatio = "16:9", negativePrompt, sample_audio = false } = input;
+    const {
+        prompt,
+        imageUrl,
+        duration,
+        resolution,
+        aspectRatio = "16:9",
+        negativePrompt,
+        sample_audio = false,
+        enableSafetyChecker = true // Default to true for safety
+    } = input;
 
     const endpoint = imageUrl ? WAN_ENDPOINTS.imageToVideo : WAN_ENDPOINTS.textToVideo;
 
@@ -116,6 +126,7 @@ export async function startWanVideoGeneration(input: WanVideoInput): Promise<{ r
         resolution: resolutionParam,
         aspect_ratio: aspectRatio,
         sample_audio: sample_audio,
+        enable_safety_checker: enableSafetyChecker, // Allow disabling safety checker
     };
 
     if (negativePrompt) {
@@ -131,6 +142,7 @@ export async function startWanVideoGeneration(input: WanVideoInput): Promise<{ r
         duration,
         resolution: resolutionParam,
         aspectRatio,
+        enableSafetyChecker,
     });
 
     // Use queue mode for async generation
