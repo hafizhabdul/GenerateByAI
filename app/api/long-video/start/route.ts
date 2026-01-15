@@ -11,9 +11,12 @@ import {
     getLongVideoCost,
     getSegmentCount,
     isValidDuration,
+    generateSegmentPrompts,
     type LongVideoDuration,
+    type LongVideoMode,
     type LongVideoSettings,
     type LongVideoSegment,
+    type SegmentPrompt,
     SEGMENT_DURATION,
 } from "@/lib/long-video";
 
@@ -25,6 +28,7 @@ const StartLongVideoSchema = z.object({
     }),
     resolution: z.enum(["720p", "1080p"]).optional().default("720p"),
     aspectRatio: z.enum(["16:9", "9:16", "1:1"]).optional().default("16:9"),
+    mode: z.enum(["continuous", "different-angles"]).optional().default("continuous"),
     imageUrl: z.string().url().optional(),
 });
 
@@ -44,7 +48,7 @@ export async function POST(req: Request) {
             );
         }
 
-        const { prompt, negativePrompt, targetDuration, resolution, aspectRatio, imageUrl } = validation.data;
+        const { prompt, negativePrompt, targetDuration, resolution, aspectRatio, mode, imageUrl } = validation.data;
 
         // Check if fal.ai is configured
         if (!isWanConfigured()) {
@@ -117,11 +121,27 @@ export async function POST(req: Request) {
         let createdJobId: string | null = null;
         
         try {
+            // Generate AI-powered segment prompts
+            console.log(`[LongVideo] Generating AI segment prompts...`);
+            let segmentPrompts: SegmentPrompt[];
+            try {
+                segmentPrompts = await generateSegmentPrompts(
+                    prompt,
+                    targetDuration as LongVideoDuration,
+                    aspectRatio as "16:9" | "9:16" | "1:1"
+                );
+            } catch (aiError) {
+                console.warn("[LongVideo] AI prompt generation failed, using fallback:", aiError);
+                // Fallback is handled inside generateSegmentPrompts
+                segmentPrompts = [];
+            }
+            
             // Create long video job record
             const settings: LongVideoSettings = {
                 resolution: resolution as WanResolution,
                 aspectRatio: aspectRatio as "16:9" | "9:16" | "1:1",
                 negativePrompt,
+                mode: mode as LongVideoMode,
             };
 
             const { data: job, error: jobError } = await adminClient
@@ -134,6 +154,7 @@ export async function POST(req: Request) {
                     current_duration: 0,
                     settings,
                     segments: [],
+                    segment_prompts: segmentPrompts, // Store AI-generated prompts
                     tokens_reserved: totalCost,
                     tokens_used: 0,
                     token_reservation_id: tokenCharge.reservationId,
@@ -149,10 +170,10 @@ export async function POST(req: Request) {
 
             console.log(`[LongVideo] Created job ${job.id} - ${segmentCount} segments, ${totalCost} tokens`);
 
-            // Start first segment generation
+            // Start first segment generation with AI prompt (or fallback)
             const firstSegmentPrompt = imageUrl
-                ? prompt
-                : `${prompt}, establishing shot, cinematic opening`;
+                ? prompt // Use original prompt for image-to-video
+                : (segmentPrompts[0]?.prompt || `${prompt}, establishing shot, cinematic opening`);
 
             const { requestId } = await startWanVideoGeneration({
                 prompt: firstSegmentPrompt,
@@ -208,9 +229,11 @@ export async function POST(req: Request) {
                 segmentCount,
                 totalCost,
                 estimatedMinutes: segmentCount * 2.5,
+                segmentPrompts: segmentPrompts.length > 0 ? segmentPrompts : undefined,
                 firstSegment: {
                     generationId,
                     requestId,
+                    prompt: firstSegmentPrompt,
                 },
             });
 

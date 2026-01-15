@@ -13,6 +13,7 @@ import { LongVideoHistory } from "@/components/long-video/LongVideoHistory";
 type DurationOption = 60 | 90 | 120;
 type ResolutionOption = "720p" | "1080p";
 type AspectRatioOption = "16:9" | "9:16" | "1:1";
+type GenerationMode = "continuous" | "different-angles";
 
 interface PricingInfo {
     segmentCount: number;
@@ -38,6 +39,21 @@ const ASPECT_RATIO_OPTIONS: { value: AspectRatioOption; label: string; icon: str
     { value: "1:1", label: "Square", icon: "mingcute:square-line" },
 ];
 
+const MODE_OPTIONS: { value: GenerationMode; label: string; description: string; icon: string }[] = [
+    { 
+        value: "continuous", 
+        label: "Continuous", 
+        description: "Transisi halus antar segmen", 
+        icon: "mingcute:link-line" 
+    },
+    { 
+        value: "different-angles", 
+        label: "Different Angles", 
+        description: "Variasi sudut & perspektif", 
+        icon: "mingcute:cube-3d-line" 
+    },
+];
+
 function calculatePricing(duration: DurationOption, resolution: ResolutionOption): PricingInfo {
     const costPerSegment = resolution === "1080p" ? 180 : 120;
     const segmentCount = Math.ceil(duration / 15);
@@ -57,6 +73,7 @@ export default function LongVideoPage() {
     const [duration, setDuration] = useState<DurationOption>(60);
     const [resolution, setResolution] = useState<ResolutionOption>("720p");
     const [aspectRatio, setAspectRatio] = useState<AspectRatioOption>("16:9");
+    const [generationMode, setGenerationMode] = useState<GenerationMode>("continuous");
     const [imageUrl, setImageUrl] = useState<string>("");
 
     // UI state
@@ -84,6 +101,7 @@ export default function LongVideoPage() {
                     targetDuration: duration,
                     resolution,
                     aspectRatio,
+                    mode: generationMode,
                     imageUrl: imageUrl.trim() || undefined,
                 }),
             });
@@ -252,6 +270,51 @@ export default function LongVideoPage() {
                                         </button>
                                     ))}
                                 </div>
+                            </div>
+
+                            {/* Generation Mode Selection */}
+                            <div className="space-y-2">
+                                <label className="text-sm font-medium">Mode Generasi</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {MODE_OPTIONS.map((opt) => (
+                                        <button
+                                            key={opt.value}
+                                            onClick={() => setGenerationMode(opt.value)}
+                                            className={cn(
+                                                "p-4 rounded-xl border text-left transition-all",
+                                                generationMode === opt.value
+                                                    ? "border-primary bg-primary/10"
+                                                    : "border-border bg-surface-2 hover:border-primary/50"
+                                            )}
+                                        >
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <Icon 
+                                                    icon={opt.icon} 
+                                                    className={cn(
+                                                        "w-4 h-4",
+                                                        generationMode === opt.value ? "text-primary" : "text-muted-foreground"
+                                                    )} 
+                                                />
+                                                <span className={cn(
+                                                    "text-sm font-medium",
+                                                    generationMode === opt.value ? "text-primary" : "text-foreground"
+                                                )}>
+                                                    {opt.label}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-muted-foreground">
+                                                {opt.description}
+                                            </p>
+                                        </button>
+                                    ))}
+                                </div>
+                                <p className="text-xs text-muted-foreground flex items-center gap-1">
+                                    <Icon icon="mingcute:information-line" className="w-3.5 h-3.5" />
+                                    {generationMode === "continuous" 
+                                        ? "Frame terakhir segmen sebelumnya digunakan untuk memulai segmen berikutnya"
+                                        : "Setiap segmen dihasilkan secara independen dengan sudut berbeda"
+                                    }
+                                </p>
                             </div>
 
                             {/* Advanced Options */}

@@ -9,9 +9,12 @@ import {
     getSegmentCount,
     getNextSegmentOrder,
     isReadyForStitching,
+    getSegmentPrompt,
     type LongVideoSegment,
     type LongVideoSettings,
     type LongVideoDuration,
+    type LongVideoMode,
+    type SegmentPrompt,
     SEGMENT_DURATION,
 } from "@/lib/long-video";
 
@@ -73,6 +76,7 @@ export async function POST(req: Request) {
         const segments = (job.segments || []) as LongVideoSegment[];
         const settings = job.settings as LongVideoSettings;
         const targetDuration = job.target_duration as LongVideoDuration;
+        const segmentPrompts = (job.segment_prompts || []) as SegmentPrompt[];
 
         // Check if there's a segment still processing
         const processingSegment = segments.find(s => s.status === "processing");
@@ -100,51 +104,72 @@ export async function POST(req: Request) {
             );
         }
 
-        // Get the last completed segment to extract frame from
-        const lastCompletedSegment = segments
-            .filter(s => s.status === "completed" && s.videoUrl)
-            .sort((a, b) => b.order - a.order)[0];
-
-        if (!lastCompletedSegment || !lastCompletedSegment.videoUrl) {
-            return NextResponse.json(
-                { error: "No completed segment found to continue from" },
-                { status: 400 }
-            );
-        }
-
-        console.log(`[LongVideo] Continuing job ${jobId} from segment ${lastCompletedSegment.order}`);
-
-        // Extract last frame from previous segment
-        let lastFrameUrl: string;
-        try {
-            lastFrameUrl = await extractLastFrame(lastCompletedSegment.videoUrl, user.id);
-            console.log(`[LongVideo] Extracted last frame: ${lastFrameUrl}`);
-        } catch (frameError) {
-            console.error("[LongVideo] Frame extraction failed:", frameError);
-            return NextResponse.json(
-                { error: "Failed to extract frame from previous segment" },
-                { status: 500 }
-            );
-        }
-
+        // Determine generation mode (default to continuous for backward compatibility)
+        const generationMode: LongVideoMode = settings.mode || "continuous";
+        const isContinuousMode = generationMode === "continuous";
+        
         // Build continuation prompt
         const nextOrder = segments.length === 0 ? 0 : Math.max(...segments.map(s => s.order)) + 1;
         const isLastSegment = nextOrder >= totalSegments - 1;
         
-        let segmentPrompt = job.prompt;
+        // Use AI-generated prompt if available, otherwise fallback
+        let segmentPrompt = getSegmentPrompt(segmentPrompts, nextOrder, job.prompt);
+        
+        // Add continuation hint if provided
         if (continuationHint) {
-            segmentPrompt = `${job.prompt}, ${continuationHint}`;
+            segmentPrompt = `${segmentPrompt}, ${continuationHint}`;
         }
-        if (isLastSegment) {
-            segmentPrompt = `${segmentPrompt}, concluding shot, natural ending`;
-        } else {
-            segmentPrompt = `${segmentPrompt}, continuous motion, seamless continuation`;
+        
+        // Add cinematic modifiers if using fallback (no AI prompts)
+        if (segmentPrompts.length === 0) {
+            if (isLastSegment) {
+                segmentPrompt = `${segmentPrompt}, concluding shot, natural ending`;
+            } else if (!isContinuousMode) {
+                // Different angles mode: add variety modifiers
+                segmentPrompt = `${segmentPrompt}, different perspective, dynamic angle`;
+            } else {
+                segmentPrompt = `${segmentPrompt}, continuous motion, seamless continuation`;
+            }
         }
 
-        // Start next segment generation (I2V from last frame)
+        let lastFrameUrl: string | undefined;
+        
+        // Only extract frame for continuous mode
+        if (isContinuousMode) {
+            // Get the last completed segment to extract frame from
+            const lastCompletedSegment = segments
+                .filter(s => s.status === "completed" && s.videoUrl)
+                .sort((a, b) => b.order - a.order)[0];
+
+            if (!lastCompletedSegment || !lastCompletedSegment.videoUrl) {
+                return NextResponse.json(
+                    { error: "No completed segment found to continue from" },
+                    { status: 400 }
+                );
+            }
+
+            console.log(`[LongVideo] Continuing job ${jobId} from segment ${lastCompletedSegment.order} (continuous mode)`);
+
+            // Extract last frame from previous segment
+            try {
+                lastFrameUrl = await extractLastFrame(lastCompletedSegment.videoUrl, user.id);
+                console.log(`[LongVideo] Extracted last frame: ${lastFrameUrl}`);
+            } catch (frameError) {
+                console.error("[LongVideo] Frame extraction failed:", frameError);
+                return NextResponse.json(
+                    { error: "Failed to extract frame from previous segment" },
+                    { status: 500 }
+                );
+            }
+        } else {
+            console.log(`[LongVideo] Continuing job ${jobId} segment ${nextOrder} (different-angles mode)`);
+        }
+
+        // Start next segment generation
+        // Continuous: I2V from last frame | Different-angles: T2V independently
         const { requestId } = await startWanVideoGeneration({
             prompt: segmentPrompt,
-            imageUrl: lastFrameUrl,
+            imageUrl: lastFrameUrl, // undefined for different-angles mode
             duration: SEGMENT_DURATION as 5 | 10 | 15,
             resolution: settings.resolution,
             aspectRatio: settings.aspectRatio as WanAspectRatio,
@@ -164,11 +189,11 @@ export async function POST(req: Request) {
                 duration: SEGMENT_DURATION,
                 resolution: settings.resolution,
                 aspectRatio: settings.aspectRatio,
-                sourceType: "image2video",
-                sourceImage: lastFrameUrl,
+                sourceType: isContinuousMode ? "image2video" : "text2video",
+                sourceImage: lastFrameUrl || null,
                 longVideoJobId: jobId,
                 segmentOrder: nextOrder,
-                continuedFrom: lastCompletedSegment.id,
+                generationMode: generationMode,
             },
         });
 

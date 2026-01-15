@@ -23,11 +23,16 @@ export async function shouldApplyWatermark(userId: string): Promise<boolean> {
             .eq("id", userId)
             .single();
 
-        if (!profile) return true; // Default to watermark if no profile
+        if (!profile) {
+            console.log("[Watermark] No profile found, applying watermark");
+            return true;
+        }
 
-        // Free tier: tokens_total <= 100 AND plan is 'free'
-        const isFreeUser = (profile.tokens_total || 0) <= 100 || profile.plan === 'free';
-        return isFreeUser;
+        // Free tier: plan is null, 'free', or tokens_total <= 100 (initial free tokens)
+        // Only paid users (pro, business) don't get watermark
+        const isPaidUser = profile.plan === 'pro' || profile.plan === 'business';
+        console.log(`[Watermark] User plan: ${profile.plan}, isPaid: ${isPaidUser}, needsWatermark: ${!isPaidUser}`);
+        return !isPaidUser;
     } catch (error) {
         console.error("[Watermark] Error checking user tier:", error);
         return true; // Default to watermark on error
