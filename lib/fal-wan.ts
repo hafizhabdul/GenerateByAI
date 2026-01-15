@@ -31,20 +31,20 @@ export type WanResolution = "720p" | "1080p";
 export type WanAspectRatio = "16:9" | "9:16" | "1:1";
 
 /**
- * Token pricing for wan/v2.6 (60% margin)
+ * Token pricing for wan/v2.6 (15% margin)
  * Cost: $0.10/sec for 720p, $0.15/sec for 1080p
- * 1 token = Rp 330, 1 USD = Rp 16,500
+ * 1 token = Rp 300, 1 USD = Rp 16,850 (Jan 2026)
  */
 export const WAN_VIDEO_COSTS: Record<WanResolution, Record<WanDuration, number>> = {
     "720p": {
-        5: 40,   // $0.50 cost -> Rp 8,250 -> 40 tokens = Rp 13,200 (60% margin)
-        10: 80,  // $1.00 cost -> Rp 16,500 -> 80 tokens = Rp 26,400 (60% margin)
-        15: 120, // $1.50 cost -> Rp 24,750 -> 120 tokens = Rp 39,600 (60% margin)
+        5: 33,   // $0.50 = Rp 8,425 -> sell Rp 9,900 (15% margin) -> 33 tokens
+        10: 66,  // $1.00 = Rp 16,850 -> sell Rp 19,800 (15% margin) -> 66 tokens
+        15: 100, // $1.50 = Rp 25,275 -> sell Rp 29,700 (15% margin) -> 100 tokens
     },
     "1080p": {
-        5: 60,   // $0.75 cost -> Rp 12,375 -> 60 tokens = Rp 19,800 (60% margin)
-        10: 120, // $1.50 cost -> Rp 24,750 -> 120 tokens = Rp 39,600 (60% margin)
-        15: 180, // $2.25 cost -> Rp 37,125 -> 180 tokens = Rp 59,400 (60% margin)
+        5: 50,   // $0.75 = Rp 12,638 -> sell Rp 14,900 (15% margin) -> 50 tokens
+        10: 100, // $1.50 = Rp 25,275 -> sell Rp 29,700 (15% margin) -> 100 tokens
+        15: 150, // $2.25 = Rp 37,913 -> sell Rp 44,600 (15% margin) -> 150 tokens
     },
 };
 

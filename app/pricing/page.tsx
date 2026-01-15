@@ -14,20 +14,21 @@ import {
     formatIDR as formatIDRDiscount,
 } from "@/lib/discount";
 
-// Token packages with IDR pricing - ANTI-BONCOS PRICING
+// Token packages with IDR pricing - 15% MARGIN PRICING
 // Renamed with Nusantara theme: Pelukis / Dalang / Maestro
+// 1 token = Rp 300, USD/IDR = Rp 16,850 (Jan 2026)
 const TOKEN_PACKAGES = [
     {
         id: "starter",
         name: "Pelukis",
         subtitle: "Starter Pack",
         tokens: 300,
-        price: 99000,
+        price: 90000,
         description: "Cocok untuk trial",
         features: [
             { text: "300 Token", included: true },
-            { text: "~1x video Premium (Veo)", included: true },
-            { text: "atau ~12x video Standard", included: true },
+            { text: "~6x video Premium (Veo 5s)", included: true },
+            { text: "atau ~9x video Standard 5s", included: true },
             { text: "~15 gambar HD", included: true },
             { text: "Priority rendering", included: false },
             { text: "Early access fitur baru", included: false },
@@ -40,12 +41,12 @@ const TOKEN_PACKAGES = [
         name: "Dalang",
         subtitle: "Creator Pack",
         tokens: 1000,
-        price: 299000,
+        price: 300000,
         description: "Untuk kreator rutin",
         features: [
             { text: "1.000 Token", included: true },
-            { text: "~4x video Premium (Veo)", included: true },
-            { text: "~25x video Standard", included: true },
+            { text: "~20x video Premium (Veo 5s)", included: true },
+            { text: "atau ~30x video Standard 5s", included: true },
             { text: "~50 gambar HD", included: true },
             { text: "Priority rendering", included: true },
             { text: "Early access fitur baru", included: false },
@@ -58,12 +59,12 @@ const TOKEN_PACKAGES = [
         name: "Maestro",
         subtitle: "Pro Pack",
         tokens: 4000,
-        price: 999000,
+        price: 1200000,
         description: "Power user & agency",
         features: [
             { text: "4.000 Token", included: true },
-            { text: "~16x video Premium (Veo)", included: true },
-            { text: "~100x video Standard", included: true },
+            { text: "~80x video Premium (Veo 5s)", included: true },
+            { text: "atau ~120x video Standard 5s", included: true },
             { text: "~200 gambar HD", included: true },
             { text: "Priority rendering", included: true },
             { text: "Early access fitur baru", included: true },
@@ -75,9 +76,9 @@ const TOKEN_PACKAGES = [
 
 const TOKEN_USAGE = [
     { icon: "mingcute:pic-fill", label: "Gambar", cost: "10-40" },
-    { icon: "mingcute:video-fill", label: "Video Standard", cost: "40" },
-    { icon: "mingcute:movie-fill", label: "Video Pro", cost: "45" },
-    { icon: "mingcute:star-fill", label: "Video Premium", cost: "250" },
+    { icon: "mingcute:video-fill", label: "Video Standard 5s", cost: "33" },
+    { icon: "mingcute:movie-fill", label: "Video Standard 15s", cost: "100" },
+    { icon: "mingcute:star-fill", label: "Video Premium (Veo)", cost: "50" },
 ];
 
 function formatIDR(amount: number): string {

@@ -6,16 +6,15 @@
  * yang mendukung QRIS dan Virtual Account
  */
 
-// Token packages dengan harga IDR - ANTI-BONCOS PRICING
-// Starter: 1 token = Rp 330 (99.000/300)
-// Creator: 1 token = Rp 299 (299.000/1000) - best seller
-// Pro: 1 token = Rp 250 (999.000/4000) - best value
+// Token packages dengan harga IDR - 15% MARGIN PRICING
+// Based on USD/IDR rate: Rp 16.850 (Jan 2026)
+// All packages: 1 token = Rp 300
 export const TOKEN_PACKAGES = {
   starter: {
     id: "starter",
     name: "Starter Pack",
     tokens: 300,
-    price: 99000, // Rp 330/token
+    price: 90000, // Rp 300/token
     description: "Cocok untuk mencoba",
     popular: false,
   },
@@ -23,7 +22,7 @@ export const TOKEN_PACKAGES = {
     id: "creator",
     name: "Creator Pack",
     tokens: 1000,
-    price: 299000, // Rp 299/token - 9% discount
+    price: 300000, // Rp 300/token
     description: "Pilihan terpopuler",
     popular: true,
   },
@@ -31,7 +30,7 @@ export const TOKEN_PACKAGES = {
     id: "pro",
     name: "Pro Pack",
     tokens: 4000,
-    price: 999000, // Rp 250/token - 24% discount
+    price: 1200000, // Rp 300/token
     description: "Untuk profesional",
     popular: false,
   },
