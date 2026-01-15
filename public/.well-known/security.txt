@@ -1,0 +1,8 @@
+Contact: mailto:abdulhafizhsaenal@gmail.com
+Expires: 2027-01-16T00:00:00.000Z
+Preferred-Languages: en, id
+Canonical: https://squirrai.cronicle.my.id/.well-known/security.txt
+Policy: https://squirrai.cronicle.my.id/security-policy
+
+# Thank you for helping keep GenerateByAI secure!
+# We appreciate responsible disclosure of any vulnerabilities.
