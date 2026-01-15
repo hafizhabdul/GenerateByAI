@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 
 export const metadata: Metadata = {
     title: "Syarat & Ketentuan",
-    description: "Syarat dan Ketentuan penggunaan layanan SquirrAI - Platform AI Generatif Indonesia.",
+    description: "Syarat dan Ketentuan penggunaan layanan SQUIRR.AI - Platform AI Generatif Indonesia.",
 };
 
 export default function TermsPage() {
@@ -29,7 +29,7 @@ export default function TermsPage() {
                     <section className="mb-8">
                         <h2 className="text-xl font-semibold mb-4">1. Penerimaan Ketentuan</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            Dengan mengakses atau menggunakan layanan SquirrAI, Anda menyetujui untuk terikat dengan
+                            Dengan mengakses atau menggunakan layanan SQUIRR.AI, Anda menyetujui untuk terikat dengan
                             Syarat dan Ketentuan ini. Jika Anda tidak menyetujui ketentuan ini, mohon untuk tidak
                             menggunakan layanan kami.
                         </p>
@@ -38,7 +38,7 @@ export default function TermsPage() {
                     <section className="mb-8">
                         <h2 className="text-xl font-semibold mb-4">2. Deskripsi Layanan</h2>
                         <p className="text-muted-foreground leading-relaxed mb-4">
-                            SquirrAI adalah platform berbasis AI yang menyediakan layanan:
+                            SQUIRR.AI adalah platform berbasis AI yang menyediakan layanan:
                         </p>
                         <ul className="list-disc pl-6 text-muted-foreground space-y-2">
                             <li>Generate gambar dari teks (text-to-image)</li>
@@ -79,7 +79,7 @@ export default function TermsPage() {
 
                         <h3 className="text-lg font-medium mb-2 mt-4">4.1 Sistem Token</h3>
                         <p className="text-muted-foreground leading-relaxed">
-                            SquirrAI menggunakan sistem token untuk mengakses layanan generasi AI. Setiap generasi
+                            SQUIRR.AI menggunakan sistem token untuk mengakses layanan generasi AI. Setiap generasi
                             memerlukan sejumlah token yang bervariasi berdasarkan jenis dan kompleksitas konten.
                         </p>
 
@@ -117,9 +117,9 @@ export default function TermsPage() {
                             pribadi maupun komersial.
                         </p>
 
-                        <h3 className="text-lg font-medium mb-2 mt-4">5.2 Lisensi ke SquirrAI</h3>
+                        <h3 className="text-lg font-medium mb-2 mt-4">5.2 Lisensi ke SQUIRR.AI</h3>
                         <p className="text-muted-foreground leading-relaxed">
-                            Dengan menggunakan layanan kami, Anda memberikan lisensi non-eksklusif kepada SquirrAI
+                            Dengan menggunakan layanan kami, Anda memberikan lisensi non-eksklusif kepada SQUIRR.AI
                             untuk menyimpan dan memproses konten Anda dalam rangka menyediakan layanan.
                         </p>
 
@@ -129,10 +129,10 @@ export default function TermsPage() {
                             Community untuk menginspirasi pengguna lain. Anda tetap memiliki hak atas konten tersebut.
                         </p>
 
-                        <h3 className="text-lg font-medium mb-2 mt-4">5.4 Hak Cipta SquirrAI</h3>
+                        <h3 className="text-lg font-medium mb-2 mt-4">5.4 Hak Cipta SQUIRR.AI</h3>
                         <p className="text-muted-foreground leading-relaxed">
-                            Platform SquirrAI, termasuk desain, logo, kode, dan konten lainnya adalah milik
-                            SquirrAI dan dilindungi oleh hukum hak cipta.
+                            Platform SQUIRR.AI, termasuk desain, logo, kode, dan konten lainnya adalah milik
+                            SQUIRR.AI dan dilindungi oleh hukum hak cipta.
                         </p>
                     </section>
 
@@ -185,7 +185,7 @@ export default function TermsPage() {
                     <section className="mb-8">
                         <h2 className="text-xl font-semibold mb-4">9. Batasan Tanggung Jawab</h2>
                         <p className="text-muted-foreground leading-relaxed mb-4">
-                            SquirrAI tidak bertanggung jawab atas:
+                            SQUIRR.AI tidak bertanggung jawab atas:
                         </p>
                         <ul className="list-disc pl-6 text-muted-foreground space-y-2">
                             <li>Kerugian tidak langsung, insidental, atau konsekuensial</li>
@@ -231,7 +231,7 @@ export default function TermsPage() {
                             Jika Anda memiliki pertanyaan tentang Syarat dan Ketentuan ini, silakan hubungi kami:
                         </p>
                         <div className="mt-4 p-4 bg-surface-1 rounded-lg border border-border">
-                            <p className="text-foreground font-medium">SquirrAI</p>
+                            <p className="text-foreground font-medium">SQUIRR.AI</p>
                             <p className="text-muted-foreground">Email: abdulhafizhsaenal@gmail.com</p>
                         </div>
                     </section>

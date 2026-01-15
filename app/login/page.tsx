@@ -70,7 +70,7 @@ function LoginForm() {
                 <CardHeader className="text-center space-y-4">
                     {/* Logo */}
                     <Link href="/" className="inline-flex justify-center">
-                        <img src="/logo.svg" alt="SquirrAI" className="w-14 h-14 rounded-2xl shadow-lg shadow-primary/30" />
+                        <img src="/logo.svg" alt="SQUIRR.AI" className="w-14 h-14 rounded-2xl shadow-lg shadow-primary/30" />
                     </Link>
 
                     <div>

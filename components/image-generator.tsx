@@ -859,7 +859,7 @@ export function ImageGenerator() {
                 )}>
                     <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-medium text-primary tracking-wider uppercase animate-fade-in">
                         <Icon icon="mingcute:palette-fill" className="w-4 h-4" />
-                        SquirrAI
+                        SQUIRR.AI
                     </div>
                     <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-foreground">
                         Dream it. <br className="md:hidden" />

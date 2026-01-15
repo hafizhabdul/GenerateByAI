@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 
 export const metadata: Metadata = {
     title: "Kebijakan Privasi",
-    description: "Kebijakan Privasi SquirrAI - Bagaimana kami mengumpulkan, menggunakan, dan melindungi data Anda.",
+    description: "Kebijakan Privasi SQUIRR.AI - Bagaimana kami mengumpulkan, menggunakan, dan melindungi data Anda.",
 };
 
 export default function PrivacyPage() {
@@ -29,7 +29,7 @@ export default function PrivacyPage() {
                     <section className="mb-8">
                         <h2 className="text-xl font-semibold mb-4">1. Pendahuluan</h2>
                         <p className="text-muted-foreground leading-relaxed">
-                            Selamat datang di SquirrAI. Kami menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi Anda.
+                            Selamat datang di SQUIRR.AI. Kami menghargai privasi Anda dan berkomitmen untuk melindungi data pribadi Anda.
                             Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, menyimpan, dan melindungi
                             informasi Anda ketika Anda menggunakan layanan kami.
                         </p>
@@ -67,7 +67,7 @@ export default function PrivacyPage() {
                             Kami menggunakan informasi yang dikumpulkan untuk:
                         </p>
                         <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-                            <li>Menyediakan dan mengoperasikan layanan SquirrAI</li>
+                            <li>Menyediakan dan mengoperasikan layanan SQUIRR.AI</li>
                             <li>Memproses pembayaran dan mengelola akun Anda</li>
                             <li>Mengirimkan notifikasi terkait layanan</li>
                             <li>Meningkatkan kualitas layanan dan pengalaman pengguna</li>
@@ -170,7 +170,7 @@ export default function PrivacyPage() {
                             hak-hak Anda, silakan hubungi kami:
                         </p>
                         <div className="mt-4 p-4 bg-surface-1 rounded-lg border border-border">
-                            <p className="text-foreground font-medium">SquirrAI</p>
+                            <p className="text-foreground font-medium">SQUIRR.AI</p>
                             <p className="text-muted-foreground">Email: abdulhafizhsaenal@gmail.com</p>
                         </div>
                     </section>

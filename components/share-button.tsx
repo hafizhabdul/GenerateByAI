@@ -21,7 +21,7 @@ interface ShareButtonProps {
  */
 export function ShareButton({
     url,
-    title = "Check out my AI creation on SquirrAI!",
+    title = "Check out my AI creation on SQUIRR.AI!",
     text,
     imageUrl,
     prompt,

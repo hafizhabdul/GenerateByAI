@@ -166,7 +166,7 @@ export default function CommunityPage() {
                     <div className="flex items-center justify-between">
                         <Link href="/" className="flex items-center gap-2">
                             <Icon icon="mingcute:squirrel-fill" className="w-6 h-6 text-primary" />
-                            <span className="font-wayang text-lg font-semibold">squirrai</span>
+                            <span className="font-wayang text-lg font-semibold">squirr.ai</span>
                         </Link>
                         <div className="flex items-center gap-4">
                             <Link href="/pricing" className="text-sm text-white/60 hover:text-white transition-colors">
@@ -197,7 +197,7 @@ export default function CommunityPage() {
                         Community <span className="text-primary">Showcase</span>
                     </h1>
                     <p className="text-muted-foreground text-sm md:text-base">
-                        Karya-karya keren dari komunitas SquirrAI. Lihat prompt & buat versimu sendiri!
+                        Karya-karya keren dari komunitas SQUIRR.AI. Lihat prompt & buat versimu sendiri!
                     </p>
                 </div>
 

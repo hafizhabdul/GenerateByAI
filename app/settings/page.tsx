@@ -55,7 +55,7 @@ export default function SettingsPage() {
                             Settings
                         </h1>
                         <p className="text-muted-foreground" style={{ fontSize: "var(--text-base)" }}>
-                            Customize your SquirrAI experience
+                            Customize your SQUIRR.AI experience
                         </p>
                     </div>
 

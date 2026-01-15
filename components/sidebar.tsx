@@ -33,7 +33,7 @@ export function Sidebar() {
                     href="/"
                     className="relative group w-11 h-11 flex items-center justify-center mb-1 transition-transform hover:scale-110 hover:rotate-3"
                 >
-                    <img src="/maskot.png" alt="SquirrAI" className="w-9 h-9 relative z-10 drop-shadow-lg" />
+                    <img src="/maskot.png" alt="SQUIRR.AI" className="w-9 h-9 relative z-10 drop-shadow-lg" />
                 </Link>
 
                 {/* Nav Items - Clean & Centered */}

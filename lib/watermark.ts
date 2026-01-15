@@ -1,9 +1,9 @@
 /**
  * Watermark Utilities
  * 
- * Adds "SQUIRRAI" watermark to images/videos for free tier users.
+ * Adds "SQUIRR.AI" watermark to images/videos for free tier users.
  * Watermark specs:
- * - Text: "SQUIRRAI"
+ * - Text: "SQUIRR.AI"
  * - Position: Bottom-right corner
  * - Opacity: 25%
  */
@@ -44,17 +44,17 @@ export async function shouldApplyWatermark(userId: string): Promise<boolean> {
  * Used for video watermarking
  */
 export function getVideoWatermarkFilter(): string {
-    // FFmpeg drawtext filter for "SQUIRRAI" watermark
+    // FFmpeg drawtext filter for "SQUIRR.AI" watermark
     // Position: bottom-right with 20px padding
     // Font: white with 25% opacity, size 24
-    return "drawtext=text='SQUIRRAI':fontsize=24:fontcolor=white@0.25:x=w-tw-20:y=h-th-20";
+    return "drawtext=text='SQUIRR.AI':fontsize=24:fontcolor=white@0.25:x=w-tw-20:y=h-th-20";
 }
 
 /**
  * Watermark configuration for image processing
  */
 export const WATERMARK_CONFIG = {
-    text: "SQUIRRAI",
+    text: "SQUIRR.AI",
     position: "bottom-right" as const,
     opacity: 0.25,
     fontSize: 24,

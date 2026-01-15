@@ -79,7 +79,7 @@ export default function DashboardPage() {
                                 <Icon icon="mingcute:sparkles-2-fill" className="w-10 h-10 text-primary" />
                             </div>
                             <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight">
-                                Selamat datang di <span className="text-primary">SquirrAI</span>
+                                Selamat datang di <span className="text-primary">SQUIRR.AI</span>
                             </h1>
                             <p className="text-muted-foreground text-base md:text-lg max-w-md mx-auto">
                                 Platform AI untuk generate gambar dan video berkualitas tinggi. Login untuk mulai berkreasi!

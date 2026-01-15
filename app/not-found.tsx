@@ -16,7 +16,7 @@ export default function NotFound() {
                 <div className="relative w-48 h-48 mx-auto mb-8">
                     <Image
                         src="/maskot.png"
-                        alt="SquirrAI mascot"
+                        alt="SQUIRR.AI mascot"
                         fill
                         className="object-contain"
                         priority

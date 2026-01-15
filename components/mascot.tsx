@@ -40,7 +40,7 @@ const expressionAnimations: Record<MascotExpression, string> = {
 };
 
 /**
- * Mascot Component - SquirrAI's playful squirrel character
+ * Mascot Component - SQUIRR.AI's playful squirrel character
  * 
  * Usage:
  * <Mascot expression="happy" size="large" />
@@ -73,7 +73,7 @@ export function Mascot({
       >
         <img
           src="/maskot.png"
-          alt="SquirrAI"
+          alt="SQUIRR.AI"
           className={cn(
             "w-full h-full object-contain drop-shadow-lg",
             // Expression-specific styles

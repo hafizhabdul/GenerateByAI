@@ -110,7 +110,7 @@ function HomeContent() {
         {/* Large Background Typography */}
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none overflow-hidden">
           <h1 className="font-wayang text-[40vw] md:text-[30vw] lg:text-[25vw] font-black tracking-tighter text-black/10 select-none whitespace-nowrap leading-none">
-            SQUIRRAI
+            SQUIRR.AI
           </h1>
         </div>
 
@@ -125,7 +125,7 @@ function HomeContent() {
             {/* Logo */}
             <div className="flex items-center gap-2">
               <Icon icon="mingcute:squirrel-fill" className="w-6 h-6 md:w-7 md:h-7 text-white" />
-              <span className="font-wayang text-lg md:text-xl font-semibold tracking-tight text-white">squirrai</span>
+              <span className="font-wayang text-lg md:text-xl font-semibold tracking-tight text-white">squirr.ai</span>
             </div>
 
             {/* Nav Links */}
@@ -190,7 +190,7 @@ function HomeContent() {
             {/* Main Headline */}
             <h1 className="text-[10vw] md:text-[7vw] lg:text-[5vw] font-bold leading-[0.95] tracking-tight text-white mb-4 md:mb-6 animate-scale-in">
               Imajinasi<br />
-              <span className="text-amber-300">Nusantara</span>
+              <span className="text-white italic">Nusantara</span>
             </h1>
 
             {/* Mascot - Clickable */}
@@ -198,7 +198,7 @@ function HomeContent() {
               <div className="absolute inset-0 bg-white/20 blur-[60px] rounded-full scale-75 group-hover:bg-white/30 transition-all" />
               <img
                 src="/maskot.png"
-                alt="SquirrAI - Click to Login"
+                alt="SQUIRR.AI - Click to Login"
                 className="relative w-[140px] md:w-[200px] lg:w-[260px] h-auto object-contain drop-shadow-[0_15px_40px_rgba(0,0,0,0.4)] group-hover:scale-110 transition-transform duration-500"
               />
             </Link>
@@ -235,7 +235,7 @@ function HomeContent() {
             {/* Right */}
             <div className="flex flex-col items-end gap-0.5">
               <span className="font-grotesque text-[9px] text-white/40 uppercase tracking-[0.15em]">Platform</span>
-              <span className="font-grotesque text-[11px] text-white/50">© 2026 SquirrAI</span>
+              <span className="font-grotesque text-[11px] text-white/50">© 2026 SQUIRR.AI</span>
             </div>
           </div>
         </footer>
@@ -260,7 +260,7 @@ function HomeContent() {
                 <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold tracking-tight mb-2">
                   Hello, <span className="text-primary">{userName}!</span> 👋
                 </h1>
-                <p className="text-muted-foreground text-base md:text-lg">What will you create with SquirrAI today?</p>
+                <p className="text-muted-foreground text-base md:text-lg">What will you create with SQUIRR.AI today?</p>
               </div>
               <div className="flex items-center gap-3">
                 <Link href="/pricing" className="px-4 py-2 rounded-full bg-surface-2 border border-border flex items-center gap-2 text-sm font-medium hover:border-primary/50 transition-colors">
@@ -280,7 +280,7 @@ function HomeContent() {
               >
                 <BatikPattern opacity={0.2} color="white" />
                 <div className="absolute -right-4 md:-right-8 -bottom-8 md:-bottom-16 w-40 md:w-56 lg:w-64 h-48 md:h-64 lg:h-72 opacity-90 group-hover:scale-105 transition-transform duration-500 overflow-hidden">
-                  <img src="/maskot.png" alt="SquirrAI Mascot" className="w-full h-auto object-cover object-top drop-shadow-lg" style={{ marginBottom: '-60px' }} />
+                  <img src="/maskot.png" alt="SQUIRR.AI Mascot" className="w-full h-auto object-cover object-top drop-shadow-lg" style={{ marginBottom: '-60px' }} />
                 </div>
                 <div className="relative z-10 h-full flex flex-col justify-between">
                   <div className="p-2 md:p-3 bg-white/10 w-fit rounded-lg backdrop-blur-sm">

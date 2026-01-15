@@ -24,13 +24,13 @@ const oswald = Oswald({ subsets: ["latin"], variable: "--font-oswald" });
 export const metadata: Metadata = {
   metadataBase: new URL("https://squirrai.cronicle.my.id"),
   title: {
-    default: "SquirrAI | Platform AI Generatif Indonesia",
-    template: "%s | SquirrAI",
+    default: "SQUIRR.AI | Platform AI Generatif Indonesia",
+    template: "%s | SQUIRR.AI",
   },
   description: "Platform AI untuk generate gambar dan video berkualitas tinggi. Ubah ide menjadi visual menakjubkan dengan teknologi AI terdepan.",
   keywords: ["AI", "generative AI", "image generation", "video generation", "Indonesia", "text to image", "text to video"],
-  authors: [{ name: "SquirrAI" }],
-  creator: "SquirrAI",
+  authors: [{ name: "SQUIRR.AI" }],
+  creator: "SQUIRR.AI",
   icons: {
     icon: "/logo.svg",
     shortcut: "/logo.svg",
@@ -40,21 +40,21 @@ export const metadata: Metadata = {
     type: "website",
     locale: "id_ID",
     url: "https://squirrai.cronicle.my.id",
-    siteName: "SquirrAI",
-    title: "SquirrAI | Platform AI Generatif Indonesia",
+    siteName: "SQUIRR.AI",
+    title: "SQUIRR.AI | Platform AI Generatif Indonesia",
     description: "Platform AI untuk generate gambar dan video berkualitas tinggi. Ubah ide menjadi visual menakjubkan dengan teknologi AI terdepan.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "SquirrAI - Platform AI Generatif",
+        alt: "SQUIRR.AI - Platform AI Generatif",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "SquirrAI | Platform AI Generatif Indonesia",
+    title: "SQUIRR.AI | Platform AI Generatif Indonesia",
     description: "Platform AI untuk generate gambar dan video berkualitas tinggi.",
     images: ["/og-image.png"],
   },
