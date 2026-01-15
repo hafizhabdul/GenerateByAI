@@ -27,9 +27,9 @@ const TOKEN_PACKAGES = [
         description: "Cocok untuk trial",
         features: [
             { text: "300 Token", included: true },
-            { text: "~6x video Premium (Veo 5s)", included: true },
+            { text: "~1x video Premium (Veo 5s + Audio)", included: true },
             { text: "atau ~9x video Standard 5s", included: true },
-            { text: "~15 gambar HD", included: true },
+            { text: "~7-30 gambar (sesuai kualitas)", included: true },
             { text: "Priority rendering", included: false },
             { text: "Early access fitur baru", included: false },
         ],
@@ -45,9 +45,9 @@ const TOKEN_PACKAGES = [
         description: "Untuk kreator rutin",
         features: [
             { text: "1.000 Token", included: true },
-            { text: "~20x video Premium (Veo 5s)", included: true },
+            { text: "~4x video Premium (Veo 5s + Audio)", included: true },
             { text: "atau ~30x video Standard 5s", included: true },
-            { text: "~50 gambar HD", included: true },
+            { text: "~25-100 gambar (sesuai kualitas)", included: true },
             { text: "Priority rendering", included: true },
             { text: "Early access fitur baru", included: false },
         ],
@@ -63,9 +63,9 @@ const TOKEN_PACKAGES = [
         description: "Power user & agency",
         features: [
             { text: "4.000 Token", included: true },
-            { text: "~80x video Premium (Veo 5s)", included: true },
+            { text: "~16x video Premium (Veo 5s + Audio)", included: true },
             { text: "atau ~120x video Standard 5s", included: true },
-            { text: "~200 gambar HD", included: true },
+            { text: "~100-400 gambar (sesuai kualitas)", included: true },
             { text: "Priority rendering", included: true },
             { text: "Early access fitur baru", included: true },
         ],
@@ -78,7 +78,7 @@ const TOKEN_USAGE = [
     { icon: "mingcute:pic-fill", label: "Gambar", cost: "10-40" },
     { icon: "mingcute:video-fill", label: "Video Standard 5s", cost: "33" },
     { icon: "mingcute:movie-fill", label: "Video Standard 15s", cost: "100" },
-    { icon: "mingcute:star-fill", label: "Video Premium (Veo)", cost: "50" },
+    { icon: "mingcute:star-fill", label: "Video Premium 5s (Veo + Audio)", cost: "250" },
 ];
 
 function formatIDR(amount: number): string {
