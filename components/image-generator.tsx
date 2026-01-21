@@ -357,12 +357,25 @@ export function ImageGenerator() {
         }
     }, [prompt, mode, sessionLoaded, user, qualitySetting]);
 
+    // MOBILE FIX: Track last poll time and poll function for visibility change
+    const lastPollTimeRef = useRef<number>(0);
+    const forcePollRef = useRef<(() => Promise<void>) | null>(null);
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
     // Handle page visibility change - resume polling when user returns to tab
+    // MOBILE FIX: On mobile, when browser is minimized, setInterval is suspended
+    // We need to immediately poll when user returns AND restart the interval
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && pendingGenerationId) {
-                // User returned to tab with pending generation - trigger a check
-                console.log("[Image] User returned to tab, checking pending generation...");
+                console.log("[Image] Tab became visible, checking pending generation...");
+                
+                // MOBILE FIX: Force immediate poll when returning to tab
+                const timeSinceLastPoll = Date.now() - lastPollTimeRef.current;
+                if (timeSinceLastPoll > 2000 && forcePollRef.current) {
+                    console.log("[Image] Forcing immediate poll after returning to tab");
+                    forcePollRef.current();
+                }
             }
         };
 
@@ -371,10 +384,21 @@ export function ImageGenerator() {
     }, [pendingGenerationId]);
 
     // Handle pending generation recovery - check database for completed result
+    // MOBILE FIX: Track poll function for visibility change handler
     useEffect(() => {
-        if (!pendingGenerationId || !user) return;
+        if (!pendingGenerationId || !user) {
+            forcePollRef.current = null;
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+            }
+            return;
+        }
 
         const checkPendingResult = async () => {
+            // MOBILE FIX: Update last poll time for visibility change detection
+            lastPollTimeRef.current = Date.now();
+            
             try {
                 // Trigger explicit check which will update DB if Fal completed
                 let dailyRemaining: number | undefined;
@@ -441,12 +465,26 @@ export function ImageGenerator() {
             }
         };
 
-        // Poll every 3 seconds while there's a pending generation
-        const interval = setInterval(checkPendingResult, 3000);
-        checkPendingResult(); // Check immediately
+        // MOBILE FIX: Store poll function reference for visibility change handler
+        forcePollRef.current = checkPendingResult;
 
-        return () => clearInterval(interval);
-    }, [pendingGenerationId, user, feed]);
+        // Check immediately
+        checkPendingResult();
+
+        // Poll every 3 seconds while there's a pending generation
+        // MOBILE FIX: Always restart interval to ensure it's running after tab becomes visible
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+        }
+        pollingIntervalRef.current = setInterval(checkPendingResult, 3000);
+
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+            }
+        };
+    }, [pendingGenerationId, user, feed, showToast]);
 
     // Save session whenever feed changes (after initial load)
     useEffect(() => {

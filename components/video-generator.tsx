@@ -472,10 +472,18 @@ export function VideoGenerator() {
         }
     }, [prompt, imagePreview, generationMode, settings, sessionLoaded, user]);
 
+    // Track if we need to force poll on next visibility change
+    const lastPollTimeRef = useRef<number>(0);
+    const forcePollRef = useRef<(() => Promise<void>) | null>(null);
+
     // Handle page visibility change - resume polling when user returns to tab
+    // MOBILE FIX: On mobile, when browser is minimized, setInterval is suspended
+    // We need to immediately poll when user returns AND restart the interval
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && user) {
+                console.log("[Video] Tab became visible, checking pending generations...");
+                
                 // User returned to tab - reload pending videos and force a poll
                 const pending = loadPendingVideos(user.id);
                 if (pending.length > 0) {
@@ -497,6 +505,14 @@ export function VideoGenerator() {
                         return updated;
                     });
                 }
+
+                // MOBILE FIX: Force immediate poll when returning to tab
+                // This ensures we check status right away instead of waiting for next interval
+                const timeSinceLastPoll = Date.now() - lastPollTimeRef.current;
+                if (timeSinceLastPoll > 3000 && forcePollRef.current) {
+                    console.log("[Video] Forcing immediate poll after returning to tab");
+                    forcePollRef.current();
+                }
             }
         };
 
@@ -505,6 +521,7 @@ export function VideoGenerator() {
     }, [user]);
 
     // Poll for pending video status (supports both requestId for wan/v2.6 and taskId for legacy)
+    // MOBILE FIX: Track poll function for visibility change handler and update lastPollTime
     useEffect(() => {
         const pendingItems = feed.filter(item =>
             (item.status === "pending" || item.status === "processing") && (item.requestId || item.taskId)
@@ -515,10 +532,14 @@ export function VideoGenerator() {
                 clearInterval(pollingRef.current);
                 pollingRef.current = null;
             }
+            forcePollRef.current = null;
             return;
         }
 
         const pollStatus = async () => {
+            // MOBILE FIX: Update last poll time for visibility change detection
+            lastPollTimeRef.current = Date.now();
+            
             for (const item of pendingItems) {
                 // Use requestId for wan/v2.6, fallback to taskId for legacy
                 const pollId = item.requestId || item.taskId;
@@ -587,13 +608,18 @@ export function VideoGenerator() {
             }
         };
 
+        // MOBILE FIX: Store poll function reference for visibility change handler
+        forcePollRef.current = pollStatus;
+
         // Initial poll immediately
         pollStatus();
 
         // Start interval polling (every 5 seconds)
-        if (!pollingRef.current) {
-            pollingRef.current = setInterval(pollStatus, 5000);
+        // MOBILE FIX: Always restart interval to ensure it's running after tab becomes visible
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
         }
+        pollingRef.current = setInterval(pollStatus, 5000);
 
         return () => {
             if (pollingRef.current) {
@@ -601,7 +627,7 @@ export function VideoGenerator() {
                 pollingRef.current = null;
             }
         };
-    }, [feed, showToast, refreshProfile]);
+    }, [feed, showToast, refreshProfile, user]);
 
 
 

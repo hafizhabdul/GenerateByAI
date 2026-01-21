@@ -63,6 +63,9 @@ export function LongVideoProgress({ jobId, onComplete, onError, onCancel, autoMo
     const [autoEnabled, setAutoEnabled] = useState(autoMode);
 
     const isAutoProcessingRef = useRef(false);
+    // MOBILE FIX: Track last poll time and interval ref for visibility change
+    const lastPollTimeRef = useRef<number>(0);
+    const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
     const fetchStatus = useCallback(async () => {
         try {
@@ -140,10 +143,29 @@ export function LongVideoProgress({ jobId, onComplete, onError, onCancel, autoMo
         }
     }, [jobId, autoEnabled]);
 
+    // MOBILE FIX: Handle visibility change - force poll when returning to tab
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                const timeSinceLastPoll = Date.now() - lastPollTimeRef.current;
+                if (timeSinceLastPoll > 3000) {
+                    console.log("[LongVideo] Tab became visible, forcing immediate poll");
+                    fetchStatus();
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [fetchStatus]);
+
     useEffect(() => {
         fetchStatus();
 
-        const interval = setInterval(async () => {
+        const pollAndProcess = async () => {
+            // MOBILE FIX: Update last poll time
+            lastPollTimeRef.current = Date.now();
+            
             const data = await fetchStatus();
 
             if (!data || data.status === "completed" || data.status === "failed") {
@@ -162,9 +184,20 @@ export function LongVideoProgress({ jobId, onComplete, onError, onCancel, autoMo
                     autoStitch();
                 }
             }
-        }, POLL_INTERVAL);
+        };
 
-        return () => clearInterval(interval);
+        // MOBILE FIX: Store interval ref and always restart to ensure running after visibility change
+        if (pollingIntervalRef.current) {
+            clearInterval(pollingIntervalRef.current);
+        }
+        pollingIntervalRef.current = setInterval(pollAndProcess, POLL_INTERVAL);
+
+        return () => {
+            if (pollingIntervalRef.current) {
+                clearInterval(pollingIntervalRef.current);
+                pollingIntervalRef.current = null;
+            }
+        };
     }, [fetchStatus, autoEnabled, autoContinue, autoStitch]);
 
     const handleContinue = async () => {
